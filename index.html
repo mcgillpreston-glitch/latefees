@@ -1080,10 +1080,14 @@ function drawEnemy(e){
 function drawBlob(e){
   if(e.state==='dead'&&(T>>1)%2)return;
   const sx=e.x-G.cam,sy=e.y-e.z,wob=Math.sin(G.time*.12),rx=30+wob*3,ry=24-wob*2,fl=e.flash>0&&e.flash%2;
-  if(SPR.blob){let a=1+wob*.04,b=1-wob*.04;if(e.state==='spit'||e.state==='summon'){b*=1.06;a*=.96;}
-    if(e.state==='rise'||e.state==='hang'||e.state==='fall'){b*=1.12;a*=.9;}if(e.state==='dead')b*=Math.max(.2,e.timer/150);
+  if(SPR.blob){let a=1+wob*.04,b=1-wob*.04;const st=e.state,anim=!!SPR['blob:walk1'];
+    // frames: walk1/2 = oozing about, attack1 = mouth open (summon), attack2 = spitting, special = stretched tall (slam), hurt, down = melted
+    let fr=st==='spit'?'attack2':st==='summon'?'attack1':st==='rise'||st==='hang'||st==='fall'?'special':st==='dead'?'down':(Math.sin(G.time*.09)>0?'walk1':'walk2');
+    if(e.flash>2&&st!=='dead'&&st!=='rise'&&st!=='hang'&&st!=='fall')fr='hurt';
+    if(!anim){if(st==='spit'||st==='summon'){b*=1.06;a*=.96;}if(st==='rise'||st==='hang'||st==='fall'){b*=1.12;a*=.9;}if(st==='dead')b*=Math.max(.2,e.timer/150);}
+    else{a=1+wob*.02;b=1-wob*.02;if(st==='dead')b=Math.max(.6,e.timer/150+.4);}
     ctx.save();ctx.translate(Math.round(sx),Math.round(sy));ctx.scale(e.tgt&&e.tgt.x<e.x?-1:1,1);
-    drawSpr('blob',{sx:a,sy:b,flash:e.flash>0?(e.flash%2?.7:.3):0});ctx.restore();return;}
+    drawSpr('blob',{sx:a,sy:b,flash:e.flash>0?(e.flash%2?.7:.3):0},anim?fr:null);ctx.restore();return;}
   ctx.save();ctx.translate(Math.round(sx),Math.round(sy-ry+2));
   ell(0,0,rx,ry,fl?'#ffd0e6':'#b8261e');ell(-2,2,rx-4,ry-4,fl?'#ffffff':'#ff5fa8');ell(-9,-9,7,5,'#ffb0cc');
   ctx.strokeStyle='#c8ccd4';ctx.lineWidth=1;ctx.strokeRect(12.5,.5,14,9);for(let i=16;i<26;i+=3)rect(i,1,1,8,'#c8ccd4');rect(14,11,2,2,'#222222');rect(23,11,2,2,'#222222');
@@ -1140,10 +1144,20 @@ function drawBossFig(e){
     ctx.shadowColor=d.look.acc;ctx.shadowBlur=8;standIn(st,d.look,1);ctx.shadowBlur=0;}
   ctx.restore();
 }
+const SURV_KEY={'GRILL DAD':'surv_grill_dad','PAPER ROUTE KID':'surv_paper_kid','AEROBICS MOM':'surv_aerobics_mom','FOOD COURT TEEN':'surv_food_court_teen',
+  'ARCADE CHAMP':'surv_arcade_champ','NIGHT GUARD':'surv_night_guard','MALL WALKER':'surv_mall_walker','CART WRANGLER':'surv_cart_wrangler'};
 function drawSurv(s){
   if(s.saved&&s.fade<=0)return;
   const sx=Math.round(s.x-G.cam),sy=Math.round(s.y-(s.saved?(40-s.fade)*1.5:0));
   if(s.saved)ctx.globalAlpha=s.fade/40;
+  const sk=SURV_KEY[s.name];
+  if(sk&&SPR[sk]){const h=s.small?40:s.name==='CART WRANGLER'?44:46;ctx.save();ctx.translate(sx,sy);
+    // scared: a nervous little hop; saved: cheering jump as they fade away
+    if(s.saved)drawSpr(sk,{h,oy:-Math.abs(Math.sin(s.fade*.3))*4},'cheer');
+    else drawSpr(sk,{h,oy:-Math.abs(Math.sin(s.t*.18))*2,rot:Math.sin(s.t*.5)*.02});
+    ctx.restore();ctx.globalAlpha=1;
+    if(!s.saved&&(s.t%180)<80){rect(sx-19,sy-h-18,38,12,'#ffe9c2');tri(sx-2,sy-h-6,sx+4,sy-h-6,sx,sy-h-2,'#ffe9c2');txt('HELP!',sx,sy-h-16,'#e8453c','center',8,null);}
+    return;}
   ctx.save();ctx.translate(sx,sy);ctx.scale(1.45,1.45);if(s.small)ctx.scale(.82,.82);
   const wv=Math.sin(s.t*.25)>0;
   rect(-4,-10,3,10,s.pants);rect(1,-10,3,10,s.pants);rect(-4,-2,4,2,'#222222');rect(1,-2,4,2,'#222222');
