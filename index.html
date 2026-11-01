@@ -114,11 +114,11 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
       <h2 id="onlineh">ONLINE ROOMS</h2>
       <p>Pick <b>Online</b> on the title screen to host a room or join one with a 4-letter code. Everyone plays from their own device. The game runs on the room server, so nobody has a lag advantage.</p>
     </div>
-    <label class="srv">Room server address <input id="server" type="url" placeholder="https://latefees.your-name.workers.dev" autocomplete="off" spellcheck="false"></label>
+    <label class="srv">Room server address (already set; only change it if you run your own) <input id="server" type="url" value="https://latefees.prestonmcgill.workers.dev" placeholder="https://latefees.prestonmcgill.workers.dev" autocomplete="off" spellcheck="false"></label>
     <div class="padgrid">
       <div><h3>HOW IT WORKS</h3><span>One player hosts and gets a code. Friends enter the code on the same page. Everyone picks a different hero in the shared lobby, then the room starts. People can join a room mid-game and rejoin if their connection drops.</span></div>
       <div><h3>YOUR GEAR COMES WITH YOU</h3><span>Your hero's equipped gear and bag live in your browser. Online, your stats are sent to the room and loot you pick up goes into your own bag.</span></div>
-      <div><h3>RUNNING THE SERVER</h3><span>The room server is a Cloudflare Worker in the <code>server/</code> folder of the repo. Deploy it with <code>wrangler deploy</code> and paste its address above. The address is remembered on this device.</span></div>
+      <div><h3>RUNNING THE SERVER</h3><span>Rooms run on a Cloudflare Worker from the <code>server/</code> folder of the repo. The game connects to it automatically, so players only need this page and a room code.</span></div>
     </div>
   </section>
 
@@ -700,9 +700,10 @@ function updateFX(){
 /* ---------- online: rooms on a Cloudflare Durable Object ---------- */
 const NET={on:false,ws:null,code:'',slot:-1,token:null,dev:'kb1',lobby:null,snapMs:50,lastSnap:0,err:'',busy:false,held:0,sendT:0,cur:0,codeIn:['A','A','A','A'],col:0,ready:false,gone:false,tries:0};
 const serverEl=document.getElementById('server');
-try{serverEl.value=localStorage.getItem('lfotd-server')||serverEl.value;}catch(e){}
+const DEFAULT_SERVER='https://latefees.prestonmcgill.workers.dev';
+try{serverEl.value=localStorage.getItem('lfotd-server')||DEFAULT_SERVER;}catch(e){serverEl.value=DEFAULT_SERVER;}
 serverEl.addEventListener('change',()=>{try{localStorage.setItem('lfotd-server',serverEl.value.trim());}catch(e){}});
-function serverBase(){let u=(serverEl.value||'').trim().replace(/\/+$/,'');if(u&&!/^https?:\/\//.test(u))u='https://'+u;return u;}
+function serverBase(){let u=(serverEl.value||'').trim().replace(/\/+$/,'')||DEFAULT_SERVER;if(u&&!/^https?:\/\//.test(u))u='https://'+u;return u;}
 const BITS={up:1,down:2,left:4,right:8,atk:16,jump:32,spec:64,start:128};
 function netSend(o){if(NET.ws&&NET.ws.readyState===1)NET.ws.send(JSON.stringify(o));}
 function myGear(){const h=NET.lobby&&NET.lobby.players.find(p=>p.s===NET.slot);const hid=h?HEROES[h.h].id:(G&&G.ps.find(p=>p.slot===NET.slot)||{ch:HEROES[0]}).ch.id;return {st:calcStats(hid),look:gearLook(hid)};}
