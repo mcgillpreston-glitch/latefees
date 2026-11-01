@@ -573,7 +573,7 @@ function updSelect(){
       else if(backHit(d)){L.slots.splice(L.slots.indexOf(s),1);L.last=L.slots.length-1;beep(220,.1);}
     }else if(backHit(d)){s.locked=false;L.cd=0;}
   }
-  if(!L.slots.length&&(hit('menu','back')||devs().some(d=>isPad(d)&&hit(d,'back'))))scene='title';
+  if(hit('menu','back')||(!L.slots.length&&devs().some(d=>isPad(d)&&hit(d,'back')))){lobbyReset();scene='title';beep(330,.08);}
   if(L.slots.length&&L.slots.every(s=>s.locked)){if(++L.cd>75){newGame();scene='intro';introT=0;}}else L.cd=0;
 }
 
@@ -716,7 +716,8 @@ function updJoin(){
 function updNLobby(){
   const d=NET.dev,lb=NET.lobby;if(!lb)return;
   const me=lb.players.find(p=>p.s===NET.slot);
-  if(hit('menu','back')||(isPad(d)?hit(d,'back'):hit(d,'jump'))){if(me&&me.lk)netSend({t:'lock',v:false});else{netSend({t:'leave'});netLeave();}return;}
+  if(hit('menu','back')){netSend({t:'leave'});netLeave();return;}
+  if(isPad(d)?hit(d,'back'):hit(d,'jump')){if(me&&me.lk)netSend({t:'lock',v:false});else{netSend({t:'leave'});netLeave();}return;}
   if(!me)return;
   if(!me.lk){const mv=(hit(d,'right')?1:0)-(hit(d,'left')?1:0);
     if(mv){let h=me.h;for(let i=0;i<4;i++){h=(h+mv+4)%4;if(!lb.players.some(p=>p!==me&&p.lk&&p.h===h))break;}netSend({t:'hero',h});beep(440,.05);}
@@ -1100,7 +1101,7 @@ function drawSelect(){
   txt(h.name+'  '+h.job,8,162,'#ffe9c2');txt('SPECIAL: '+h.sp+' (-'+h.cost+' HP)',8,174,'#3ad6c0');
   txt('"'+h.quote+'"',8,188,'#ffc93c');
   let hint;if(!L.slots.length)hint='PRESS HIT OR A TO JOIN';else if(L.slots.every(q=>q.locked))hint='GET READY... '+Math.max(1,Math.ceil((75-L.cd)/25));
-  else hint=L.slots.some(q=>isPad(q.dev))?'A: LOCK IN   B: BACK':'HIT: LOCK IN   JUMP: BACK';
+  else hint=L.slots.some(q=>isPad(q.dev))?'A: LOCK IN   B: BACK   ESC: TITLE':'HIT: LOCK IN   JUMP: BACK   ESC: TITLE';
   txt(hint,W-6,202,L.cd?'#ffc93c':'#d9a87c','right');
 }
 function drawControls(){
