@@ -410,6 +410,8 @@ function step(g){
     if(q.x<g.cam-30||q.x>g.cam+W+30||q.y<TOP-6||q.y>BOT+6)q.life=0;}
   g.proj=g.proj.filter(q=>q.life>0);
   for(const k of g.pick){k.t++;if(k.got)continue;
+    // Loot never gets left behind: anything that falls off the left edge slides along with the screen.
+    const minX=g.cam+16;if(k.x<minX)k.x=Math.min(minX,k.x+Math.max(1.5,(minX-k.x)*.25));
     for(const p of act){if(Math.abs(k.x-p.x)<12&&Math.abs(k.y-p.y)<9&&p.z<12&&p.state!=='down'){if(k.kind==='gear'){pickGear(g,p,k);break;}k.got=true;
       if(k.kind==='pizza'){p.hp=Math.min(p.maxhp,p.hp+30);floatText(g,k.x,k.y,'+30 HP','#c8f05a');}
       else if(k.kind==='tape'){addScore(g,p,1000);floatText(g,k.x,k.y,'RARE TAPE +1000','#ffc93c');}
