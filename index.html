@@ -882,7 +882,7 @@ function whiteOf(s){if(s.white)return s.white;const c=document.createElement('ca
   x.drawImage(s.img,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#ffffff';x.fillRect(0,0,c.width,c.height);s.white=c;return c;}
 function drawSpr(key,o,frame){
   const fs=frame&&SPR[key+':'+frame],s=fs||SPR[key];if(!s)return false;
-  const h=o.h||SPR_H[key]||50,m=s.m,k=h/m.h,w=m.w*k,ax=m.ax*k;
+  const H0=o.h||SPR_H[key]||50,h=H0*(fs&&s.m.rel?s.m.rel:1),m=s.m,k=h/m.h,w=m.w*k,ax=m.ax*k;
   ctx.save();
   if(o.lying&&!(fs&&frame==='down')){ctx.translate(h*.45,-ax*.85);ctx.rotate(-Math.PI/2);}
   ctx.translate(o.ox||0,o.oy||0);ctx.rotate((o.rot||0)*(fs?.35:1));ctx.scale(o.sx||1,o.sy||1);
@@ -906,13 +906,13 @@ function heroSprite(id,pose){
     else{const r=1-(t-.62)/.38;o.rot=lean*r;o.ox=H*.08*r;f='attack2';}}
   if(pose.hurt){o.rot=-.22;o.ox=-H*.06;f='hurt';}
   if(pose.spec!=null){const s=pose.spec;f='special';
-    if(id==='dex'){const c=Math.cos(s*.55);o.sx=Math.sign(c||1)*Math.max(.18,Math.abs(c));}
+    if(id==='dex'){if(SPR['dex:special'])o.sx=Math.floor(s/5)%2?-1:1;else{const c=Math.cos(s*.55);o.sx=Math.sign(c||1)*Math.max(.18,Math.abs(c));}}
     else if(id==='rae'){o.ox=T%4<2?1:-1;o.rot=-.06;}
     else if(id==='benny'){o.rot=s<7?-.22:.2;o.ox=s<7?-2:4;}
     else{o.rot=.28;o.ox=3;drawSpr(id,{...o,ox:-10,alpha:.3});drawSpr(id,{...o,ox:-5,alpha:.5});}}
   if(pose.flash)o.flash=pose.flash;
   drawSpr(id,o,f);
-  if(arc){ctx.save();ctx.strokeStyle=pose.trail||'rgba(255,240,200,.65)';ctx.lineWidth=3;ctx.beginPath();
+  if(arc&&!SPR[id+':attack2']){ctx.save();ctx.strokeStyle=pose.trail||'rgba(255,240,200,.65)';ctx.lineWidth=3;ctx.beginPath();
     ctx.arc(H*.08,-H*.6,H*.55,Math.min(arc[0],arc[1]),Math.max(arc[0],arc[1]));ctx.stroke();ctx.restore();}
   return true;
 }
@@ -1333,6 +1333,6 @@ let last=performance.now(),acc=0;const STEP=1000/60;
 function frame(now){acc+=Math.min(100,now-last);last=now;let n=0;while(acc>=STEP&&n<5){update();acc-=STEP;n++;}render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 rebuildKeys();renderPadList();renderLegend();
-window.__lf={MUS,SND,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
+window.__lf={MUS,SND,SPR,drawHero,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
 })();
 </script>
