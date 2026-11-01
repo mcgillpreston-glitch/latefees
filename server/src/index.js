@@ -60,6 +60,7 @@ export class Room {
     this.G = null;
     this.timer = null;
     this.count = 0;
+    this.stage = 1;
     this.tick = 0;
     this.evBuf = [];
     this.startAt = 0;
@@ -178,6 +179,13 @@ export class Room {
         if (d.look) p.look = C.cleanLook(d.look);
         this.count = 0; this.sendLobby(); this.checkCountdown(); break;
       }
+      case "stage": {
+        // Only the host (lowest slot) picks the stage, and only before the countdown.
+        if (this.status !== "lobby" || this.count > 0) return;
+        if (slot !== Math.min(...this.players.keys())) return;
+        const v = d.v | 0; if (v < 1 || v > C.NSTAGES) return;
+        this.stage = v; this.sendLobby(); break;
+      }
       case "gear": {
         p.st = C.cleanStats(d.st); p.look = C.cleanLook(d.look);
         if (this.G) { const gp = this.G.ps.find(q => q.slot === slot); if (gp) C.setStats(gp, p.st, p.look, true); }
@@ -199,7 +207,7 @@ export class Room {
   }
 
   lobbyMsg() {
-    return { t: "lobby", code: this.code, status: this.status, count: this.count,
+    return { t: "lobby", code: this.code, status: this.status, count: this.count, stage: this.stage,
       players: [...this.players].map(([s, p]) => ({ s, h: p.hero, lk: p.locked, nm: p.name, on: !!p.ws, look: p.look })) };
   }
   sendLobby() { this.broadcast(this.lobbyMsg()); }
@@ -239,16 +247,16 @@ export class Room {
     C.step(g);
     this.tick++;
     if (g.ev.length) { this.evBuf.push(...g.ev); g.ev.length = 0; }
-    if (this.tick % SNAP_EVERY === 0 || g.status !== "play") {
+    if (this.tick % SNAP_EVERY === 0 || g.status === "over" || g.status === "win") {
       this.broadcast({ t: "snap", s: C.snapshot(g), ev: this.evBuf });
       this.evBuf = [];
     }
-    if (g.status !== "play") { this.status = g.status; this.stopTimer(); this.sendLobby(); }
+    if (g.status === "over" || g.status === "win") { this.status = g.status; if (g.status === "over") this.stage = g.level || 1; this.stopTimer(); this.sendLobby(); }
   }
 
   startGame() {
     const specs = [...this.players].filter(([, p]) => p.ws).map(([slot, p]) => ({ slot, hero: p.hero, st: p.st, look: p.look }));
-    this.G = C.newGame(specs);
+    this.G = C.newGame(specs, this.stage);
     this.status = "play"; this.count = 0; this.tick = 0; this.evBuf = [];
     this.startAt = Date.now() + START_DELAY_MS;
     for (const p of this.players.values()) { p.held = 0; p.pressed = 0; }
