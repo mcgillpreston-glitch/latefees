@@ -11,7 +11,7 @@ const HEROES=[
  {id:'dex',first:'DEX',name:'DEX MORENO',job:'VIDEO CLERK',spd:1.5,dmg:9,reach:30,atk:16,sp:'REWIND SPIN',cost:8,stats:[3,3,3],quote:'Be kind. Rewind their skulls.'},
  {id:'rae',first:'RAE',name:'RAE KOWALSKI',job:'BASSIST',spd:1.2,dmg:13,reach:38,atk:20,sp:'POWER CHORD',cost:10,stats:[5,2,5],quote:'This town needs more feedback.'},
  {id:'benny',first:'BENNY',name:'BENNY TRAN',job:'PIZZA GUY',spd:1.75,dmg:7,reach:25,atk:13,sp:'HOT DELIVERY',cost:6,stats:[2,4,2],quote:"30 minutes or it's free. Or dead."},
- {id:'jules',first:'JULES',name:'JULES OKAFOR',job:'BLADER',spd:1.95,dmg:8,reach:30,atk:14,sp:'BLADE RUSH',cost:8,stats:[3,5,3],quote:"Totally bogus. Let's roll."},
+ {id:'julia',first:'JULIA',name:'JULIA OKAFOR',job:'BLADER',spd:1.95,dmg:8,reach:30,atk:14,sp:'BLADE RUSH',cost:8,stats:[3,5,3],quote:"Totally bogus. Let's roll."},
 ];
 const POW={
  jolt:{name:'JOLT SODA',desc:'SPEED UP',col:'#ff5a4a',dur:600},
@@ -368,7 +368,7 @@ function doSpecial(g,p){
   if(id==='dex'){strikeR(g,p,38,10,s.hits);if(s.t%6===0)beep(g,600,.05,'triangle',.04,.5);if(s.t>=32)endSp(p);}
   else if(id==='rae'){s.r=Math.min(80,s.t*4);if(s.t>=5)strikeR(g,p,s.r,16,s.hits);if(s.t===5){shake(g,7);beep(g,55,.6,'sawtooth',.09,1.02);beep(g,82,.6,'square',.05,1.01);}if(s.t>=36)endSp(p);}
   else if(id==='benny'){if(s.t===7){g.proj.push({id:++g.pid,from:'p',owner:p,x:p.x+p.face*10,y:p.y,z:14,vx:p.face*4.6,vy:0,dmg:14,life:80,hits:new Set(),kind:'pizza',pierce:true});beep(g,700,.12,'square',.04,.5);}if(s.t>=20)endSp(p);}
-  else if(id==='jules'){p.x+=p.face*4.4;strike(g,p,22,10,true,s.hits);if(s.t%2===0)part(g,p.x-p.face*10,p.y,rnd(6,26),'#3ad6c0',{vx:-p.face*2,vy:0,vz:0,l:10,s:2,gv:0});if(s.t>=22)endSp(p);}
+  else if(id==='julia'){p.x+=p.face*4.4;strike(g,p,22,10,true,s.hits);if(s.t%2===0)part(g,p.x-p.face*10,p.y,rnd(6,26),'#3ad6c0',{vx:-p.face*2,vy:0,vz:0,l:10,s:2,gv:0});if(s.t>=22)endSp(p);}
 }
 function updPlayer(g,p){
   const h=p.ch;if(p.inv>0)p.inv--;if(p.comboT>0&&--p.comboT===0)p.combo=0;if(p.comboW>0)p.comboW--;

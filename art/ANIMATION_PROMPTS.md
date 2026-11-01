@@ -59,19 +59,19 @@ Reference: `art/benny.webp` (the image you sent).
 - **`benny_down.png`**: "Same character: Benny, the pizza delivery guy (backwards red cap, yellow work shirt with pizza patch, lime-green cargo shorts, teal fanny pack, white high-tops, red insulated pizza bag). Pose: knocked flat on his back, lying horizontally."
 - **`benny_special.png`**: "Same character: Benny, the pizza delivery guy (backwards red cap, yellow work shirt with pizza patch, lime-green cargo shorts, teal fanny pack, white high-tops, red insulated pizza bag). Pose: hurling a spinning pizza box forward like a frisbee, throwing arm extended (Hot Delivery)."
 
-### Jules
+### Julia
 
-Reference: `art/jules.webp` (the image you sent).
+Reference: `art/julia.webp` (replace with the new Julia image when it is ready).
 
-- **`jules_walk1.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: skating stride, left skate pushing out."
-- **`jules_walk2.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: skating stride, right skate pushing out."
-- **`jules_attack1.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: winding up a slapshot, hockey stick raised high behind him."
-- **`jules_attack2.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: follow-through of a slapshot, stick swung forward and low."
-- **`jules_jump.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: in the air, skates tucked, stick held across body."
-- **`jules_kick.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: flying jump kick with a skate extended forward."
-- **`jules_hurt.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: recoiling from a hit, losing balance on his skates."
-- **`jules_down.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: knocked flat on his back, lying horizontally, skates in the air."
-- **`jules_special.png`**: "Same character: Jules, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: low crouched speed dash with the stick held forward like a lance, motion lines (Blade Rush)."
+- **`julia_walk1.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: skating stride, left skate pushing out."
+- **`julia_walk2.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: skating stride, right skate pushing out."
+- **`julia_attack1.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: winding up a slapshot, hockey stick raised high behind her."
+- **`julia_attack2.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: follow-through of a slapshot, stick swung forward and low."
+- **`julia_jump.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: in the air, skates tucked, stick held across body."
+- **`julia_kick.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: flying jump kick with a skate extended forward."
+- **`julia_hurt.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: recoiling from a hit, losing balance on her skates."
+- **`julia_down.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: knocked flat on her back, lying horizontally, skates in the air."
+- **`julia_special.png`**: "Same character: Julia, the mall rollerblader (pink headband, teal jersey with pink/yellow/orange stripes, orange shorts, black knee pads, pink inline skates, wooden hockey stick). Pose: low crouched speed dash with the stick held forward like a lance, motion lines (Blade Rush)."
 
 ## Monsters (6 frames each)
 

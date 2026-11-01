@@ -142,7 +142,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
         <li><b>Dex Moreno, 24</b><span>Video store clerk. Swings a tube sock full of overdue VHS tapes. Balanced. <i>Special: Rewind Spin</i></span></li>
         <li><b>Rae Kowalski, 22</b><span>Bassist in a band with no drummer. Slow, hits hardest, longest reach. <i>Special: Power Chord</i></span></li>
         <li><b>Benny Tran, 21</b><span>Pizza driver. Quick, light hits with a delivery bag. <i>Special: Hot Delivery</i></span></li>
-        <li><b>Jules Okafor, 23</b><span>Mall rollerblader with a hockey stick. Fastest mover. <i>Special: Blade Rush</i></span></li>
+        <li><b>Julia Okafor, 23</b><span>Mall rollerblader with a hockey stick. Fastest mover. <i>Special: Blade Rush</i></span></li>
       </ul>
     </div>
     <div class="col">
@@ -416,7 +416,7 @@ const PAL={
  dex:{skin:'#d9955e',hair:'#3a1c10',sleeve:'#ffe9c2',sleeveB:'#d9b98a',pants:'#5a3a8a',shin:'#5a3a8a',shoe:'#ffe9c2'},
  rae:{skin:'#f5caa6',hair:'#ff5fa8',sleeve:'#e8453c',sleeveB:'#a82e24',pants:'#1f9e8e',shin:'#1f9e8e',shoe:'#2b150f'},
  benny:{skin:'#e0a874',hair:'#2b150f',sleeve:'#ffc93c',sleeveB:'#d9a020',pants:'#c8f05a',shin:'#e0a874',shoe:'#ffe9c2'},
- jules:{skin:'#7a4a30',hair:'#2b150f',sleeve:'#3ad6c0',sleeveB:'#1f9e8e',pants:'#ff9a3c',shin:'#7a4a30',shoe:'#ff5fa8'},
+ julia:{skin:'#7a4a30',hair:'#2b150f',sleeve:'#3ad6c0',sleeveB:'#1f9e8e',pants:'#ff9a3c',shin:'#7a4a30',shoe:'#ff5fa8'},
 };
 const STORES=['VIDEO BARN','PRETZEL PIT','ARCADIA','MUSIC LAND','PAGER HUT','SHOE STOP','TOY DEPOT','FOOD COURT'];
 const NEON=['#ff5fa8','#3ad6c0','#ffc93c','#ff9a3c','#c8f05a','#ff5fa8','#3ad6c0','#ffc93c'];
@@ -482,6 +482,7 @@ function saveHi(){if(G&&G.score>hi){hi=G.score;try{localStorage.setItem('lfotd-h
 /* ---------- gear: 9 slots x 30 items, four rarities, four sets, one saved inventory per hero ---------- */
 let GEAR={};
 try{const sv=JSON.parse(localStorage.getItem('lfotd-gear')||'null');
+  if(sv&&sv.jules&&!sv.julia)sv.julia=sv.jules; // Jules was renamed Julia; keep her saved gear
   if(sv)for(const h of HEROES){const g=sv[h.id];if(!g)continue;const e=emptyGear();
     for(const c of CATS){const it=cleanItem(g.eq&&g.eq[c]);if(it&&BASES[it.k].cat===c)e.eq[c]=it;}
     e.bag=(Array.isArray(g.bag)?g.bag:[]).map(cleanItem).filter(Boolean).slice(0,BAG_MAX);GEAR[h.id]=e;}}catch(e){}
@@ -888,7 +889,7 @@ const ART=globalThis.LF_ART||{};
 const SPR={};
 for(const k in ART){const m=ART[k],img=new Image();img.onload=()=>{SPR[k]={img,m,white:null};};img.src=m.src;
   if(m.frames)for(const f in m.frames){const fm=m.frames[f],fi=new Image();fi.onload=()=>{SPR[k+':'+f]={img:fi,m:fm,white:null};};fi.src=fm.src;}}
-const SPR_H={dex:50,rae:50,benny:50,jules:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
+const SPR_H={dex:50,rae:50,benny:50,julia:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
 const sprH0=k=>SPR_H[k]||Math.round((EN[k]&&EN[k].boss?46:50)*((EN[k]&&EN[k].look&&EN[k].look.k)||1));
 const sprH=k=>SPR[k]?sprH0(k):(EN[k]&&EN[k].look?sprH0(k)*.8:31);
 function whiteOf(s){if(s.white)return s.white;const c=document.createElement('canvas');c.width=s.img.width;c.height=s.img.height;const x=c.getContext('2d');
@@ -955,7 +956,7 @@ function drawHeroPx(id,pose){
   const ph=pose.walk?Math.sin(pose.walk*.28):0,l=Math.round(ph*3),by=pose.walk&&Math.abs(ph)>.6?-1:0;
   rect(-6,-20+by,3,8,P.sleeveB);rect(-6,-12+by,3,2,P.skin);
   const leg=x=>{rect(x,-10,3,5,P.pants);rect(x,-5,3,3,P.shin);rect(x,-2,4,2,P.shoe);
-    if(id==='jules'){rect(x-1,-2,6,2,P.shoe);rect(x-1,0,1,1,'#dddddd');rect(x+2,0,1,1,'#dddddd');rect(x+4,0,1,1,'#dddddd');}
+    if(id==='julia'){rect(x-1,-2,6,2,P.shoe);rect(x-1,0,1,1,'#dddddd');rect(x+2,0,1,1,'#dddddd');rect(x+4,0,1,1,'#dddddd');}
     if(id==='rae')rect(x,-8,3,1,'#cfd8e8');};
   if(pose.air){if(pose.kick){rect(-4,-11,3,6,P.pants);rect(-5,-6,4,2,P.shoe);rect(0,-12,11,3,P.pants);rect(11,-13,3,4,P.shoe);}
     else{rect(-4,-11,3,7,P.pants);rect(1,-12,3,7,P.pants);rect(-5,-5,4,2,P.shoe);rect(1,-6,4,2,P.shoe);}}
@@ -1451,6 +1452,6 @@ let last=performance.now(),acc=0;const STEP=1000/60;
 function frame(now){acc+=Math.min(100,now-last);last=now;let n=0;while(acc>=STEP&&n<5){update();acc-=STEP;n++;}render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 rebuildKeys();renderPadList();renderLegend();
-window.__lf={STG,unlockTo,MUS,SND,SPR,drawHero,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
+window.__lf={STG,unlockTo,enemySprite,MUS,SND,SPR,drawHero,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
 })();
 </script>
