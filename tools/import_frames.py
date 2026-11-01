@@ -1,6 +1,7 @@
 """Import a character's animation frames into the game.
 
-Usage: python3 tools/import_frames.py <sprite-key> <folder-with-pngs> [--hue LO HI]
+Usage: python3 tools/import_frames.py <sprite-key> <folder-with-pngs> [--hue LO HI] [--same-scale]
+Set outfits use the key <hero>_<set>, e.g. dex_night with files dex_night_walk1.png ...
 Expects files named <key>_<frame>.png (walk1, walk2, attack1, attack2, jump, kick, hurt, down, special)
 on transparent backgrounds, all drawn at the same scale. Writes art/<key>_<frame>.webp and updates
 art/manifest.js. Frames are sized relative to walk1 (or the first standing frame), so a jump or a
@@ -62,7 +63,11 @@ def main(key, folder, hue=None, same=False):
         rel = (h / OUT_H) / (drawn ** .75 if drawn > 0 else 1)
         frames[f] = {'src': f'art/{key}_{f}.webp', 'w': w, 'h': h, 'ax': ax, 'rel': round(rel, 4)}
         print(f'{f:8s} {w}x{h} drawn at {drawn:.2f}x  rel {rel:.2f} ax {ax}  {os.path.getsize(out)//1024} KB')
-    man.setdefault(key, {})['frames'] = frames
+    e = man.setdefault(key, {})
+    e['frames'] = frames
+    if 'src' not in e:   # outfit sprites (e.g. dex_night) have no separate standing image: stand on walk1
+        f0 = frames.get('walk1') or next(iter(frames.values()))
+        e.update(src=f0['src'], w=f0['w'], h=f0['h'], ax=f0['ax'])
     open(man_path, 'w').write('// Sprite manifest: feet anchor (ax at bottom edge), head box for HUD portraits, optional animation frames.\nglobalThis.LF_ART=' + json.dumps(man) + ';\n')
     print('manifest updated:', key, ', '.join(frames))
 

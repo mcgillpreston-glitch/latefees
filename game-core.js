@@ -217,10 +217,13 @@ function calcStatsFor(g){const t=Object.fromEntries(STAT_KEYS.map(k=>[k,0])),set
   for(const c of CATS){const it=g.eq[c];if(!it)continue;const b=BASES[it.k];for(const s in it.st)t[s]+=it.st[s];if(b.set)sets[b.set]=(sets[b.set]||0)+1;}
   for(const S of SETS){const n=sets[S.id]||0;for(const [need,bon] of S.bonus)if(n>=need)for(const s in bon)t[s]+=bon[s];}
   for(const s in CAP)t[s]=Math.min(CAP[s],t[s]);t.sets=sets;return t;}
-function gearLookFor(g){const o={};for(const c of CATS)if(g.eq[c])o[c]=BASES[g.eq[c].k].col;return o;}
+// Look = equipped colours per slot, plus out = a set worn with 3+ pieces (heroes swap to that set's outfit art when it exists).
+const OUTFIT_MIN=3;
+function gearLookFor(g){const o={},n={};for(const c of CATS)if(g.eq[c]){const b=BASES[g.eq[c].k];o[c]=b.col;if(b.set)n[b.set]=(n[b.set]||0)+1;}
+  let best=null;for(const k in n)if(n[k]>=OUTFIT_MIN&&(!best||n[k]>n[best]))best=k;if(best)o.out=best;return o;}
 function cleanStats(st){const t=Object.fromEntries(STAT_KEYS.map(k=>[k,0]));if(st&&typeof st==='object')for(const k of STAT_KEYS){const v=+st[k];if(Number.isFinite(v))t[k]=Math.max(0,Math.min(k in CAP?CAP[k]:400,v));}
   t.sets={};if(st&&st.sets&&typeof st.sets==='object')for(const S of SETS){const n=st.sets[S.id]|0;if(n>0)t.sets[S.id]=Math.min(n,setSize(S.id));}return t;}
-function cleanLook(lk){const o={};if(lk&&typeof lk==='object')for(const c of CATS){const v=lk[c];if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))o[c]=v;}return o;}
+function cleanLook(lk){const o={};if(lk&&typeof lk==='object'){for(const c of CATS){const v=lk[c];if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))o[c]=v;}if(SETS.some(s=>s.id===lk.out))o.out=lk.out;}return o;}
 function bonusTxt(k,v){return STAT[k].short+(k==='SPC'?'-':'+')+v+(k==='HP'||k==='REGEN'?'':'%');}
 const zoneIl=(g,x)=>{const zs=levelZones(g.level||1);let i=zs.findIndex(z=>x<z[2]);if(i<0)i=zs.length-1;return clamp((g.level||1)+i,1,10);};
 
