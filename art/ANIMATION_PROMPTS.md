@@ -1,4 +1,4 @@
-# Late Fees of the Dead: animation frame prompts
+# The Last Video Store: animation frame prompts
 
 Use these in ChatGPT image generation to add animation frames for the illustrated sprites. The game already animates each character from its single image (bobbing walk, wind-up lean, strike lunge, hurt recoil, knockdown), so every frame here is optional. Make whichever ones you like and send them back; I'll cut them out, line up their feet, and register them in `art/manifest.js` under the names below.
 

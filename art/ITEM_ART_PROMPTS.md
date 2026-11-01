@@ -1,4 +1,4 @@
-# Late Fees of the Dead: gear art handoff (270 items)
+# The Last Video Store: gear art handoff (270 items)
 
 ## How the art turns into a different look in the game
 

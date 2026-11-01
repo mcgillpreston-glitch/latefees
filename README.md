@@ -1,6 +1,8 @@
-# Late Fees of the Dead
+# The Last Video Store
 
-A 1–4 player side-scrolling beat-'em-up set in Hollow Pines, Ohio, summer 1996. Four slacker twentysomethings fight B-movie monsters through a cul-de-sac, a mall and a parking-lot boss fight, rescuing neighbors and collecting Diablo-style loot along the way.
+*The Dead Don't Rewind.*
+
+A 1–4 player side-scrolling beat-'em-up set in Hollow Pines, Ohio, summer 1996. Four slacker twentysomethings fight B-movie monsters across 10 stages, from a cul-de-sac to the meteor crater, rescuing neighbors and collecting Diablo-style loot along the way.
 
 The game is two files: `index.html` (the page, renderer and input) and `game-core.js` (the rules). Open `index.html` in any browser, or play the hosted build on GitHub Pages.
 

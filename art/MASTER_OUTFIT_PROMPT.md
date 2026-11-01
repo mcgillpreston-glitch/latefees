@@ -14,7 +14,7 @@ There are 4 sets × 4 heroes = 16 outfits. Do **one ChatGPT chat per hero**; eac
 ```
 HERO: Dex   (change this to Rae, Benny or Julia)
 
-You are making game art for my 90s beat-'em-up "Late Fees of the Dead". The 9 attached images are this hero's animation frames: walk1, walk2, attack1, attack2, jump, kick, hurt, down, special (the file names say which is which).
+You are making game art for my 90s beat-'em-up "The Last Video Store". The 9 attached images are this hero's animation frames: walk1, walk2, attack1, attack2, jump, kick, hurt, down, special (the file names say which is which).
 
 TASK: redraw this hero in 4 new OUTFITS. Each outfit is one sheet showing all 9 poses. Then slice the sheets and give me one zip.
 

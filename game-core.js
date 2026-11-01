@@ -1,4 +1,4 @@
-/* Late Fees of the Dead — shared simulation core.
+/* The Last Video Store — shared simulation core.
    Runs unchanged in the browser (local co-op) and inside the Cloudflare Durable Object (online rooms).
    No canvas, audio, DOM or storage in here: anything a client should show or play is pushed to g.ev. */
 (()=>{

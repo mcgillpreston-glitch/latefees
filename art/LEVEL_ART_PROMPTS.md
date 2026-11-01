@@ -1,4 +1,4 @@
-# Late Fees of the Dead: art prompts for stages 2 to 10
+# The Last Video Store: art prompts for stages 2 to 10
 
 Paste these into ChatGPT image generation. Every stage and monster already works with drawn stand-ins, so you can add art in any order. Send the images back and I'll convert them, cut out the monsters and register them; each one replaces its stand-in as soon as it's in.
 

@@ -6,7 +6,7 @@
 4. When it says all sheets are done, reply **make the zip**, then download the zip and send it to me.
 
 ```
-You are producing game art for my 90s beat-'em-up "Late Fees of the Dead". The 4 attached images are the heroes. Use them ONLY as the art-style reference: thick black ink outlines, grainy 90s comic-book print texture, warm saturated campy colours. Do NOT draw the heroes.
+You are producing game art for my 90s beat-'em-up "The Last Video Store". The 4 attached images are the heroes. Use them ONLY as the art-style reference: thick black ink outlines, grainy 90s comic-book print texture, warm saturated campy colours. Do NOT draw the heroes.
 
 TASK: draw all 270 wearable items listed at the bottom, as 45 grid sheets, then slice them into 270 PNGs and give me one zip.
 

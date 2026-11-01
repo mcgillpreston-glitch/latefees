@@ -1,4 +1,4 @@
-# Late Fees of the Dead — room server
+# The Last Video Store — room server
 
 A Cloudflare Worker plus one Durable Object per room. The Durable Object runs the same `game-core.js` the browser uses, at 60 ticks a second, and streams snapshots to every player 20 times a second.
 

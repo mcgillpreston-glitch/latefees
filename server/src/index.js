@@ -1,4 +1,4 @@
-// Late Fees of the Dead — room server.
+// The Last Video Store — room server.
 // A Worker hands out room codes; one Durable Object per room runs the shared game core
 // at 60 ticks a second and streams snapshots to every connected player over WebSockets.
 import "../../game-core.js";
@@ -23,7 +23,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
-    if (url.pathname === "/" || url.pathname === "/health") return json({ ok: true, game: "Late Fees of the Dead", rooms: "POST /rooms, then wss://.../rooms/CODE/ws" });
+    if (url.pathname === "/" || url.pathname === "/health") return json({ ok: true, game: "The Last Video Store", rooms: "POST /rooms, then wss://.../rooms/CODE/ws" });
 
     if (url.pathname === "/rooms" && request.method === "POST") {
       for (let i = 0; i < 8; i++) {

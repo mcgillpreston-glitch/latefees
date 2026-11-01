@@ -1,4 +1,4 @@
-<title>Late Fees of the Dead</title>
+<title>The Last Video Store</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,6 +29,7 @@ body{
 .stripes{width:46px;height:52px;flex:none;background:linear-gradient(115deg,transparent 0 18%,var(--mustard) 18% 38%,var(--teal) 38% 58%,var(--cream) 58% 72%,transparent 72%)}
 .marquee h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,5.4vw,46px);line-height:1;margin:0;letter-spacing:.01em;text-wrap:balance;color:var(--mustard);text-shadow:3px 3px 0 #1c0b07,-1px -1px 0 #1c0b07,1px -1px 0 #1c0b07,-1px 1px 0 #1c0b07}
 .marquee h1 span{color:var(--slime)}
+.marquee .tagline{color:var(--slime);font-weight:400;letter-spacing:.04em}
 .marquee p{margin:4px 0 0;color:var(--cream);font-size:20px;text-shadow:1px 1px 0 #1c0b07}
 .titles{flex:1;min-width:0}
 .sticker{flex:none;width:76px;height:76px;border-radius:50%;background:var(--mustard);border:3px dashed #1c0b07;color:#1a0f08;display:grid;place-items:center;text-align:center;font-family:var(--pixel);font-size:8px;line-height:1.5;transform:rotate(-12deg);box-shadow:2px 3px 0 #000}
@@ -89,13 +90,13 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   <header class="marquee">
     <div class="stripes" aria-hidden="true"></div>
     <div class="titles">
-      <h1>Late Fees <span>of the Dead</span></h1>
-      <p>Draft build 0.7. A 1 to 4 player beat-'em-up set in Hollow Pines, Ohio, summer 1996. Couch co-op or online rooms.</p>
+      <h1>The Last <span>Video Store</span></h1>
+      <p><b class="tagline">The Dead Don't Rewind.</b> Draft build 0.8. A 1 to 4 player beat-'em-up set in Hollow Pines, Ohio, summer 1996. Couch co-op or online rooms.</p>
     </div>
     <div class="sticker" aria-hidden="true">BE KIND<br>REWIND</div>
   </header>
 
-  <div class="screen"><canvas id="game" width="1152" height="648" tabindex="0" aria-label="Late Fees of the Dead game screen"></canvas></div>
+  <div class="screen"><canvas id="game" width="1152" height="648" tabindex="0" aria-label="The Last Video Store game screen"></canvas></div>
 
   <div class="pad" id="pad" aria-hidden="true">
     <div class="dpad" id="dpad"></div>
@@ -1376,15 +1377,18 @@ function drawHUD(){
   else if(g.time<360&&g.level===STG.cur&&!touchMode&&!g.boss)txt(g.ps.length<4?'MORE PLAYERS: PRESS START TO JOIN':'',W/2,H-12,'rgba(255,233,194,.75)','center');
 }
 function logo(y){
-  ctx.font='24px "Press Start 2P", monospace';ctx.textAlign='center';ctx.textBaseline='top';
-  ctx.fillStyle='#2b150f';ctx.fillText('LATE FEES',W/2+4,y+4);ctx.fillStyle='#e8453c';ctx.fillText('LATE FEES',W/2+2,y+2);ctx.fillStyle='#ffc93c';ctx.fillText('LATE FEES',W/2,y);
-  ctx.font='16px "Press Start 2P", monospace';ctx.fillStyle='#2b150f';ctx.fillText('OF THE DEAD',W/2+2,y+32);ctx.fillStyle='#c8f05a';ctx.fillText('OF THE DEAD',W/2,y+30);
-  for(let i=0;i<9;i++){const x=W/2-80+i*19+((i*7)%5),len=4+((i*13+(T>>3))%7);rect(x,y+44,2,len,'#9ccf3a');rect(x,y+44+len,2,2,'#c8f05a');}
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.font='16px "Press Start 2P", monospace';ctx.fillStyle='#2b150f';ctx.fillText('THE LAST',W/2+2,y+2);ctx.fillStyle='#ffe9c2';ctx.fillText('THE LAST',W/2,y);
+  ctx.font='24px "Press Start 2P", monospace';
+  ctx.fillStyle='#2b150f';ctx.fillText('VIDEO STORE',W/2+4,y+24);ctx.fillStyle='#e8453c';ctx.fillText('VIDEO STORE',W/2+2,y+22);ctx.fillStyle='#ffc93c';ctx.fillText('VIDEO STORE',W/2,y+20);
+  // slime dripping off the sign
+  for(let i=0;i<12;i++){const x=W/2-126+i*22+((i*7)%5),len=2+((i*13+(T>>3))%5);rect(x,y+44,2,len,'#9ccf3a');rect(x,y+44+len,2,2,'#c8f05a');}
+  ctx.font='8px "Press Start 2P", monospace';ctx.fillStyle='#2b150f';ctx.fillText("THE DEAD DON'T REWIND",W/2+1,y+56);ctx.fillStyle='#c8f05a';ctx.fillText("THE DEAD DON'T REWIND",W/2,y+55);
 }
 function drawTitle(){
   drawBG((T*.4)%850,1);rect(0,0,W,H,'rgba(40,16,10,.45)');
   for(let i=0;i<4;i++){const x=((T*.35+i*110)%(W+60))-30;ctx.save();ctx.translate(Math.round(x),TOP+60+(i%2)*14);if(!enemySprite({type:i===2?'mummy':i===3?'gremlin':'sh',state:'walk',walk:T+i*20,id:i,flash:0}))DRAW.sh({state:'walk'},T+i*20);ctx.restore();}
-  logo(34);
+  logo(26);
   txt('HOLLOW PINES, OHIO   JULY 1996',W/2,104,'#ffe9c2','center');
   rect(W/2-64,109,128,52,'rgba(40,16,10,.8)');
   rect(W/2+68,109,68,26,'rgba(40,16,10,.8)');{const dn=LFCore.DIFF[DIFFSEL].name,dc={easy:'#c8f05a',normal:'#ffc93c',hard:'#ff5a4a'}[DIFFSEL];txt((tCur<=1&&(T>>4)%2?'< ':'  ')+dn+(tCur<=1&&(T>>4)%2?' >':'  '),W/2+102,113,dc,'center');txt(LFCore.DIFF[DIFFSEL].conts===Infinity?'FREE CONTINUES':LFCore.DIFF[DIFFSEL].conts+' CONTINUES',W/2+102,125,'#d9a87c','center',8,null);}
