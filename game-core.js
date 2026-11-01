@@ -27,18 +27,22 @@ const EN={
  wolf:{hp:28,speed:1.15,dmg:10,reach:18,windup:18,atk:18,recover:30,cd:70,score:250},
  pod:{hp:18,speed:.6,dmg:8,reach:0,windup:30,atk:10,recover:30,cd:110,score:150},
  chainsaw:{hp:70,speed:.7,dmg:18,reach:22,windup:42,atk:48,recover:50,cd:100,score:600},
+ gremlin:{hp:20,speed:1.4,dmg:7,reach:16,windup:14,atk:16,recover:26,cd:60,score:200},
+ tape:{hp:30,speed:.7,dmg:9,reach:32,windup:24,atk:12,recover:28,cd:60,score:250},
+ cook:{hp:36,speed:.55,dmg:10,reach:24,windup:26,atk:12,recover:26,cd:55,score:250},
+ cop:{hp:64,speed:.5,dmg:14,reach:26,windup:34,atk:14,recover:34,cd:70,score:400},
  blob:{hp:380,score:5000},
 };
 const WAVES=[
  {x:120,list:['sh','sh']},
- {x:420,list:['sh','sh','sh']},
+ {x:420,list:['sh','sh','gremlin']},
  {x:720,list:['wolf','sh','sh']},
  {x:960,list:['chainsaw','sh','sh']},
- {x:1330,list:['pod','sh','sh']},
- {x:1600,list:['mummy','pod','sh','sh']},
- {x:1880,list:['wolf','wolf','mummy'],max:4},
- {x:2150,list:['chainsaw','pod','mummy','sh'],max:4},
- {x:2520,list:['wolf','mummy','pod','sh','sh'],max:4},
+ {x:1330,list:['cook','pod','sh']},
+ {x:1600,list:['tape','mummy','pod','sh']},
+ {x:1880,list:['wolf','gremlin','cook','tape'],max:4},
+ {x:2150,list:['chainsaw','cop','pod','tape'],max:4},
+ {x:2520,list:['wolf','mummy','cop','gremlin','sh'],max:4},
  {x:LEVEL_END-W,list:['blob'],boss:true,max:6},
 ];
 const SURV=[
@@ -220,6 +224,7 @@ function dmgEnemy(g,e,dmg,knock,dir,p){
   if(p&&hasPow(p,'boombox')){dmg*=2;knock=true;part(g,e.x,e.y,30,'#ff9a3c',{vx:rnd(-.5,.5),vy:0,vz:.8,l:30,s:3,gv:0});}
   if(p&&p.st){dmg*=1+p.st.POW/100;if(Math.random()*100<p.st.CRIT){dmg*=2;floatText(g,e.x,e.y,'CRIT!','#ff4a3c',34);}
     if(p.st.LEECH&&p.hp>0)p.hp=Math.min(p.maxhp,p.hp+dmg*p.st.LEECH/100);}
+  if(e.type==='cook'&&!knock&&e.face===-dir&&(e.state==='walk'||e.state==='recover')){dmg*=.35;floatText(g,e.x,e.y,'BLOCKED','#3ad6c0',36);beep(g,900,.05,'square',.04);}
   dmg=Math.round(dmg);
   e.hp-=dmg;e.flash=8;addScore(g,p,10);if(p){p.combo++;p.comboT=100;rumble(g,p.slot,e.type==='blob'?.35:.2,45);}g.stop=3;
   sparks(g,e.x-dir*4,e.y,18+(e.type==='blob'?12:0));beep(g,170+Math.random()*80,.08,'square',.06,.45);
@@ -303,14 +308,16 @@ function updEnemy(g,e){
   const d=EN[e.type];if(e.flash>0)e.flash--;if(e.cd>0)e.cd--;
   if(!e.tgt||e.tgt.out||!g.ps.includes(e.tgt)||(g.time+e.id*7)%40===0)e.tgt=nearest(g,e);
   if(e.type==='blob')return updBlob(g,e);
-  if(e.state!=='down')grav(e,.3);
+  if(e.type==='tape'&&e.state!=='down'){e.z=6+Math.sin((g.time+e.id*13)*.06)*3;e.vz=0;}
+  else if(e.state!=='down')grav(e,.3);
   const p=e.tgt;
   switch(e.state){
   case 'walk':{
     if(!p)break;
     const side=e.x<p.x?-1:1,pd=p.state==='down';
     let tx=e.type==='pod'?p.x+side*100:p.x+side*(d.reach*.8+(pd?30:0));
-    if(e.type==='chainsaw')tx=p.x+side*(pd?70:110);if(e.type==='wolf')tx=p.x+side*(pd?70:50);
+    if(e.type==='chainsaw')tx=p.x+side*(pd?70:110);if(e.type==='wolf'||e.type==='gremlin')tx=p.x+side*(pd?70:e.type==='gremlin'?40:50);
+    tx=clamp(tx,g.cam+16,g.cam+W-16);
     let ty=p.y;if(Math.abs(e.x-p.x)>50)ty+=e.slot*14;ty=clamp(ty,TOP,BOT);
     const off=e.x<g.cam||e.x>g.cam+W,sp=d.speed*(off?2.2:1),dx=tx-e.x,dy=ty-e.y;
     if(Math.abs(dx)>2)e.x+=Math.sign(dx)*Math.min(sp,Math.abs(dx));
@@ -318,17 +325,17 @@ function updEnemy(g,e){
     e.face=p.x>e.x?1:-1;if(Math.abs(dx)>2||Math.abs(dy)>1.5)e.walk++;
     const aligned=Math.abs(e.y-p.y)<7,ad=Math.abs(e.x-p.x);
     if(!off&&e.cd<=0&&aligned&&!pd&&g.att<Math.min(4,1+active(g).length)){
-      let go;if(e.type==='pod')go=ad>40&&ad<170;else if(e.type==='chainsaw')go=ad<190;else if(e.type==='wolf')go=ad<80&&ad>22;else go=ad<d.reach+8;
-      if(go){e.state='windup';e.timer=d.windup;g.att++;if(e.type==='chainsaw')beep(g,90,.6,'sawtooth',.04,1.6);if(e.type==='wolf')beep(g,260,.25,'sawtooth',.03,1.8);}
+      let go;if(e.type==='pod')go=ad>40&&ad<170;else if(e.type==='chainsaw')go=ad<190;else if(e.type==='wolf'||e.type==='gremlin')go=ad<80;else go=ad<d.reach+8;
+      if(go){e.state='windup';e.timer=d.windup;g.att++;if(e.type==='chainsaw')beep(g,90,.6,'sawtooth',.04,1.6);if(e.type==='wolf')beep(g,260,.25,'sawtooth',.03,1.8);if(e.type==='gremlin')beep(g,700,.15,'square',.03,1.6);if(e.type==='cop')beep(g,140,.2,'square',.04,.8);}
     }
     break;}
   case 'windup':
     if(e.type==='chainsaw'&&g.time%5===0)smoke(g,e.x+e.face*14,e.y,22);
-    if(--e.timer<=0){e.state='attack';e.timer=d.atk;e.hitDone=false;if(e.type==='wolf'){e.vx=e.face*3.6;e.vz=2;e.z=.01;}}
+    if(--e.timer<=0){e.state='attack';e.timer=d.atk;e.hitDone=false;if(e.type==='wolf'||e.type==='gremlin'){e.vx=e.face*(e.type==='gremlin'?4.2:3.6);e.vz=e.type==='gremlin'?2.8:2;e.z=.01;}}
     break;
   case 'attack':
-    if(e.type==='sh'||e.type==='mummy'){if(e.timer===d.atk-3)eHit(g,e,d.reach+6,d.dmg,e.type==='mummy');}
-    else if(e.type==='wolf'){e.x+=e.vx;e.vx*=.95;if(!e.hitDone&&eHit(g,e,16,d.dmg,false))e.hitDone=true;}
+    if(e.type==='sh'||e.type==='mummy'||e.type==='cook'||e.type==='cop'||e.type==='tape'){if(e.timer===d.atk-3)eHit(g,e,d.reach+6,d.dmg,e.type==='mummy'||e.type==='cop');}
+    else if(e.type==='wolf'||e.type==='gremlin'){e.x+=e.vx;e.vx*=.95;if(!e.hitDone&&eHit(g,e,16,d.dmg,false))e.hitDone=true;}
     else if(e.type==='chainsaw'){e.x+=e.face*2.7;if(!e.hitDone&&eHit(g,e,26,d.dmg,true))e.hitDone=true;if(g.time%3===0)sparks(g,e.x+e.face*24,e.y,18,1);if(g.time%8===0)beep(g,120,.08,'sawtooth',.03);
       if(e.x<g.cam+10||e.x>g.cam+W-10)e.timer=1;}
     else if(e.type==='pod'){if(e.timer===d.atk-1){g.proj.push({id:++g.pid,from:'e',x:e.x+e.face*8,y:e.y,z:24,vx:e.face*2.4,vy:0,dmg:d.dmg,life:170,kind:'slime'});beep(g,240,.15,'square',.03,.4);}}
@@ -343,11 +350,11 @@ function updEnemy(g,e){
   }
   e.y=clamp(e.y,TOP,BOT);if(e.state!=='walk')e.x=clamp(e.x,g.cam+6,g.cam+W-6);
 }
-const GEAR_CH={sh:.10,pod:.14,wolf:.18,mummy:.25,chainsaw:.65};
+const GEAR_CH={sh:.10,pod:.14,wolf:.18,mummy:.25,chainsaw:.65,gremlin:.15,tape:.2,cook:.2,cop:.35};
 function dropFrom(g,e){
   const luck=e.killer&&e.killer.st?e.killer.st.LUCK:0;
   if(Math.random()<(GEAR_CH[e.type]||0)*(1+luck/100))dropGear(g,e.x,e.y,luck,e.type==='chainsaw'?'r':null);
-  const r=Math.random(),big=e.type==='chainsaw'||e.type==='mummy';
+  const r=Math.random(),big=e.type==='chainsaw'||e.type==='mummy'||e.type==='cop';
   if(big?r<.5:r<.08)g.pick.push({x:e.x,y:e.y,kind:pick(POWKEYS),t:0,id:++g.kid});
   else if(r<(big?.65:.2))g.pick.push({x:e.x,y:e.y,kind:'pizza',t:0,id:++g.kid});
 }
@@ -388,7 +395,7 @@ function step(g){
   g.cam=Math.max(g.cam,Math.min(maxX-W*.42,g.cam+3,minX-12,lim));
   const w=g.waves[g.waveI],n=g.ps.length;
   if(w&&!w.on&&g.cam>=w.x-.01){w.on=true;g.lock=w.x;g.cam=Math.min(g.cam,w.x);
-    g.queue=w.list.slice();if(!w.boss)for(let i=0;i<(n-1)*2;i++)g.queue.push(w.list[i%w.list.length]==='chainsaw'?'sh':w.list[i%w.list.length]);
+    g.queue=w.list.slice();if(!w.boss)for(let i=0;i<(n-1)*2;i++)g.queue.push(['chainsaw','cop'].includes(w.list[i%w.list.length])?'sh':w.list[i%w.list.length]);
     g.spawnT=0;g.maxAlive=(w.max||3)+n-1;g.go=0;}
   if(w&&w.on){g.spawnT--;const alive=g.enemies.filter(e=>!e.gone).length;
     if(g.queue.length&&g.spawnT<=0&&alive<g.maxAlive){spawn(g,g.queue.shift());g.spawnT=Math.max(20,45-n*6);}
@@ -459,6 +466,6 @@ function interpolate(g,now,ms){
 
 const LFCore={W,H,TOP,BOT,LEVEL_END,PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,
   CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,calcStatsFor,gearLookFor,cleanStats,cleanLook,bonusTxt,
-  clamp,lerp,rnd,pick,newGame,addPlayer,removePlayer,revive,setStats,step,snapshot,applySnapshot,interpolate,hasPow,active};
+  clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,step,snapshot,applySnapshot,interpolate,hasPow,active};
 globalThis.LFCore=LFCore;
 })();
