@@ -9,6 +9,7 @@ knockdown stays the same size as the character instead of being stretched to ful
 Image generators often draw a character at a slightly different size in each frame. --hue LO HI
 (OpenCV hue, 0-180) picks a clothing color that is fully visible in every pose (for Dex, the purple
 pants: 125 160); its area is used to measure and undo each frame's drawing scale.
+--same-scale skips that correction, for frame sets that were already drawn at one shared scale (Rae's).
 """
 import sys, os, json, re
 import cv2
@@ -35,7 +36,7 @@ def body_size(path, hue):
     m = a & (hsv[..., 0] >= hue[0]) & (hsv[..., 0] <= hue[1]) & (hsv[..., 1] > 60)
     return float(m.sum()) ** .5
 
-def main(key, folder, hue=None):
+def main(key, folder, hue=None, same=False):
     found = {f: os.path.join(folder, f'{key}_{f}.png') for f in FRAMES if os.path.exists(os.path.join(folder, f'{key}_{f}.png'))}
     if not found: sys.exit('no frames found')
     crops = {f: load(p) for f, p in found.items()}
@@ -57,7 +58,7 @@ def main(key, folder, hue=None):
         ax = int((cols.min() + cols.max()) / 2)
         out = os.path.join(ROOT, 'art', f'{key}_{f}.webp')
         im.save(out, 'WEBP', quality=88, method=6)
-        drawn = size[f] / size[ref] if size[ref] else 1   # how big this frame was drawn vs the reference
+        drawn = 1 if same else (size[f] / size[ref] if size[ref] else 1)   # how big this frame was drawn vs the reference
         rel = (h / OUT_H) / (drawn ** .75 if drawn > 0 else 1)
         frames[f] = {'src': f'art/{key}_{f}.webp', 'w': w, 'h': h, 'ax': ax, 'rel': round(rel, 4)}
         print(f'{f:8s} {w}x{h} drawn at {drawn:.2f}x  rel {rel:.2f} ax {ax}  {os.path.getsize(out)//1024} KB')
@@ -70,4 +71,6 @@ if __name__ == '__main__':
     hue = None
     if '--hue' in args:
         i = args.index('--hue'); hue = (int(args[i + 1]), int(args[i + 2])); del args[i:i + 3]
-    main(args[0], args[1], hue)
+    same = '--same-scale' in args
+    if same: args.remove('--same-scale')
+    main(args[0], args[1], hue, same)
