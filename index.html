@@ -183,9 +183,10 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
         <li><b>1. Maple Court</b><span>Cul-de-sac at midnight. Where the meteor landed.</span></li>
         <li><b>2. Hollow Pines Mall</b><span>Closing time. The neon is still on.</span></li>
         <li><b>3. The Parking Lot</b><span>Boss fight under the sodium lights.</span></li>
+        <li><b>Soundtrack</b><span>Suspenseful Piano Intro on the menus, Eerie Disco Groove through Maple Court and the mall, Eerie Dance Loop for the parking lot and the Blob. Volume lives under Sound on the title screen and pause menu.</span></li>
         <li><b>Co-op</b><span>On one screen: join any time with start, or A on a controller. Online: host a room and share the code. More players means bigger crowds and a tougher Blob. Out of lives? Press start to continue.</span></li>
       </ul>
-      <p class="todo"><b>Not in this draft:</b> trading gear between heroes, grabs and throws, breakable props, music.</p>
+      <p class="todo"><b>Not in this draft:</b> trading gear between heroes, grabs and throws, breakable props.</p>
     </div>
   </section>
 </div>
@@ -259,7 +260,7 @@ addEventListener('keydown',e=>{
   let used=false;const m=KEYMAP[e.code];
   if(m){for(const [d,a] of m)ks[d][a]=true;used=true;}
   if(MK[e.code]){ks.menu[MK[e.code]]=true;used=true;}
-  if(e.code==='KeyM'&&!e.repeat){muted=!muted;used=true;}
+  if(e.code==='KeyM'&&!e.repeat){muted=!muted;saveSound();toast(muted?'SOUND OFF':'SOUND ON','#d9a87c');used=true;}
   if(used){e.preventDefault();audioInit();}});
 addEventListener('keyup',e=>{const m=KEYMAP[e.code];if(m)for(const [d,a] of m)ks[d][a]=false;if(MK[e.code])ks.menu[MK[e.code]]=false;});
 addEventListener('blur',()=>{for(const d of ['kb1','kb2','kb3','kb4','menu'])for(const k in ks[d])ks[d][k]=false;});
@@ -365,8 +366,38 @@ dpad.addEventListener('pointermove',e=>{if(dActive)dset(e);});
 
 /* ---------- audio ---------- */
 let ac=null,muted=false;
-function audioInit(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}else if(ac.state==='suspended')ac.resume();}
-function beep(f,d,type='square',vol=.05,slide=0){if(!ac||muted)return;try{const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;
+// Sound settings: music and effects volume 0-10, plus mute. Saved per browser.
+const SND={music:7,sfx:8};
+try{const sv=JSON.parse(localStorage.getItem('lfotd-sound')||'null');if(sv){if(Number.isFinite(sv.music))SND.music=clamp(Math.round(sv.music),0,10);if(Number.isFinite(sv.sfx))SND.sfx=clamp(Math.round(sv.sfx),0,10);muted=!!sv.muted;}}catch(e){}
+function saveSound(){try{localStorage.setItem('lfotd-sound',JSON.stringify({music:SND.music,sfx:SND.sfx,muted}));}catch(e){}}
+const TRACKS={
+  intro:{src:'music/suspenseful-piano-intro.mp3',name:'SUSPENSEFUL PIANO INTRO'},
+  disco:{src:'music/eerie-disco-groove.mp3',name:'EERIE DISCO GROOVE'},
+  dance:{src:'music/eerie-dance-loop.mp3',name:'EERIE DANCE LOOP'},
+};
+const MUS={el:{},vol:{},started:false,blocked:false,now:null};
+function musEl(k){if(!MUS.el[k]){const a=new Audio(TRACKS[k].src);a.loop=true;a.preload='auto';a.volume=0;MUS.el[k]=a;MUS.vol[k]=0;}return MUS.el[k];}
+const GAME_SCENES=new Set(['play','pause','inv','over','win']);
+function musicWant(){
+  const inGame=GAME_SCENES.has(scene)||((scene==='controls'&&SET.from==='pause')||(scene==='sound'&&SOUND.from==='pause'));
+  if(!inGame||!G)return 'intro';
+  if(G.boss&&!G.boss.gone)return 'dance';
+  return G.cam+W/2<2450?'disco':'dance';
+}
+function musicTick(){
+  const want=musicWant(),menuDuck=scene!=='play'&&GAME_SCENES.has(scene)||scene==='controls'&&SET.from==='pause'||scene==='sound'&&SOUND.from==='pause';
+  const master=muted?0:SND.music/10*.7*(menuDuck?.5:1);
+  MUS.now=master>0?want:null;
+  for(const k in TRACKS){
+    const target=k===want?master:0;if(!MUS.el[k]&&target===0)continue;
+    const a=musEl(k);let v=MUS.vol[k]||0;v+=(target-v)*.06;if(Math.abs(target-v)<.004)v=target;MUS.vol[k]=v;a.volume=clamp(v,0,1);
+    if(v>.001&&a.paused&&MUS.started){const pr=a.play();if(pr&&pr.catch)pr.then(()=>{MUS.blocked=false;}).catch(()=>{MUS.blocked=true;});}
+    else if(v<=.001&&target===0&&!a.paused){a.pause();a.currentTime=0;}
+  }
+}
+function audioInit(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}else if(ac.state==='suspended')ac.resume();
+  if(!MUS.started||MUS.blocked){MUS.started=true;MUS.blocked=false;for(const k in MUS.el){const a=MUS.el[k];if(MUS.vol[k]>.001&&a.paused){const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{MUS.blocked=true;});}}}}
+function beep(f,d,type='square',vol=.05,slide=0){if(!ac||muted||!SND.sfx)return;vol*=SND.sfx/8;try{const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;
   o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f*slide),t+d);
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02);}catch(e){}}
 
@@ -404,6 +435,35 @@ function updControls(){
       if(r.k==='pad'&&!Object.keys(pads).length)toast('CONNECT A CONTROLLER FIRST','#ff7a5a');}
     else if(r.k==='reset'){resetPlayer(SET.tab);saveBinds();toast('P'+(SET.tab+1)+' CONTROLS RESET','#3ad6c0');}
     else closeControls();}
+}
+const SOUND={cur:0,from:'title'};
+const SOUND_ROWS=['music','sfx','mute','back'];
+function openSound(from){SOUND.from=from;SOUND.cur=0;scene='sound';beep(660,.08);}
+function closeSound(){scene=SOUND.from==='pause'&&G?'pause':'title';beep(330,.08);}
+function updSound(){
+  const n=SOUND_ROWS.length;
+  if(menuHit('up')){SOUND.cur=(SOUND.cur+n-1)%n;beep(440,.05);}
+  if(menuHit('down')){SOUND.cur=(SOUND.cur+1)%n;beep(440,.05);}
+  const row=SOUND_ROWS[SOUND.cur],dv=(menuHit('right')?1:0)-(menuHit('left')?1:0);
+  if(dv&&row==='music'){SND.music=clamp(SND.music+dv,0,10);if(dv>0&&muted)muted=false;saveSound();}
+  if(dv&&row==='sfx'){SND.sfx=clamp(SND.sfx+dv,0,10);if(dv>0&&muted)muted=false;saveSound();beep(660,.08,'square',.05);}
+  if(dv&&row==='mute'){muted=!muted;saveSound();}
+  if(hit('menu','back')||devs().some(d=>isPad(d)&&hit(d,'back'))){closeSound();return;}
+  if(menuHit('ok')){if(row==='mute'){muted=!muted;saveSound();beep(660,.08);}else if(row==='back')closeSound();}
+}
+function drawSound(){
+  rect(0,0,W,H,'#2b150f');for(let y=0;y<H;y+=16)for(let x=(y/16)%2*16;x<W;x+=32)rect(x,y,16,16,'#331a12');
+  txt('SOUND',8,8,'#ff9a3c');rect(4,22,W-8,1,'#ffc93c');
+  const bar=(y,v,on)=>{for(let i=0;i<10;i++){const x=170+i*15,fill=i<v;rect(x,y-1,12,10,fill?(muted?'#7a3f26':on?'#ffc93c':'#d9771e'):'#45221a');if(fill&&!muted)rect(x,y-1,12,2,'#ffe9a0');}
+    txt(String(v),W-12,y,on?'#ffe9c2':'#d9a87c','right',8,null);};
+  const rows=[['MUSIC',y=>bar(y,SND.music,SOUND.cur===0)],['SOUND FX',y=>bar(y,SND.sfx,SOUND.cur===1)],
+    ['MUTE ALL',y=>{rect(170,y-2,48,12,muted?'#e8453c':'#45221a');txt(muted?'ON':'OFF',194,y,muted?'#ffe9c2':'#d9a87c','center',8,null);}],['BACK',()=>{}]];
+  rows.forEach(([lab,draw],i)=>{const y=44+i*24,on=SOUND.cur===i;if(on){rect(8,y-5,W-16,18,'#5e2f22');tri(12,y-1,12,y+7,16,y+3,'#ffc93c');}
+    txt(lab,22,y,on?'#ffc93c':'#ffe9c2');draw(y);});
+  const now=MUS.now?TRACKS[MUS.now].name:'MUSIC OFF';
+  txt('NOW PLAYING',22,148,'#d9a87c','left',8,null);txt(now,22,160,MUS.now?'#3ad6c0':'#8a5a44','left',8,null);
+  if(MUS.blocked||!MUS.started)txt('CLICK OR PRESS A KEY TO START MUSIC',22,174,'#ff7a5a','left',8,null);
+  txt('< > ADJUST   ESC/B BACK   M MUTES',22,192,'#d9a87c','left',8,null);
 }
 function closeControls(){cap=null;scene=SET.from==='pause'&&G?'pause':'title';beep(330,.08);}
 try{hi=+localStorage.getItem('lfotd-hi')||0;}catch(e){}
@@ -768,14 +828,15 @@ function drawNLobby(){
 }
 
 function update(){
-  T++;pollPads();
+  T++;pollPads();musicTick();
   const anyOk=()=>devs().find(d=>okHit(d));
   if(T%30===0)renderPadList();if(NET.on&&!NET.ws&&!NET.busy&&NET.tries===0){}
   for(const t of toasts)t.t--;toasts=toasts.filter(t=>t.t>0);
   if(scene==='title'){
-    if(menuHit('up')){tCur=(tCur+2)%3;beep(440,.05);}if(menuHit('down')){tCur=(tCur+1)%3;beep(440,.05);}
+    if(menuHit('up')){tCur=(tCur+3)%4;beep(440,.05);}if(menuHit('down')){tCur=(tCur+1)%4;beep(440,.05);}
     const d=anyOk()||(hit('menu','ok')?'kb1':null);
-    if(d){if(tCur===0){lobbyReset();lobbyJoin(d);rumble(d,.4,150);scene='select';}else if(tCur===1){NET.dev=d;NET.cur=0;NET.err='';scene='online';}else openControls('title',0);}}
+    if(d){if(tCur===0){lobbyReset();lobbyJoin(d);rumble(d,.4,150);scene='select';}else if(tCur===1){NET.dev=d;NET.cur=0;NET.err='';scene='online';}else if(tCur===2)openControls('title',0);else openSound('title');}}
+  else if(scene==='sound'){updSound();if(NET.on&&G){netTick();updateFX();}}
   else if(scene==='online')updOnline();
   else if(scene==='join')updJoin();
   else if(scene==='nlobby')updNLobby();
@@ -791,10 +852,10 @@ function update(){
     if(NET.on){netTick();updateFX();}
     let claimed=false;if(!NET.on)for(const d of devs())if(!joined(d)&&okHit(d)&&claimLost(d))claimed=true;
     if(!claimed){
-      if(menuHit('up')){pCur=(pCur+3)%4;beep(440,.05);}if(menuHit('down')){pCur=(pCur+1)%4;beep(440,.05);}
+      if(menuHit('up')){pCur=(pCur+4)%5;beep(440,.05);}if(menuHit('down')){pCur=(pCur+1)%5;beep(440,.05);}
       if(hit('menu','back')||G.ps.some(p=>p.dev&&(hit(p.dev,'pause')||(isPad(p.dev)&&hit(p.dev,'back')))))scene='play';
       else if(menuHit('ok')||G.ps.some(p=>!p.lostPad&&p.dev&&hit(p.dev,'start'))){const d=devs().find(okHit),who=d&&G.ps.find(q=>q.dev===d);
-        if(pCur===0)scene='play';else if(pCur===1)openInv(who&&!who.out?who:active()[0]||G.ps[0],'pause');else if(pCur===2)openControls('pause',who?who.slot:0);
+        if(pCur===0)scene='play';else if(pCur===1)openInv(who&&!who.out?who:active()[0]||G.ps[0],'pause');else if(pCur===2)openControls('pause',who?who.slot:0);else if(pCur===3)openSound('pause');
         else if(NET.on){netSend({t:'leave'});netLeave();}else{saveHi();scene='title';tCur=0;}}}}
   else if(scene==='over'||scene==='win'){G.endT++;shakeV*=.86;updateFX();if(NET.on)netTick();const d=G.endT>60&&anyOk();
     if(d){if(NET.on){netSend({t:'again'});}else{lobbyReset();lobbyJoin(d);scene='select';}}}
@@ -1080,9 +1141,10 @@ function drawTitle(){
   for(let i=0;i<4;i++){const x=((T*.35+i*110)%(W+60))-30;ctx.save();ctx.translate(Math.round(x),TOP+54+(i%2)*14);DRAW.sh({state:'walk'},T+i*20);ctx.restore();}
   logo(34);
   txt('HOLLOW PINES, OHIO   JULY 1996',W/2,104,'#ffe9c2','center');
-  ['START GAME','ONLINE','CONTROLS'].forEach((it,i)=>{const y=116+i*13,on=tCur===i;txt(it,W/2,y,on?'#ffc93c':'#d9a87c','center');
+  ['START GAME','ONLINE','CONTROLS','SOUND'].forEach((it,i)=>{const y=113+i*12,on=tCur===i;txt(it,W/2,y,on?'#ffc93c':'#d9a87c','center');
     if(on&&(T>>4)%2){const w=it.length*4+12;tri(W/2-w-6,y,W/2-w-6,y+8,W/2-w,y+4,'#ffc93c');}});
-  const np=Object.keys(pads).length;txt(np?np+' CONTROLLER'+(np>1?'S':'')+' READY':'1-4 PLAYERS  KEYS OR PADS',W/2,160,np?'#3ad6c0':'#d9a87c','center');
+  const np=Object.keys(pads).length;txt(np?np+' CONTROLLER'+(np>1?'S':'')+' READY':'1-4 PLAYERS  KEYS OR PADS',W/2,164,np?'#3ad6c0':'#d9a87c','center');
+  if(!MUS.started||MUS.blocked)txt((T>>5)%2?'PRESS ANY KEY FOR MUSIC':'',W/2,178,'#ff9a3c','center',8,null);
   if(hi)txt('HI '+String(hi).padStart(7,'0'),W/2,H-14,'#d9a87c','center');
 }
 function drawSelect(){
@@ -1145,6 +1207,7 @@ function renderScene(){
   if(scene==='title')return drawTitle();
   if(scene==='select')return drawSelect();
   if(scene==='controls')return drawControls();
+  if(scene==='sound')return drawSound();
   if(scene==='inv')return drawInv();
   if(scene==='online')return drawOnline();
   if(scene==='join')return drawJoin();
@@ -1153,13 +1216,13 @@ function renderScene(){
   const g=G;if(!g)return;if(NET.on)C.interpolate(g,performance.now(),NET.snapMs);
   ctx.save();if(shakeV>.5)ctx.translate(Math.round((Math.random()-.5)*shakeV),Math.round((Math.random()-.5)*shakeV));
   drawBG(g.cam);drawWorld();ctx.restore();drawHUD();
-  if(scene==='pause'){rect(0,0,W,H,'rgba(40,16,10,.6)');const lost=g.ps.find(p=>p.lostPad);
+  if(scene==='pause'){rect(0,0,W,H,'rgba(40,16,10,.6)');rect(W/2-90,80,180,94,'rgba(40,16,10,.88)');const lost=g.ps.find(p=>p.lostPad);
     if(lost){txt('P'+(lost.slot+1)+' CONTROLLER LOST',W/2,46,PCOL[lost.slot],'center',8);txt('TURN IT BACK ON, OR PRESS A',W/2,62,'#ffe9c2','center');txt('ON ANY FREE CONTROLLER',W/2,74,'#ffe9c2','center');}
     else txt(NET.on?'MENU':'PAUSED',W/2,54,'#ffc93c','center',16);
     if(NET.on)txt('THE GAME KEEPS GOING ONLINE',W/2,76,'#d9a87c','center',8,null);
-    ['RESUME','GEAR','CONTROLS',NET.on?'LEAVE ROOM':'QUIT TO TITLE'].forEach((it,i)=>{const y=92+i*14,on=pCur===i;txt(it,W/2,y,on?'#ffc93c':'#d9a87c','center');
+    ['RESUME','GEAR','CONTROLS','SOUND',NET.on?'LEAVE ROOM':'QUIT TO TITLE'].forEach((it,i)=>{const y=88+i*13,on=pCur===i;txt(it,W/2,y,on?'#ffc93c':'#d9a87c','center');
       if(on&&(T>>4)%2){const w=it.length*4+12;tri(W/2-w-6,y,W/2-w-6,y+8,W/2-w,y+4,'#ffc93c');}});
-    txt('ESC OR B RESUMES   M MUTES',W/2,156,'#d9a87c','center');}
+    txt('ESC OR B RESUMES   M MUTES',W/2,160,'#d9a87c','center');}
   if(scene==='over'){rect(0,0,W,H,'rgba(40,16,10,.8)');txt('GAME OVER',W/2,64,'#e8453c','center',16);
     txt('THE NEIGHBORS ARE ON THEIR OWN.',W/2,92,'#ffe9c2','center');txt('TEAM SCORE '+g.score,W/2,112,'#ffc93c','center');
     if(g.endT>60&&(T>>4)%2)txt(NET.on?'PRESS START: BACK TO ROOM':touchMode?'TAP START TO RETRY':'PRESS START TO RETRY',W/2,146,'#d9a87c','center');}
@@ -1176,6 +1239,6 @@ let last=performance.now(),acc=0;const STEP=1000/60;
 function frame(now){acc+=Math.min(100,now-last);last=now;let n=0;while(acc>=STEP&&n<5){update();acc-=STEP;n++;}render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 rebuildKeys();renderPadList();renderLegend();
-window.__lf={get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
+window.__lf={MUS,SND,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
 })();
 </script>
