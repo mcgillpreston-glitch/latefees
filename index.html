@@ -1095,7 +1095,25 @@ function drawPick(k){
 
 /* ---------- backgrounds ---------- */
 function clipX(a,b,cam,fn){const x0=Math.max(a,cam)-cam,x1=Math.min(b,cam+W)-cam;if(x1<=x0)return;ctx.save();ctx.beginPath();ctx.rect(x0,0,x1-x0,H);ctx.clip();fn();ctx.restore();}
+/* Painted backdrops: one panorama per area, scaled to the view height and tiled along the level. */
+const BGIMG={};
+[['suburb','art/bg-suburb.webp'],['mall','art/bg-mall.webp'],['lot','art/bg-lot.webp']].forEach(([k,src])=>{const i=new Image();i.onload=()=>{BGIMG[k]=i;};i.src=src;});
+const ZONES=[['suburb',0,1250],['mall',1250,2450],['lot',2450,LEVEL_END]];
+function drawZoneImg(k,a,b,cam,x0,x1){
+  const img=BGIMG[k],tw=img.width*H/img.height;
+  for(let wx=a+Math.floor((Math.max(a,cam+x0)-a)/tw)*tw;wx<Math.min(b,cam+x1);wx+=tw)ctx.drawImage(img,wx-cam,0,tw+.6,H);
+}
+function drawBGImages(cam){
+  if(!BGIMG.suburb||!BGIMG.mall||!BGIMG.lot)return false;
+  for(const [k,a,b] of ZONES){const x0=Math.max(a,cam)-cam,x1=Math.min(b,cam+W)-cam;if(x1<=x0)continue;
+    ctx.save();ctx.beginPath();ctx.rect(x0,0,x1-x0,H);ctx.clip();drawZoneImg(k,a,b,cam,x0,x1);ctx.restore();}
+  // Cross-fade 36px across each area boundary so the cut between panoramas isn't a hard seam.
+  for(const [prev,pa,a] of [['suburb',0,1250],['mall',1250,2450]]){const sx=a-cam;if(sx<-40||sx>W)continue;
+    for(let j=0;j<12;j++){const x=sx+j*3;ctx.save();ctx.beginPath();ctx.rect(x,0,3,H);ctx.clip();ctx.globalAlpha=1-(j+.5)/12;drawZoneImg(prev,pa,a+40,cam,x,x+3);ctx.restore();}}
+  return true;
+}
 function drawBG(cam){
+  if(drawBGImages(cam))return;
   // sunset sky
   const g=ctx.createLinearGradient(0,0,0,TOP);g.addColorStop(0,'#4a1430');g.addColorStop(.45,'#c43a4a');g.addColorStop(.8,'#ff8a3c');g.addColorStop(1,'#ffc93c');rect(0,0,W,TOP,g);
   for(let i=0;i<30;i++){const x=(((i*97-cam*.08)%W)+W)%W,y=(i*53)%50;rect(x|0,y,1,1,i%5?'#ffb0a0':'#ffe9c2');}
