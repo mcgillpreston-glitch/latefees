@@ -1,4 +1,5 @@
 <title>The Last Video Store</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +34,7 @@ body{box-sizing:border-box;overflow-x:hidden}
 .screen{background:#000;overflow:hidden}
 canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;image-rendering:auto;cursor:pointer;outline:none}
 canvas:focus-visible{box-shadow:0 0 0 3px var(--orange)}
-.bz-top,.bz-bot,.pad,.board{display:none}
+.bz-top,.bz-bot,.pad,.board,.ticker,.lcd{display:none}
 .pad{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 @media (hover:none) and (pointer:coarse){
   body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
@@ -61,7 +62,7 @@ canvas:focus-visible{box-shadow:0 0 0 3px var(--orange)}
   .row{display:flex;justify-content:space-between;align-items:center;padding:0 2px}
   .row.lo{align-items:flex-end;margin-top:4px;min-height:48px}
   .pills{display:flex;justify-content:center;gap:30px;margin:12px 0 4px;padding-left:4px}
-  .dpad{--dp:min(36vw,160px);width:var(--dp);height:var(--dp);position:relative;flex:none;border-radius:50%}
+  .dpad{--dp:min(34vw,152px);width:var(--dp);height:var(--dp);position:relative;flex:none;border-radius:50%}
   .dpad .dish{position:absolute;inset:3%;border-radius:50%;background:rgba(0,0,0,.2);box-shadow:inset 0 3px 8px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.08)}
   .dpad .knob{display:none}
   .dpad.stick::before,.dpad.stick::after,.dpad.stick i,.dpad.stick s{display:none}
@@ -77,10 +78,12 @@ canvas:focus-visible{box-shadow:0 0 0 3px var(--orange)}
   .dpad s.d{border-top-color:#fff;transform:translate(-50%,calc(var(--dp) * .3))}
   .dpad s.l{border-right-color:#fff;transform:translate(calc(var(--dp) * -.4),-50%)}
   .dpad s.r{border-left-color:#fff;transform:translate(calc(var(--dp) * .33),-50%)}
-  .btns{--bt:min(17vw,76px);position:relative;width:calc(var(--bt) * 2.3);height:calc(var(--bt) * 1.95);flex:none;margin-right:2px}
+  .btns{--bt:min(16vw,72px);position:relative;width:calc(var(--bt) * 2.3);height:calc(var(--bt) * 1.95);flex:none;margin-right:2px}
   .btns button{position:absolute;width:var(--bt);height:var(--bt);border-radius:50%;border:0;padding:0;display:flex;align-items:center;justify-content:center;touch-action:none;
     background:radial-gradient(circle at 38% 32%,var(--sk-btn-hi),var(--sk-btn) 58%);box-shadow:0 4px 0 var(--sk-btn-lo),0 7px 10px rgba(0,0,0,.45),inset 0 -2px 0 rgba(0,0,0,.25)}
-  .btns button .lab{--lh:calc(var(--bt) * .13);color:var(--sk-btn-txt);opacity:.92;filter:drop-shadow(0 1px 0 rgba(0,0,0,.35))}
+  .btns button .lab{--lh:calc(var(--bt) * .13);max-width:78%;color:var(--sk-btn-txt);opacity:.92;filter:drop-shadow(0 1px 0 rgba(0,0,0,.35))}
+  .lab.off{display:none}
+  .btns button.idle,.pill.idle{opacity:.55}
   .btns button[data-act="spec"]{left:calc(50% - var(--bt) / 2);top:0}
   .btns button[data-act="jump"]{left:0;bottom:0}
   .btns button[data-act="atk"]{right:0;bottom:0}
@@ -88,17 +91,21 @@ canvas:focus-visible{box-shadow:0 0 0 3px var(--orange)}
   .pill{position:relative;width:min(16vw,70px);height:20px;border-radius:10px;border:0;padding:0;display:flex;align-items:center;justify-content:center;transform:rotate(-24deg);touch-action:none;
     background:linear-gradient(180deg,var(--sk-pill-hi),var(--sk-pill) 55%);box-shadow:0 3px 0 var(--sk-pill-lo),inset 0 1px 0 rgba(255,255,255,.2)}
   .pill::before{content:"";position:absolute;inset:-14px -10px -14px}
-  .pill .lab{--lh:6px;color:var(--sk-pill-txt);opacity:.95}
+  .pill .lab{--lh:6px;max-width:80%;color:var(--sk-pill-txt);opacity:.95}
   .pill:active,.pill.on{transform:rotate(-24deg) translateY(2px);box-shadow:0 1px 0 var(--sk-pill-lo),inset 0 1px 0 rgba(255,255,255,.2)}
   .brand{display:flex;align-items:center;gap:8px;color:var(--sk-print);opacity:.85;padding-left:4px;--lh:6px}
   .brand .st{flex:none;width:30px;height:16px;background:linear-gradient(115deg,transparent 0 12%,var(--mustard) 12% 36%,var(--teal) 36% 60%,var(--cream) 60% 78%,transparent 78%)}
-  .spk{width:min(24vw,104px);height:min(14vw,62px);display:flex;gap:9px;justify-content:center;align-items:center;transform:rotate(-26deg);margin:0 10px 8px 0;flex:none}
-  .spk i{width:5px;height:100%;border-radius:3px;background:var(--sk-lo);box-shadow:inset 0 1px 3px rgba(0,0,0,.75),0 1px 0 rgba(255,255,255,.12)}
+  .row.lo{min-height:30px;margin-top:10px}
+  /* VCR-style readout above the console, shown when the screen is tall enough */
+  .ticker.on{display:block;width:min(100%,calc((100vh - 330px) * 16 / 9));width:min(100%,calc((100dvh - 330px) * 16 / 9));height:30px;border-radius:6px;background:#0d0b0b;box-shadow:0 0 0 2px #26262c,0 0 0 4px var(--sk-edge),inset 0 2px 8px rgba(0,0,0,.8)}
+  /* little LCD between the pad and the buttons: your hero, health and what they're wearing */
+  .lcd{display:flex;flex:1;align-self:stretch;align-items:center;justify-content:center;min-width:0;padding:0 4px}
+  .lcd canvas{display:block;width:min(15vw,66px);height:min(31.5vw,139px);border-radius:4px;background:#161a16;box-shadow:inset 0 2px 6px rgba(0,0,0,.8),0 0 0 2px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.1)}
 }
 /* phones held sideways: the game takes the full height and the controls float over its bottom corners */
 @media (hover:none) and (pointer:coarse) and (orientation:landscape){
   .shell{width:min(100%,calc((100vh - 24px) * 16 / 9));width:min(100%,calc((100dvh - 24px) * 16 / 9));padding:0;background:none;box-shadow:none;border-radius:0;overflow:visible}
-  .board,.bz-top,.bz-bot,.spk,.brand{display:none}
+  .board,.bz-top,.bz-bot,.brand,.lcd,.ticker{display:none}
   .bezel{padding:5px;border-radius:8px;box-shadow:0 0 0 3px var(--sk-lo),0 0 0 6px var(--sk-shell),0 14px 30px rgba(0,0,0,.6)}
   .pad{margin:0}
   .row,.pills{display:contents}
@@ -148,6 +155,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 
 <div class="wrap">
 
+  <canvas class="ticker" id="ticker" aria-hidden="true"></canvas>
   <div class="shell" id="shell">
     <div class="board"></div>
     <div class="bezel">
@@ -158,19 +166,19 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
     <div class="pad" id="pad" aria-hidden="true">
       <div class="row">
         <div class="dpad" id="dpad"><b class="dish"></b><i></i><s class="u"></s><s class="d"></s><s class="l"></s><s class="r"></s><b class="knob" id="knob"></b></div>
+        <div class="lcd"><canvas id="lcd" width="80" height="168" aria-hidden="true"></canvas></div>
         <div class="btns">
-          <button data-act="spec" aria-label="Special"><svg class="lab" data-l="spec" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-50.0H12.5V-62.5H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H25.0V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5Z"/><path d="M100.0 -12.5V-100.0H175.0V-87.5H187.5V-50.0H175.0V-37.5H125.0V-12.5ZM125.0 -50.0H162.5V-87.5H125.0Z"/><path d="M200.0 -12.5V-100.0H287.5V-87.5H225.0V-62.5H275.0V-50.0H225.0V-25.0H287.5V-12.5Z"/><path d="M325.0 -12.5V-25.0H312.5V-37.5H300.0V-75.0H312.5V-87.5H325.0V-100.0H375.0V-87.5H387.5V-75.0H362.5V-87.5H337.5V-75.0H325.0V-37.5H337.5V-25.0H362.5V-37.5H387.5V-25.0H375.0V-12.5Z"/></svg></button>
-          <button data-act="jump" aria-label="Jump"><svg class="lab" data-l="jump" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-100.0H87.5V-25.0H75.0V-12.5Z"/><path d="M112.5 -12.5V-25.0H100.0V-100.0H125.0V-25.0H162.5V-100.0H187.5V-25.0H175.0V-12.5Z"/><path d="M200.0 -12.5V-100.0H225.0V-87.5H237.5V-75.0H250.0V-87.5H262.5V-100.0H287.5V-12.5H262.5V-62.5H250.0V-37.5H237.5V-62.5H225.0V-12.5Z"/><path d="M300.0 -12.5V-100.0H375.0V-87.5H387.5V-50.0H375.0V-37.5H325.0V-12.5ZM325.0 -50.0H362.5V-87.5H325.0Z"/></svg></button>
-          <button data-act="atk" aria-label="Hit"><svg class="lab" data-l="hit" viewBox="-1 -101 289.5 89.5" aria-hidden="true"><path d="M0.0 -12.5V-100.0H25.0V-62.5H62.5V-100.0H87.5V-12.5H62.5V-50.0H25.0V-12.5Z"/><path d="M112.5 -12.5V-25.0H137.5V-87.5H112.5V-100.0H187.5V-87.5H162.5V-25.0H187.5V-12.5Z"/><path d="M237.5 -12.5V-87.5H212.5V-100.0H287.5V-87.5H262.5V-12.5Z"/></svg></button>
+          <button data-act="spec" aria-label="Special"><svg class="lab" data-l="spec" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-50.0H12.5V-62.5H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H25.0V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5Z"/><path d="M100.0 -12.5V-100.0H175.0V-87.5H187.5V-50.0H175.0V-37.5H125.0V-12.5ZM125.0 -50.0H162.5V-87.5H125.0Z"/><path d="M200.0 -12.5V-100.0H287.5V-87.5H225.0V-62.5H275.0V-50.0H225.0V-25.0H287.5V-12.5Z"/><path d="M325.0 -12.5V-25.0H312.5V-37.5H300.0V-75.0H312.5V-87.5H325.0V-100.0H375.0V-87.5H387.5V-75.0H362.5V-87.5H337.5V-75.0H325.0V-37.5H337.5V-25.0H362.5V-37.5H387.5V-25.0H375.0V-12.5Z"/></svg><svg class="lab" data-l="scrap" viewBox="-1 -101 489.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-50.0H12.5V-62.5H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H25.0V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5Z"/><path d="M125.0 -12.5V-25.0H112.5V-37.5H100.0V-75.0H112.5V-87.5H125.0V-100.0H175.0V-87.5H187.5V-75.0H162.5V-87.5H137.5V-75.0H125.0V-37.5H137.5V-25.0H162.5V-37.5H187.5V-25.0H175.0V-12.5Z"/><path d="M200.0 -12.5V-100.0H275.0V-87.5H287.5V-50.0H262.5V-37.5H275.0V-25.0H287.5V-12.5H250.0V-25.0H237.5V-37.5H225.0V-12.5ZM225.0 -50.0H250.0V-62.5H262.5V-87.5H225.0Z"/><path d="M300.0 -12.5V-75.0H312.5V-87.5H325.0V-100.0H362.5V-87.5H375.0V-75.0H387.5V-12.5H362.5V-37.5H325.0V-12.5ZM325.0 -50.0H362.5V-75.0H350.0V-87.5H337.5V-75.0H325.0Z"/><path d="M400.0 -12.5V-100.0H475.0V-87.5H487.5V-50.0H475.0V-37.5H425.0V-12.5ZM425.0 -50.0H462.5V-87.5H425.0Z"/></svg><svg class="lab" data-l="scrapq" viewBox="-1 -101 589.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-50.0H12.5V-62.5H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H25.0V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5Z"/><path d="M125.0 -12.5V-25.0H112.5V-37.5H100.0V-75.0H112.5V-87.5H125.0V-100.0H175.0V-87.5H187.5V-75.0H162.5V-87.5H137.5V-75.0H125.0V-37.5H137.5V-25.0H162.5V-37.5H187.5V-25.0H175.0V-12.5Z"/><path d="M200.0 -12.5V-100.0H275.0V-87.5H287.5V-50.0H262.5V-37.5H275.0V-25.0H287.5V-12.5H250.0V-25.0H237.5V-37.5H225.0V-12.5ZM225.0 -50.0H250.0V-62.5H262.5V-87.5H225.0Z"/><path d="M300.0 -12.5V-75.0H312.5V-87.5H325.0V-100.0H362.5V-87.5H375.0V-75.0H387.5V-12.5H362.5V-37.5H325.0V-12.5ZM325.0 -50.0H362.5V-75.0H350.0V-87.5H337.5V-75.0H325.0Z"/><path d="M400.0 -12.5V-100.0H475.0V-87.5H487.5V-50.0H475.0V-37.5H425.0V-12.5ZM425.0 -50.0H462.5V-87.5H425.0Z"/><path d="M525.0 -37.5V-50.0H550.0V-62.5H562.5V-75.0H525.0V-62.5H500.0V-87.5H512.5V-100.0H575.0V-87.5H587.5V-62.5H575.0V-50.0H562.5V-37.5ZM525.0 -12.5V-25.0H562.5V-12.5Z"/></svg></button>
+          <button data-act="jump" aria-label="Jump"><svg class="lab" data-l="jump" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-100.0H87.5V-25.0H75.0V-12.5Z"/><path d="M112.5 -12.5V-25.0H100.0V-100.0H125.0V-25.0H162.5V-100.0H187.5V-25.0H175.0V-12.5Z"/><path d="M200.0 -12.5V-100.0H225.0V-87.5H237.5V-75.0H250.0V-87.5H262.5V-100.0H287.5V-12.5H262.5V-62.5H250.0V-37.5H237.5V-62.5H225.0V-12.5Z"/><path d="M300.0 -12.5V-100.0H375.0V-87.5H387.5V-50.0H375.0V-37.5H325.0V-12.5ZM325.0 -50.0H362.5V-87.5H325.0Z"/></svg><svg class="lab" data-l="back" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M0.0 -12.5V-100.0H75.0V-87.5H87.5V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5ZM25.0 -62.5H62.5V-87.5H25.0ZM25.0 -25.0H62.5V-50.0H25.0Z"/><path d="M100.0 -12.5V-75.0H112.5V-87.5H125.0V-100.0H162.5V-87.5H175.0V-75.0H187.5V-12.5H162.5V-37.5H125.0V-12.5ZM125.0 -50.0H162.5V-75.0H150.0V-87.5H137.5V-75.0H125.0Z"/><path d="M225.0 -12.5V-25.0H212.5V-37.5H200.0V-75.0H212.5V-87.5H225.0V-100.0H275.0V-87.5H287.5V-75.0H262.5V-87.5H237.5V-75.0H225.0V-37.5H237.5V-25.0H262.5V-37.5H287.5V-25.0H275.0V-12.5Z"/><path d="M300.0 -12.5V-100.0H325.0V-62.5H337.5V-75.0H350.0V-87.5H362.5V-100.0H387.5V-87.5H375.0V-75.0H362.5V-62.5H350.0V-50.0H362.5V-37.5H375.0V-25.0H387.5V-12.5H350.0V-25.0H337.5V-37.5H325.0V-12.5Z"/></svg><svg class="lab" data-l="close" viewBox="-1 -101 489.5 89.5" aria-hidden="true"><path d="M25.0 -12.5V-25.0H12.5V-37.5H0.0V-75.0H12.5V-87.5H25.0V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H37.5V-75.0H25.0V-37.5H37.5V-25.0H62.5V-37.5H87.5V-25.0H75.0V-12.5Z"/><path d="M112.5 -12.5V-100.0H137.5V-25.0H187.5V-12.5Z"/><path d="M212.5 -12.5V-25.0H200.0V-87.5H212.5V-100.0H275.0V-87.5H287.5V-25.0H275.0V-12.5ZM225.0 -25.0H262.5V-87.5H225.0Z"/><path d="M312.5 -12.5V-25.0H300.0V-37.5H325.0V-25.0H362.5V-50.0H312.5V-62.5H300.0V-87.5H312.5V-100.0H375.0V-87.5H387.5V-75.0H362.5V-87.5H325.0V-62.5H375.0V-50.0H387.5V-25.0H375.0V-12.5Z"/><path d="M400.0 -12.5V-100.0H487.5V-87.5H425.0V-62.5H475.0V-50.0H425.0V-25.0H487.5V-12.5Z"/></svg></button>
+          <button data-act="atk" aria-label="Hit"><svg class="lab" data-l="hit" viewBox="-1 -101 289.5 89.5" aria-hidden="true"><path d="M0.0 -12.5V-100.0H25.0V-62.5H62.5V-100.0H87.5V-12.5H62.5V-50.0H25.0V-12.5Z"/><path d="M112.5 -12.5V-25.0H137.5V-87.5H112.5V-100.0H187.5V-87.5H162.5V-25.0H187.5V-12.5Z"/><path d="M237.5 -12.5V-87.5H212.5V-100.0H287.5V-87.5H262.5V-12.5Z"/></svg><svg class="lab" data-l="ok" viewBox="-1 -101 189.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-25.0H75.0V-12.5ZM25.0 -25.0H62.5V-87.5H25.0Z"/><path d="M100.0 -12.5V-100.0H125.0V-62.5H137.5V-75.0H150.0V-87.5H162.5V-100.0H187.5V-87.5H175.0V-75.0H162.5V-62.5H150.0V-50.0H162.5V-37.5H175.0V-25.0H187.5V-12.5H150.0V-25.0H137.5V-37.5H125.0V-12.5Z"/></svg><svg class="lab" data-l="equip" viewBox="-1 -101 489.5 89.5" aria-hidden="true"><path d="M0.0 -12.5V-100.0H87.5V-87.5H25.0V-62.5H75.0V-50.0H25.0V-25.0H87.5V-12.5Z"/><path d="M187.5 -87.5V-37.5H175.0V-25.0H162.5V-12.5H112.5V-25.0H100.0V-87.5H112.5V-100.0H175.0V-87.5ZM162.5 -87.5H125.0V-25.0H150.0V-37.5H137.5V-50.0H162.5ZM175.0 -12.5V-25.0H187.5V-12.5Z"/><path d="M212.5 -12.5V-25.0H200.0V-100.0H225.0V-25.0H262.5V-100.0H287.5V-25.0H275.0V-12.5Z"/><path d="M312.5 -12.5V-25.0H337.5V-87.5H312.5V-100.0H387.5V-87.5H362.5V-25.0H387.5V-12.5Z"/><path d="M400.0 -12.5V-100.0H475.0V-87.5H487.5V-50.0H475.0V-37.5H425.0V-12.5ZM425.0 -50.0H462.5V-87.5H425.0Z"/></svg><svg class="lab" data-l="takeoff" viewBox="11.5 -101 777 89.5" aria-hidden="true"><path d="M37.5 -12.5V-87.5H12.5V-100.0H87.5V-87.5H62.5V-12.5Z"/><path d="M100.0 -12.5V-75.0H112.5V-87.5H125.0V-100.0H162.5V-87.5H175.0V-75.0H187.5V-12.5H162.5V-37.5H125.0V-12.5ZM125.0 -50.0H162.5V-75.0H150.0V-87.5H137.5V-75.0H125.0Z"/><path d="M200.0 -12.5V-100.0H225.0V-62.5H237.5V-75.0H250.0V-87.5H262.5V-100.0H287.5V-87.5H275.0V-75.0H262.5V-62.5H250.0V-50.0H262.5V-37.5H275.0V-25.0H287.5V-12.5H250.0V-25.0H237.5V-37.5H225.0V-12.5Z"/><path d="M300.0 -12.5V-100.0H387.5V-87.5H325.0V-62.5H375.0V-50.0H325.0V-25.0H387.5V-12.5Z"/><path d="M512.5 -12.5V-25.0H500.0V-87.5H512.5V-100.0H575.0V-87.5H587.5V-25.0H575.0V-12.5ZM525.0 -25.0H562.5V-87.5H525.0Z"/><path d="M600.0 -12.5V-100.0H687.5V-87.5H625.0V-62.5H675.0V-50.0H625.0V-12.5Z"/><path d="M700.0 -12.5V-100.0H787.5V-87.5H725.0V-62.5H775.0V-50.0H725.0V-12.5Z"/></svg><svg class="lab" data-l="sort" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-50.0H12.5V-62.5H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H25.0V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5Z"/><path d="M112.5 -12.5V-25.0H100.0V-87.5H112.5V-100.0H175.0V-87.5H187.5V-25.0H175.0V-12.5ZM125.0 -25.0H162.5V-87.5H125.0Z"/><path d="M200.0 -12.5V-100.0H275.0V-87.5H287.5V-50.0H262.5V-37.5H275.0V-25.0H287.5V-12.5H250.0V-25.0H237.5V-37.5H225.0V-12.5ZM225.0 -50.0H250.0V-62.5H262.5V-87.5H225.0Z"/><path d="M337.5 -12.5V-87.5H312.5V-100.0H387.5V-87.5H362.5V-12.5Z"/></svg></button>
         </div>
       </div>
       <div class="pills">
-        <button class="pill" data-act="inv" aria-label="Gear"><svg class="lab" data-l="gear" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M25.0 -12.5V-25.0H12.5V-37.5H0.0V-75.0H12.5V-87.5H25.0V-100.0H87.5V-87.5H37.5V-75.0H25.0V-37.5H37.5V-25.0H62.5V-50.0H50.0V-62.5H87.5V-12.5Z"/><path d="M100.0 -12.5V-100.0H187.5V-87.5H125.0V-62.5H175.0V-50.0H125.0V-25.0H187.5V-12.5Z"/><path d="M200.0 -12.5V-75.0H212.5V-87.5H225.0V-100.0H262.5V-87.5H275.0V-75.0H287.5V-12.5H262.5V-37.5H225.0V-12.5ZM225.0 -50.0H262.5V-75.0H250.0V-87.5H237.5V-75.0H225.0Z"/><path d="M300.0 -12.5V-100.0H375.0V-87.5H387.5V-50.0H362.5V-37.5H375.0V-25.0H387.5V-12.5H350.0V-25.0H337.5V-37.5H325.0V-12.5ZM325.0 -50.0H350.0V-62.5H362.5V-87.5H325.0Z"/></svg></button>
-        <button class="pill" data-act="start" aria-label="Start"><svg class="lab" data-l="start" viewBox="-1 -101 489.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-50.0H12.5V-62.5H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H25.0V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5Z"/><path d="M137.5 -12.5V-87.5H112.5V-100.0H187.5V-87.5H162.5V-12.5Z"/><path d="M200.0 -12.5V-75.0H212.5V-87.5H225.0V-100.0H262.5V-87.5H275.0V-75.0H287.5V-12.5H262.5V-37.5H225.0V-12.5ZM225.0 -50.0H262.5V-75.0H250.0V-87.5H237.5V-75.0H225.0Z"/><path d="M300.0 -12.5V-100.0H375.0V-87.5H387.5V-50.0H362.5V-37.5H375.0V-25.0H387.5V-12.5H350.0V-25.0H337.5V-37.5H325.0V-12.5ZM325.0 -50.0H350.0V-62.5H362.5V-87.5H325.0Z"/><path d="M437.5 -12.5V-87.5H412.5V-100.0H487.5V-87.5H462.5V-12.5Z"/></svg></button>
+        <button class="pill" data-act="inv" aria-label="Gear"><svg class="lab" data-l="gear" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M25.0 -12.5V-25.0H12.5V-37.5H0.0V-75.0H12.5V-87.5H25.0V-100.0H87.5V-87.5H37.5V-75.0H25.0V-37.5H37.5V-25.0H62.5V-50.0H50.0V-62.5H87.5V-12.5Z"/><path d="M100.0 -12.5V-100.0H187.5V-87.5H125.0V-62.5H175.0V-50.0H125.0V-25.0H187.5V-12.5Z"/><path d="M200.0 -12.5V-75.0H212.5V-87.5H225.0V-100.0H262.5V-87.5H275.0V-75.0H287.5V-12.5H262.5V-37.5H225.0V-12.5ZM225.0 -50.0H262.5V-75.0H250.0V-87.5H237.5V-75.0H225.0Z"/><path d="M300.0 -12.5V-100.0H375.0V-87.5H387.5V-50.0H362.5V-37.5H375.0V-25.0H387.5V-12.5H350.0V-25.0H337.5V-37.5H325.0V-12.5ZM325.0 -50.0H350.0V-62.5H362.5V-87.5H325.0Z"/></svg><svg class="lab" data-l="close" viewBox="-1 -101 489.5 89.5" aria-hidden="true"><path d="M25.0 -12.5V-25.0H12.5V-37.5H0.0V-75.0H12.5V-87.5H25.0V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H37.5V-75.0H25.0V-37.5H37.5V-25.0H62.5V-37.5H87.5V-25.0H75.0V-12.5Z"/><path d="M112.5 -12.5V-100.0H137.5V-25.0H187.5V-12.5Z"/><path d="M212.5 -12.5V-25.0H200.0V-87.5H212.5V-100.0H275.0V-87.5H287.5V-25.0H275.0V-12.5ZM225.0 -25.0H262.5V-87.5H225.0Z"/><path d="M312.5 -12.5V-25.0H300.0V-37.5H325.0V-25.0H362.5V-50.0H312.5V-62.5H300.0V-87.5H312.5V-100.0H375.0V-87.5H387.5V-75.0H362.5V-87.5H325.0V-62.5H375.0V-50.0H387.5V-25.0H375.0V-12.5Z"/><path d="M400.0 -12.5V-100.0H487.5V-87.5H425.0V-62.5H475.0V-50.0H425.0V-25.0H487.5V-12.5Z"/></svg></button>
+        <button class="pill" data-act="start" aria-label="Start"><svg class="lab" data-l="start" viewBox="-1 -101 489.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-50.0H12.5V-62.5H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H25.0V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5Z"/><path d="M137.5 -12.5V-87.5H112.5V-100.0H187.5V-87.5H162.5V-12.5Z"/><path d="M200.0 -12.5V-75.0H212.5V-87.5H225.0V-100.0H262.5V-87.5H275.0V-75.0H287.5V-12.5H262.5V-37.5H225.0V-12.5ZM225.0 -50.0H262.5V-75.0H250.0V-87.5H237.5V-75.0H225.0Z"/><path d="M300.0 -12.5V-100.0H375.0V-87.5H387.5V-50.0H362.5V-37.5H375.0V-25.0H387.5V-12.5H350.0V-25.0H337.5V-37.5H325.0V-12.5ZM325.0 -50.0H350.0V-62.5H362.5V-87.5H325.0Z"/><path d="M437.5 -12.5V-87.5H412.5V-100.0H487.5V-87.5H462.5V-12.5Z"/></svg><svg class="lab" data-l="ok" viewBox="-1 -101 189.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-25.0H75.0V-12.5ZM25.0 -25.0H62.5V-87.5H25.0Z"/><path d="M100.0 -12.5V-100.0H125.0V-62.5H137.5V-75.0H150.0V-87.5H162.5V-100.0H187.5V-87.5H175.0V-75.0H162.5V-62.5H150.0V-50.0H162.5V-37.5H175.0V-25.0H187.5V-12.5H150.0V-25.0H137.5V-37.5H125.0V-12.5Z"/></svg><svg class="lab" data-l="equip" viewBox="-1 -101 489.5 89.5" aria-hidden="true"><path d="M0.0 -12.5V-100.0H87.5V-87.5H25.0V-62.5H75.0V-50.0H25.0V-25.0H87.5V-12.5Z"/><path d="M187.5 -87.5V-37.5H175.0V-25.0H162.5V-12.5H112.5V-25.0H100.0V-87.5H112.5V-100.0H175.0V-87.5ZM162.5 -87.5H125.0V-25.0H150.0V-37.5H137.5V-50.0H162.5ZM175.0 -12.5V-25.0H187.5V-12.5Z"/><path d="M212.5 -12.5V-25.0H200.0V-100.0H225.0V-25.0H262.5V-100.0H287.5V-25.0H275.0V-12.5Z"/><path d="M312.5 -12.5V-25.0H337.5V-87.5H312.5V-100.0H387.5V-87.5H362.5V-25.0H387.5V-12.5Z"/><path d="M400.0 -12.5V-100.0H475.0V-87.5H487.5V-50.0H475.0V-37.5H425.0V-12.5ZM425.0 -50.0H462.5V-87.5H425.0Z"/></svg><svg class="lab" data-l="takeoff" viewBox="11.5 -101 777 89.5" aria-hidden="true"><path d="M37.5 -12.5V-87.5H12.5V-100.0H87.5V-87.5H62.5V-12.5Z"/><path d="M100.0 -12.5V-75.0H112.5V-87.5H125.0V-100.0H162.5V-87.5H175.0V-75.0H187.5V-12.5H162.5V-37.5H125.0V-12.5ZM125.0 -50.0H162.5V-75.0H150.0V-87.5H137.5V-75.0H125.0Z"/><path d="M200.0 -12.5V-100.0H225.0V-62.5H237.5V-75.0H250.0V-87.5H262.5V-100.0H287.5V-87.5H275.0V-75.0H262.5V-62.5H250.0V-50.0H262.5V-37.5H275.0V-25.0H287.5V-12.5H250.0V-25.0H237.5V-37.5H225.0V-12.5Z"/><path d="M300.0 -12.5V-100.0H387.5V-87.5H325.0V-62.5H375.0V-50.0H325.0V-25.0H387.5V-12.5Z"/><path d="M512.5 -12.5V-25.0H500.0V-87.5H512.5V-100.0H575.0V-87.5H587.5V-25.0H575.0V-12.5ZM525.0 -25.0H562.5V-87.5H525.0Z"/><path d="M600.0 -12.5V-100.0H687.5V-87.5H625.0V-62.5H675.0V-50.0H625.0V-12.5Z"/><path d="M700.0 -12.5V-100.0H787.5V-87.5H725.0V-62.5H775.0V-50.0H725.0V-12.5Z"/></svg><svg class="lab" data-l="sort" viewBox="-1 -101 389.5 89.5" aria-hidden="true"><path d="M12.5 -12.5V-25.0H0.0V-37.5H25.0V-25.0H62.5V-50.0H12.5V-62.5H0.0V-87.5H12.5V-100.0H75.0V-87.5H87.5V-75.0H62.5V-87.5H25.0V-62.5H75.0V-50.0H87.5V-25.0H75.0V-12.5Z"/><path d="M112.5 -12.5V-25.0H100.0V-87.5H112.5V-100.0H175.0V-87.5H187.5V-25.0H175.0V-12.5ZM125.0 -25.0H162.5V-87.5H125.0Z"/><path d="M200.0 -12.5V-100.0H275.0V-87.5H287.5V-50.0H262.5V-37.5H275.0V-25.0H287.5V-12.5H250.0V-25.0H237.5V-37.5H225.0V-12.5ZM225.0 -50.0H250.0V-62.5H262.5V-87.5H225.0Z"/><path d="M337.5 -12.5V-87.5H312.5V-100.0H387.5V-87.5H362.5V-12.5Z"/></svg></button>
       </div>
       <div class="row lo">
         <div class="brand"><span class="st"></span><svg class="lab" data-l="brand" viewBox="11.5 -101 1977 89.5" aria-hidden="true"><path d="M37.5 -12.5V-87.5H12.5V-100.0H87.5V-87.5H62.5V-12.5Z"/><path d="M100.0 -12.5V-100.0H125.0V-62.5H162.5V-100.0H187.5V-12.5H162.5V-50.0H125.0V-12.5Z"/><path d="M200.0 -12.5V-100.0H287.5V-87.5H225.0V-62.5H275.0V-50.0H225.0V-25.0H287.5V-12.5Z"/><path d="M412.5 -12.5V-100.0H437.5V-25.0H487.5V-12.5Z"/><path d="M500.0 -12.5V-75.0H512.5V-87.5H525.0V-100.0H562.5V-87.5H575.0V-75.0H587.5V-12.5H562.5V-37.5H525.0V-12.5ZM525.0 -50.0H562.5V-75.0H550.0V-87.5H537.5V-75.0H525.0Z"/><path d="M612.5 -12.5V-25.0H600.0V-37.5H625.0V-25.0H662.5V-50.0H612.5V-62.5H600.0V-87.5H612.5V-100.0H675.0V-87.5H687.5V-75.0H662.5V-87.5H625.0V-62.5H675.0V-50.0H687.5V-25.0H675.0V-12.5Z"/><path d="M737.5 -12.5V-87.5H712.5V-100.0H787.5V-87.5H762.5V-12.5Z"/><path d="M937.5 -12.5V-25.0H925.0V-37.5H912.5V-50.0H900.0V-100.0H925.0V-62.5H937.5V-50.0H950.0V-62.5H962.5V-100.0H987.5V-50.0H975.0V-37.5H962.5V-25.0H950.0V-12.5Z"/><path d="M1012.5 -12.5V-25.0H1037.5V-87.5H1012.5V-100.0H1087.5V-87.5H1062.5V-25.0H1087.5V-12.5Z"/><path d="M1100.0 -12.5V-100.0H1162.5V-87.5H1175.0V-75.0H1187.5V-37.5H1175.0V-25.0H1162.5V-12.5ZM1125.0 -25.0H1150.0V-37.5H1162.5V-75.0H1150.0V-87.5H1125.0Z"/><path d="M1200.0 -12.5V-100.0H1287.5V-87.5H1225.0V-62.5H1275.0V-50.0H1225.0V-25.0H1287.5V-12.5Z"/><path d="M1312.5 -12.5V-25.0H1300.0V-87.5H1312.5V-100.0H1375.0V-87.5H1387.5V-25.0H1375.0V-12.5ZM1325.0 -25.0H1362.5V-87.5H1325.0Z"/><path d="M1512.5 -12.5V-25.0H1500.0V-37.5H1525.0V-25.0H1562.5V-50.0H1512.5V-62.5H1500.0V-87.5H1512.5V-100.0H1575.0V-87.5H1587.5V-75.0H1562.5V-87.5H1525.0V-62.5H1575.0V-50.0H1587.5V-25.0H1575.0V-12.5Z"/><path d="M1637.5 -12.5V-87.5H1612.5V-100.0H1687.5V-87.5H1662.5V-12.5Z"/><path d="M1712.5 -12.5V-25.0H1700.0V-87.5H1712.5V-100.0H1775.0V-87.5H1787.5V-25.0H1775.0V-12.5ZM1725.0 -25.0H1762.5V-87.5H1725.0Z"/><path d="M1800.0 -12.5V-100.0H1875.0V-87.5H1887.5V-50.0H1862.5V-37.5H1875.0V-25.0H1887.5V-12.5H1850.0V-25.0H1837.5V-37.5H1825.0V-12.5ZM1825.0 -50.0H1850.0V-62.5H1862.5V-87.5H1825.0Z"/><path d="M1900.0 -12.5V-100.0H1987.5V-87.5H1925.0V-62.5H1975.0V-50.0H1925.0V-25.0H1987.5V-12.5Z"/></svg></div>
-        <div class="spk"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       </div>
     </div>
   </div>
@@ -194,12 +202,13 @@ function setDiff(d){DIFFSEL=d;try{localStorage.setItem('lfotd-diff',d);}catch(e)
 function unlockTo(n){n=Math.min(NSTAGES,n);if(n>STG.max){STG.max=n;try{localStorage.setItem('lfotd-stage',n);}catch(e){}}}
 const TOTAL_SURV=LEVELS.reduce((a,_,i)=>a+LFCore.survFor(i+1).length,0);
 const zoneAt=(L,x)=>{const z=LFCore.levelZones(L);let i=0;while(i<z.length-1&&x>=z[i][2])i++;return i;};
-const cv=document.getElementById('game'),ctx=cv.getContext('2d');
+const cv=document.getElementById('game');let ctx=cv.getContext('2d');
+function withCtx(c,fn){const o=ctx;ctx=c;try{fn();}finally{ctx=o;}}
 // Render scale follows the size the canvas is shown at (sharp on big screens), from 2x to 6x the 384x216 game.
 let SC=3;
 function fitCanvas(){const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1,k=Math.max(2,Math.min(6,Math.round((r.width||W*3)*dpr/W)));
   if(cv.width!==W*k){SC=k;cv.width=W*k;cv.height=H*k;}ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';}
-fitCanvas();addEventListener('resize',fitCanvas);
+fitCanvas();addEventListener('resize',()=>{fitCanvas();if(typeof tickerRoom==='function')tickerRoom();});
 const {clamp,lerp,rnd,pick}=LFCore;
 const touchMode=matchMedia('(hover:none) and (pointer:coarse)').matches;
 const C=LFCore;const {PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,bonusTxt,hasPow}=C;
@@ -560,6 +569,75 @@ function drawSound(){
 }
 function closeControls(){cap=null;scene=SET.from==='pause'&&G?'pause':'title';beep(330,.08);}
 try{hi=+localStorage.getItem('lfotd-hi')||0;}catch(e){}
+/* ---------- handheld shell extras (phones): context button labels, the gear LCD, the VCR readout ---------- */
+const PADB={spec:document.querySelector('.btns [data-act=spec]'),jump:document.querySelector('.btns [data-act=jump]'),atk:document.querySelector('.btns [data-act=atk]'),inv:document.querySelector('.pill[data-act=inv]'),start:document.querySelector('.pill[data-act=start]')};
+let padLabKey='';
+// What each button does right now, so its printed name can follow: HIT becomes EQUIP in the gear screen, OK in menus, and so on.
+function padCtx(){
+  if(scene==='inv'&&INV.p){const s=invSel();let a=null,y=null;
+    if(INV.zone==='bag'){if(s.item){a='equip';y=INV.scrap===s.i?'scrapq':'scrap';}}else a=s.slot==='sort'?'sort':s.item?'takeoff':null;
+    return {atk:a,spec:y,jump:'close',inv:'close',start:a};}
+  if(scene==='play'||scene==='intro')return {atk:'hit',spec:'spec',jump:'jump',inv:'gear',start:'start'};
+  if(scene==='controls')return {atk:null,spec:null,jump:'back',inv:null,start:null};
+  return {atk:'ok',spec:null,jump:'back',inv:null,start:'ok'};
+}
+function padLabels(){const c=padCtx(),key=Object.values(c).join();if(key===padLabKey)return;padLabKey=key;
+  for(const b in PADB){PADB[b].classList.toggle('idle',!c[b]);for(const el of PADB[b].querySelectorAll('.lab'))el.classList.toggle('off',el.dataset.l!==c[b]);}}
+const lcdEl=document.getElementById('lcd'),tickEl=document.getElementById('ticker'),shellEl=document.getElementById('shell');
+let lastHero='dex';try{lastHero=localStorage.getItem('lfotd-hero')||'dex';}catch(e){}
+function lcdView(){
+  if(G&&(GAME_SCENES.has(scene)||scene==='intro'||scene==='controls'||scene==='sound'||scene==='guide')){
+    const p=scene==='inv'&&INV.p?INV.p:NET.on?G.ps.find(q=>q.slot===NET.slot):G.ps.find(q=>q.dev==='kb1')||G.ps[0];
+    if(p){if(p.ch.id!==lastHero){lastHero=p.ch.id;try{localStorage.setItem('lfotd-hero',lastHero);}catch(e){}}return {id:p.ch.id,look:gearLook(p.ch.id),p,walk:p.moving&&p.state!=='down'?T:0,down:p.state==='down'||p.out};}}
+  if(scene==='select'){const sl=slotOf('kb1');if(sl)return {id:HEROES[sl.cur].id,look:gearLook(HEROES[sl.cur].id),walk:T};}
+  const id=HEROES.some(h=>h.id===lastHero)?lastHero:'dex';return {id,look:gearLook(id),walk:0};
+}
+function drawLcd(){
+  if(T%2)return;const r=lcdEl.getBoundingClientRect();if(!r.width)return;const dpr=window.devicePixelRatio||1,w=Math.round(r.width*dpr),h=Math.round(r.height*dpr);
+  if(lcdEl.width!==w||lcdEl.height!==h){lcdEl.width=w;lcdEl.height=h;}
+  const c=lcdEl.getContext('2d'),k=w/40;
+  withCtx(c,()=>{ctx.setTransform(k,0,0,k,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    rect(0,0,40,84,'#161c17');for(let y=0;y<84;y+=2)rect(0,y,40,1,'rgba(0,0,0,.14)');
+    const v=lcdView();
+    ctx.save();ctx.translate(20,46);ctx.scale(1.02,1.02);if(v.down)ctx.globalAlpha=.45;drawHero(v.id,{walk:v.walk,atkP:-1,n:1,gear:v.look,h:40,down:v.down});ctx.restore();
+    if(v.p){const f=clamp(v.p.hp/v.p.maxhp,0,1);rect(4,48,32,3,'#0b0e0b');rect(4,48,Math.round(32*f),3,f>.3?'#c8f05a':'#ff5a4a');}
+    else rect(4,48,32,3,'#0b0e0b');
+    const g=GEAR[v.id];CATS.forEach((cat,i)=>{const x=3+(i%3)*12,y=53+Math.floor(i/3)*10.5,it=g&&g.eq[cat];
+      rect(x,y,11,10,it?'#0e120e':'#121712');ctx.save();ctx.translate(x+.5,y);ctx.scale(.62,.62);
+      if(it)drawIcon(cat,BASES[it.k].col,0,0);else{ctx.globalAlpha=.28;iconShape(cat,'#9fb39a',0,0,true);ctx.globalAlpha=1;}ctx.restore();});
+    ctx.setTransform(1,0,0,1,0,0);});
+}
+// VCR readout: the famous unset clock plus a scrolling line of run stats, station info and records.
+let tickTxt='',tickW=0,tickX=0;
+const nf=n=>String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+function tickerSegs(){const o=[];
+  if(G&&(GAME_SCENES.has(scene)||scene==='intro')){const L=G.level||1,lv=LEVELS[L-1];o.push('STAGE '+L+': '+lv.name,'SCORE '+nf(G.score),'HI '+nf(Math.max(hi,G.score)));
+    const ps=G.ps.filter(p=>p.rs);const sum=k=>ps.reduce((a,p)=>a+(p.rs[k]||0),0);const mc=Math.max(0,...ps.map(p=>p.rs.mc||0));
+    o.push('KO '+nf(sum('k')),'BOSSES '+nf(sum('bk')),'BEST COMBO '+mc,'DEALT '+nf(sum('dd')),'TAKEN '+nf(sum('dt')),'SAVED '+(G.saved||0)+'/'+LFCore.survFor(L).length,'LOOT '+nf(ps.reduce((a,p)=>a+Object.values(p.rs.lt||{}).reduce((x,y)=>x+y,0),0)));
+    const t=Math.floor((G.time||0)/60);o.push('TIME '+Math.floor(t/60)+':'+String(t%60).padStart(2,'0'),String(G.diff||DIFFSEL).toUpperCase()+' MODE');
+    if(NET.on)o.push('ROOM '+NET.code+'  '+G.ps.length+' PLAYERS');}
+  else{const np=Object.keys(pads).length;o.push('HIGH SCORE '+nf(hi),'STAGES UNLOCKED '+STG.max+'/'+NSTAGES,'DIFFICULTY '+DIFFSEL.toUpperCase(),np?np+' CONTROLLER'+(np>1?'S':'')+' PAIRED':'PAIR A CONTROLLER OVER BLUETOOTH','BE KIND, REWIND');}
+  const now=MUS.jingle&&MUS.jk==='start'?(MUS.jtitle||'STATION BREAK'):MUS.now&&MUS.now[0]==='s'?TRACKS[MUS.now].name:null;
+  o.push(now?'96.9 FM NOW PLAYING: '+now:'SMOOTH SAIL FM 96.9 - SOFT SONGS FOR HARD NIGHTS');
+  return o;}
+function tickerRoom(){if(!tickEl||!shellEl)return;const on=touchMode&&!matchMedia('(orientation:landscape)').matches&&innerHeight-shellEl.getBoundingClientRect().height>84;tickEl.classList.toggle('on',on);}
+function drawTicker(){
+  if(!tickEl.classList.contains('on'))return;const dpr=window.devicePixelRatio||1,w=tickEl.clientWidth,h=30;if(!w)return;
+  if(tickEl.width!==Math.round(w*dpr)){tickEl.width=Math.round(w*dpr);tickEl.height=Math.round(h*dpr);}
+  const c=tickEl.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+  c.font='10px "Press Start 2P", monospace';c.textBaseline='middle';c.textAlign='left';
+  // the clock nobody ever set
+  c.fillStyle='#1a1413';c.fillRect(6,5,62,20);if((T>>5)%2){c.fillStyle='#ffb347';c.fillText('12:00',10,h/2+1);}
+  c.fillStyle='#3a2a22';c.fillRect(74,6,2,18);
+  if(T%45===0||!tickTxt){const t=tickerSegs().join('   //   ')+'   //   ';if(t!==tickTxt){tickTxt=t;tickW=c.measureText(t).width;}}
+  if(!tickW)return;tickX=(tickX+.8)%tickW;
+  c.save();c.beginPath();c.rect(82,0,w-90,h);c.clip();c.fillStyle='#ffd27a';
+  for(let x=82-tickX;x<w;x+=tickW)c.fillText(tickTxt,x,h/2+1);c.restore();
+  const grd=c.createLinearGradient(82,0,100,0);grd.addColorStop(0,'#0d0b0b');grd.addColorStop(1,'rgba(13,11,11,0)');c.fillStyle=grd;c.fillRect(82,0,18,h);
+  const g2=c.createLinearGradient(w-26,0,w-8,0);g2.addColorStop(0,'rgba(13,11,11,0)');g2.addColorStop(1,'#0d0b0b');c.fillStyle=g2;c.fillRect(w-26,0,18,h);
+}
+let shellInit=false;
+function shellTick(){padLabels();if(!shellInit){shellInit=true;tickerRoom();}if(matchMedia('(orientation:landscape)').matches)return;drawLcd();drawTicker();}
 function saveHi(){if(G&&G.score>hi){hi=G.score;try{localStorage.setItem('lfotd-hi',hi);}catch(e){}}}
 
 /* ---------- gear: 9 slots x 30 items, four rarities, four sets, one saved inventory per hero ---------- */
@@ -699,7 +777,7 @@ function drawInv(){
     if(b.set){const S=SETS.find(q=>q.id===b.set),n=st.sets[b.set]||0;y+=2;txt(S.name+' '+n+'/'+setSize(S.id),162,y,'#c8f05a','left',8,null);y+=10;
       for(const [need,bon] of S.bonus){txt(need+': '+Object.entries(bon).map(([k,v])=>bonusTxt(k,v)).join(' '),168,y,n>=need?'#c8f05a':'#8a5a44','left',8,null);y+=10;}}}
   const kset=pad?null:(BIND.kb[+p.dev.slice(2)-1]||{}),kn=a=>pad?'':keyName(kset[a]);
-  const A=pad?'A':kn('atk'),Y=pad?'Y':kn('spec'),B=pad?'B':kn('jump');
+  const tch=!pad&&touchMode&&p.dev==='kb1',A=pad?'A':tch?'HIT':kn('atk'),Y=pad?'Y':tch?'SPEC':kn('spec'),B=pad?'B':tch?'JUMP':kn('jump');
   let hint;if(INV.scrap!=null&&INV.zone==='bag')hint=Y+' AGAIN TO SCRAP';
   else if(INV.zone==='bag')hint=s.item?A+' EQUIP  '+Y+' SCRAP  '+B+' CLOSE':B+' CLOSE';
   else hint=s.slot==='sort'?A+' SORT  '+B+' CLOSE':s.item?A+' TAKE OFF  '+B+' CLOSE':B+' CLOSE';
@@ -1821,7 +1899,7 @@ function drawGuide(){
 
 /* ---------- loop ---------- */
 let last=performance.now(),acc=0;const STEP=1000/60;
-function frame(now){acc+=Math.min(100,now-last);last=now;let n=0;while(acc>=STEP&&n<5){update();acc-=STEP;n++;}render();requestAnimationFrame(frame);}
+function frame(now){acc+=Math.min(100,now-last);last=now;let n=0;while(acc>=STEP&&n<5){update();acc-=STEP;n++;}render();if(touchMode)shellTick();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 rebuildKeys();renderPadList();renderLegend();
 window.__lf={MUSW:()=>[musicWant(),MUS.now,!!MUS.jingle,Object.fromEntries(Object.entries(MUS.el).map(([k,a])=>[k,[a.paused?'paused':'playing',+a.volume.toFixed(2)]]))],get DIFFSEL(){return DIFFSEL},setDiff,STG,unlockTo,enemySprite,MUS,SND,SPR,drawHero,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};

@@ -19,6 +19,8 @@ LABELS = {
     'jump': ('px', 'JUMP', None), 'hit': ('px', 'HIT', None), 'spec': ('px', 'SPEC', None),
     'gear': ('px', 'GEAR', None), 'start': ('px', 'START', None), 'power': ('px', 'POWER', None),
     'vhs': ('px', 'VHS QUALITY WITH STEREO SOUND', None), 'brand': ('px', 'THE LAST VIDEO STORE', None),
+    'ok': ('px', 'OK', None), 'back': ('px', 'BACK', None), 'equip': ('px', 'EQUIP', None), 'scrap': ('px', 'SCRAP', None),
+    'scrapq': ('px', 'SCRAP?', None), 'close': ('px', 'CLOSE', None), 'sort': ('px', 'SORT', None), 'takeoff': ('px', 'TAKE OFF', None),
     'mark': ('bg', 'REWIND', None), 'mark2': ('bg', 'POCKET', ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']),
 }
 
