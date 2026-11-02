@@ -309,7 +309,7 @@ function spawn(g,type,x,y){
 }
 function dropGear(g,x,y,luck,min,il){
   const it=makeItem(rollRarity(luck||0,min),il||zoneIl(g,x)),b=BASES[it.k];
-  g.pick.push({x:clamp(x+rnd(-12,12),g.cam+12,g.cam+W-12),y:clamp(y+rnd(-6,6),TOP+2,BOT),kind:'gear',item:it,t:0,id:++g.kid});
+  g.pick.push({x:clamp(x+rnd(-12,12),g.cam+24,g.cam+W-24),y:clamp(y+rnd(-6,6),TOP+2,BOT),kind:'gear',item:it,t:0,id:++g.kid});
   if(b.rar==='u'||b.rar==='s'){toast(g,(b.rar==='u'?'ULTRA RARE':'SET ITEM')+' DROPPED!',RAR[b.rar].col);[784,988,1318].forEach((f,i)=>beep(g,f,.15,'triangle',.06,0,i*90));}
   else if(b.rar==='r')beep(g,988,.12,'triangle',.04);
 }
@@ -437,7 +437,7 @@ function updEnemy(g,e){
     if(!p)break;
     const side=e.x<p.x?-1:1,pd=p.state==='down';
     let tx=d.ai==='ranged'?p.x+side*100:d.ai==='charge'?p.x+side*(pd?70:110):d.ai==='lunge'?p.x+side*(pd?70:d.keep||50):p.x+side*(d.reach*.8+(pd?30:0));
-    tx=clamp(tx,g.cam+16,g.cam+W-16);
+    const edge=d.ai==='ranged'?44:26;tx=clamp(tx,g.cam+edge,g.cam+W-edge);
     let ty=p.y;if(Math.abs(e.x-p.x)>50)ty+=e.slot*14;ty=clamp(ty,TOP,BOT);
     const off=e.x<g.cam||e.x>g.cam+W,sp=d.speed*(off?2.2:1),dx=tx-e.x,dy=ty-e.y;
     if(Math.abs(dx)>2)e.x+=Math.sign(dx)*Math.min(sp,Math.abs(dx));
@@ -471,14 +471,17 @@ function updEnemy(g,e){
     if(--e.timer<=0&&e.z===0){if(e.dying){e.gone=true;goo(g,e.x,e.y,8,10);dropFrom(g,e);}else{e.state='walk';e.cd=40;}}
     break;
   }
-  e.y=clamp(e.y,TOP,BOT);if(e.state!=='walk')e.x=clamp(e.x,g.cam+6,g.cam+W-6);
+  e.y=clamp(e.y,TOP,BOT);
+  // Once a monster has fully entered the frame it stays in it (body included, not just its centre).
+  const hw=d.big?24:18;if(!e.inView&&e.x>=g.cam+hw&&e.x<=g.cam+W-hw)e.inView=true;
+  if(e.inView)e.x=clamp(e.x,g.cam+hw,g.cam+W-hw);else if(e.state!=='walk')e.x=clamp(e.x,g.cam+6,g.cam+W-6);
 }
 function dropFrom(g,e){
   const d=EN[e.type],luck=e.killer&&e.killer.st?e.killer.st.LUCK:0;
   if(Math.random()<(d.gear??.12)*(1+luck/100))dropGear(g,e.x,e.y,luck,d.gearMin||null);
   const r=Math.random(),big=!!d.big,pz=dif(g).pizza;
-  if(big?r<.5:r<.08)g.pick.push({x:e.x,y:e.y,kind:pick(POWKEYS),t:0,id:++g.kid});
-  else if(r<(big?.5+pz[1]:.08+pz[0]))g.pick.push({x:e.x,y:e.y,kind:'pizza',t:0,id:++g.kid});
+  if(big?r<.5:r<.08)g.pick.push({x:clamp(e.x,g.cam+24,g.cam+W-24),y:e.y,kind:pick(POWKEYS),t:0,id:++g.kid});
+  else if(r<(big?.5+pz[1]:.08+pz[0]))g.pick.push({x:clamp(e.x,g.cam+24,g.cam+W-24),y:e.y,kind:'pizza',t:0,id:++g.kid});
 }
 // One AI for every boss; each picks from its own move list (slam, spit, summon, charge) and gets faster below half health.
 function updBoss(g,e){
@@ -547,7 +550,8 @@ function step(g){
   g.proj=g.proj.filter(q=>q.life>0);
   for(const k of g.pick){k.t++;if(k.got)continue;
     // Loot never gets left behind: anything that falls off the left edge slides along with the screen.
-    const minX=g.cam+16;if(k.x<minX)k.x=Math.min(minX,k.x+Math.max(1.5,(minX-k.x)*.25));
+    // carried items fan out over a band near the left side instead of piling onto one spot
+    const minX=g.cam+40+(k.id*37%6)*18,maxX=g.cam+W-24;if(k.x<minX)k.x=Math.min(minX,k.x+Math.max(1.5,(minX-k.x)*.25));else if(k.x>maxX)k.x=maxX;
     for(const p of act){if(Math.abs(k.x-p.x)<12&&Math.abs(k.y-p.y)<9&&p.z<12&&p.state!=='down'){if(k.kind==='gear'){pickGear(g,p,k);break;}k.got=true;
       if(k.kind==='pizza'){p.hp=Math.min(p.maxhp,p.hp+30);floatText(g,k.x,k.y,'+30 HP','#c8f05a');}
       else if(k.kind==='tape'){addScore(g,p,1000);floatText(g,k.x,k.y,'RARE TAPE +1000','#ffc93c');}
@@ -607,7 +611,7 @@ function interpolate(g,now,ms){
 }
 
 // Bump on every change to the rules so the website can tell when a room server is out of date.
-const CORE_VERSION='2026.11.02-1';
+const CORE_VERSION='2026.11.02-2';
 const LFCore={CORE_VERSION,W,H,TOP,BOT,LEVEL_END,PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,DIFF,DIFFS,LEVELS,NSTAGES,levelZones,levelLen,genWaves,loadLevel,survFor,
   CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,calcStatsFor,gearLookFor,cleanStats,cleanLook,bonusTxt,
   clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,step,snapshot,applySnapshot,interpolate,hasPow,active};
