@@ -23,7 +23,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
-    if (url.pathname === "/" || url.pathname === "/health") return json({ ok: true, game: "The Last Video Store", rooms: "POST /rooms, then wss://.../rooms/CODE/ws" });
+    if (url.pathname === "/" || url.pathname === "/health") return json({ ok: true, game: "The Last Video Store", core: C.CORE_VERSION, rooms: "POST /rooms, then wss://.../rooms/CODE/ws" });
 
     if (url.pathname === "/rooms" && request.method === "POST") {
       for (let i = 0; i < 8; i++) {
@@ -119,7 +119,7 @@ export class Room {
         if (p.ws && p.ws !== ws) { try { p.ws.close(1000, "replaced"); } catch {} }
         p.ws = ws; p.away = false; p.held = 0; p.pressed = 0;
         if (this.G) { const gp = this.G.ps.find(q => q.slot === slot); if (gp) { gp.away = false; gp.in = {}; } }
-        this.send(ws, { t: "welcome", slot, token: p.token, code: this.code });
+        this.send(ws, { t: "welcome", slot, token: p.token, code: this.code, core: C.CORE_VERSION });
         this.sendLobby();
         return slot;
       }
@@ -130,7 +130,7 @@ export class Room {
     const token = crypto.randomUUID();
     const p = { ws, token, hero, locked: false, name: String(d.name || "P").slice(0, 8), st: C.cleanStats(d.st), look: C.cleanLook(d.look), away: false, awayAt: 0, held: 0, pressed: 0 };
     this.players.set(slot, p);
-    this.send(ws, { t: "welcome", slot, token, code: this.code });
+    this.send(ws, { t: "welcome", slot, token, code: this.code, core: C.CORE_VERSION });
     if (this.status === "play" && this.G) {
       // Drop in mid-game as an unused hero.
       const gp = C.addPlayer(this.G, { slot, hero, st: p.st, look: p.look });

@@ -121,8 +121,8 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   </div>
 </div>
 
-<script src="art/manifest.js"></script>
-<script src="game-core.js"></script>
+<script src="art/manifest.js?v=2026.11.02-1"></script>
+<script src="game-core.js?v=2026.11.02-1"></script>
 <script>
 (()=>{
 const {W,H,TOP,BOT,LEVEL_END,LEVELS,NSTAGES}=LFCore;
@@ -784,6 +784,7 @@ function netLeave(silent){
 function netMsg(d){
   switch(d.t){
   case 'welcome':NET.slot=d.slot;NET.token=d.token;NET.code=d.code;NET.busy=false;NET.on=true;NET.err='';
+    NET.serverCore=d.core||'OLD';if(NET.serverCore!==C.CORE_VERSION)toast('ROOM SERVER IS OUT OF DATE: REDEPLOY IT','#ff7a5a');
     if(scene==='online'||scene==='join')scene='nlobby';break;
   case 'lobby':NET.lobby=d;if(scene==='play'||scene==='pause'||scene==='inv'||scene==='over'||scene==='win'||scene==='intro'){if(d.status==='lobby'){scene='nlobby';G=null;}}
     else if(scene==='nlobby'&&d.status!=='lobby'){scene='play';toast('JOINED A GAME IN PROGRESS','#3ad6c0');}break;
@@ -877,7 +878,8 @@ function drawNLobby(){
   else hint=(isPad(NET.dev)?'< > PICK   A READY   B LEAVE':'< > PICK   HIT READY   JUMP LEAVE');
   txt(hint,10,174,lb.count>0?'#ffc93c':'#d9a87c','left',8,null);
   txt('SHARE THE CODE '+NET.code+' WITH FRIENDS',10,188,'#3ad6c0','left',8,null);
-  txt('ROOM STAYS OPEN. PEOPLE CAN JOIN MID-GAME.',10,200,'#d9a87c','left',8,null);
+  if(NET.serverCore&&NET.serverCore!==C.CORE_VERSION)txt('SERVER OUT OF DATE: REDEPLOY IT',10,200,'#ff7a5a','left',8,null);
+  else txt('ROOM STAYS OPEN. PEOPLE CAN JOIN MID-GAME.',10,200,'#d9a87c','left',8,null);
 }
 
 function update(){
@@ -1453,6 +1455,7 @@ function drawTitle(){
   const np=Object.keys(pads).length;tag(np?np+' CONTROLLER'+(np>1?'S':'')+' READY':'1-4 PLAYERS  KEYS OR PADS',W/2,184,np?'#3ad6c0':'#d9a87c',INK,'center');
   if(!MUS.started||MUS.blocked)txt((T>>5)%2?'PRESS ANY KEY FOR MUSIC':'',W/2,200,'#ff9a3c','center',8,INK);
   if(hi)tag('HI '+String(hi).padStart(7,'0'),W-4,H-15,'#ff5fa8',INK,'right');
+  txt('V'+C.CORE_VERSION,4,H-11,'rgba(255,233,194,.55)','left',8,null);
 }
 const HERO_COVER={dex:'#3ad6c0',rae:'#ff5fa8',benny:'#ffc93c',julia:'#c8f05a'};
 function drawSelect(){
@@ -1649,6 +1652,7 @@ function guidePages(){
     ['SMOOTH SAIL FM 96.9','Every stage has its own yacht rock song, opened by a station jingle.'],
     ['BOSSES','Mini-bosses cut to the Eerie Dance Loop; the final boss gets the anthem.'],
     ['VOLUME','SOUND on the title screen or pause menu. M mutes.']]},
+  {t:'VERSION',c:'#d9a87c',items:[['THIS GAME',C.CORE_VERSION],['ROOM SERVER',NET.serverCore?(NET.serverCore===C.CORE_VERSION?NET.serverCore+' (matches)':NET.serverCore+' - out of date: redeploy the server'):'Join a room to check it.']]},
   ];
 }
 // word-wrap for the 8px pixel font (8px per character)
