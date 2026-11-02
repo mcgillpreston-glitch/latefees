@@ -48,6 +48,7 @@ canvas:focus-visible{box-shadow:0 0 0 3px var(--orange)}
 .btns button[data-act="spec"]{background:#d9771e}
 .btns button:active,.startbtn:active{transform:translateY(3px);box-shadow:0 1px 0 #000}
 .startbtn{width:64px;height:28px;border-radius:14px;background:#7a3f26;font-size:8px}
+.gearbtn{background:#1f6e66}
 .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px}
 .ctl{background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:10px 14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;min-width:0}
 .ctl h3{width:100%;margin:0 0 2px;font-family:var(--pixel);font-size:9px;letter-spacing:.06em;font-weight:400;line-height:1.6}
@@ -101,6 +102,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   <div class="pad" id="pad" aria-hidden="true">
     <div class="dpad" id="dpad"></div>
     <button class="startbtn" data-act="start">START</button>
+    <button class="startbtn gearbtn" data-act="inv">GEAR</button>
     <div class="btns">
       <button data-act="spec">SPEC</button>
       <button data-act="jump">JUMP</button>
@@ -305,8 +307,10 @@ function readPad(gp,s,map){
   s.left=ax<-.45||L;s.right=ax>.45||R;s.up=ay<-.45||U;s.down=ay>.45||D;
   const any=arr=>arr.some(b);
   s.jump=any(map.jump);s.atk=any(map.atk);s.spec=any(map.spec);
-  s.start=any(map.start)||(gp.mapping!=='standard'&&b(11));s.pause=false;s.inv=any(map.inv||[8]);
-  s.ok=b(0)||b(2)||b(9);s.back=b(1);s.clear=b(3); // menus always use A/X/Start to pick, B to go back, Y to clear
+  const ns=gp.mapping!=='standard';
+  // Bluetooth pads without a standard mapping usually put Select on 10 and Start on 11
+  s.start=any(map.start)||(ns&&b(11));s.pause=false;s.inv=any(map.inv||[8])||(ns&&(b(10)||b(8)));
+  s.ok=b(0)||b(2)||b(9)||(ns&&b(11));s.back=b(1);s.clear=b(3); // menus always use A/X/Start to pick, B to go back, Y to clear
 }
 function pollPads(){
   let list=[];
@@ -458,7 +462,7 @@ const NEON=['#ff5fa8','#3ad6c0','#ffc93c','#ff9a3c','#c8f05a','#ff5fa8','#3ad6c0
 let scene='title',G=null,T=0,introT=0,hi=0,tCur=0,pCur=0;
 const SET={tab:0,cur:0,from:'title'};
 const ROWS=[...ACTS.map(a=>({k:'kb',a})),...PAD_ACTS.map(a=>({k:'pad',a})),{k:'reset'},{k:'back'}];
-function openControls(from,tab){SET.from=from;SET.tab=tab;SET.cur=0;cap=null;scene='controls';beep(660,.08);}
+function openControls(from,tab){if(NET.on&&NET.dev&&!isPad(NET.dev))tab=Math.max(0,+NET.dev.slice(2)-1);SET.from=from;SET.tab=tab;SET.cur=0;cap=null;scene='controls';beep(660,.08);}
 function updControls(){
   if(cap){
     if(--cap.t<=0){cap=null;toast('NOTHING PRESSED, KEPT IT','#d9a87c');return;}
@@ -978,7 +982,7 @@ function update(){
       if(menuHit('up')){pCur=(pCur+4)%5;beep(440,.05);}if(menuHit('down')){pCur=(pCur+1)%5;beep(440,.05);}
       if(hit('menu','back')||G.ps.some(p=>p.dev&&(hit(p.dev,'pause')||(isPad(p.dev)&&hit(p.dev,'back')))))scene='play';
       else if(menuHit('ok')||G.ps.some(p=>!p.lostPad&&p.dev&&hit(p.dev,'start'))){const d=devs().find(okHit),who=d&&G.ps.find(q=>q.dev===d);
-        if(pCur===0)scene='play';else if(pCur===1)openInv(who&&!who.out?who:active()[0]||G.ps[0],'pause');else if(pCur===2)openControls('pause',who?who.slot:0);else if(pCur===3)openSound('pause');
+        if(pCur===0)scene='play';else if(pCur===1)openInv(NET.on?G.ps.find(q=>q.slot===NET.slot):who&&!who.out?who:active()[0]||G.ps[0],'pause');else if(pCur===2)openControls('pause',who?who.slot:0);else if(pCur===3)openSound('pause');
         else if(NET.on){netSend({t:'leave'});netLeave();}else{saveHi();scene='title';tCur=0;}}}}
   else if(scene==='over'||scene==='win'){G.endT++;shakeV*=.86;updateFX();if(NET.on)netTick();const d=G.endT>60&&anyOk();
     if(d){if(NET.on){netSend({t:'again'});}else{lobbyReset();lobbyJoin(d);scene='select';}}}
@@ -1560,7 +1564,8 @@ function drawControls(){
   ACTS.forEach((a,i)=>row(6,40+i*11,184,ACT_NAME[a],keyName(BIND.kb[p][a]),i,cap&&cap.kind==='kb'&&cap.p===p&&cap.act===a));
   PAD_ACTS.forEach((a,i)=>row(196,40+i*11,184,ACT_NAME[a],BIND.pad[p][a].map(btnName).join('/'),ACTS.length+i,cap&&cap.kind==='pad'&&cap.p===p&&cap.act===a));
   txt('MOVE: STICK + D-PAD',204,40+5*11+6,'#d9a87c','left',8,null);
-  if(G&&SET.from==='pause'){const pl=G.ps.find(q=>q.slot===p);txt(pl?'NOW ON '+padLabel(pl.dev):'NOT PLAYING',204,40+6*11+6,pl?col:'#8a5a44','left',8,null);}
+  if(NET.on)txt(isPad(NET.dev||'')?'YOUR PAD USES P'+(NET.slot+1)+' BUTTONS':'YOUR KEYS: P'+(p+1)+' SET',204,40+6*11+6,col,'left',8,null);
+  else if(G&&SET.from==='pause'){const pl=G.ps.find(q=>q.slot===p);txt(pl&&pl.dev?'NOW ON '+padLabel(pl.dev):'NOT PLAYING',204,40+6*11+6,pl&&pl.dev?col:'#8a5a44','left',8,null);}
   [['RESET P'+(p+1),ROWS.length-2],['BACK',ROWS.length-1]].forEach(([lab,ri],i)=>{const x=6+i*120,y=147,on=SET.cur===ri;
     rect(x-1,y-4,112,16,INK);rect(x,y-3,110,14,on?PAPER:'#2a1612');if(on)rect(x,y-3,4,14,col);txt(lab,x+55,y,on?INK:'#ffe9c2','center',8,null);});
   panel(4,166,W-8,30,col,'rgba(42,20,14,.9)');
