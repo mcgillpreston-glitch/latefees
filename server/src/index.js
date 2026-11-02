@@ -193,6 +193,11 @@ export class Room {
         if (!C.DIFFS.includes(d.v)) return;
         this.diff = d.v; this.sendLobby(); break;
       }
+      case "drop": {
+        // A player whose bag was already full hands back a just-looted item; it goes back on the ground.
+        if (this.G) { const gp = this.G.ps.find(q => q.slot === slot); if (gp) C.dropBack(this.G, gp, d.item); }
+        break;
+      }
       case "gear": {
         p.st = C.cleanStats(d.st); p.look = C.cleanLook(d.look);
         if (this.G) { const gp = this.G.ps.find(q => q.slot === slot); if (gp) C.setStats(gp, p.st, p.look, true); }

@@ -220,10 +220,11 @@ function calcStatsFor(g){const t=Object.fromEntries(STAT_KEYS.map(k=>[k,0])),set
 // Look = equipped colours per slot, plus out = a set worn with 3+ pieces (heroes swap to that set's outfit art when it exists).
 const OUTFIT_MIN=3;
 function gearLookFor(g){const o={},n={};for(const c of CATS)if(g.eq[c]){const b=BASES[g.eq[c].k];o[c]=b.col;if(b.set)n[b.set]=(n[b.set]||0)+1;}
-  let best=null;for(const k in n)if(n[k]>=OUTFIT_MIN&&(!best||n[k]>n[best]))best=k;if(best)o.out=best;return o;}
+  let best=null;for(const k in n)if(n[k]>=OUTFIT_MIN&&(!best||n[k]>n[best]))best=k;if(best)o.out=best;
+  if(Array.isArray(g.bag))o.free=Math.max(0,BAG_MAX-g.bag.length);return o;}
 function cleanStats(st){const t=Object.fromEntries(STAT_KEYS.map(k=>[k,0]));if(st&&typeof st==='object')for(const k of STAT_KEYS){const v=+st[k];if(Number.isFinite(v))t[k]=Math.max(0,Math.min(k in CAP?CAP[k]:400,v));}
   t.sets={};if(st&&st.sets&&typeof st.sets==='object')for(const S of SETS){const n=st.sets[S.id]|0;if(n>0)t.sets[S.id]=Math.min(n,setSize(S.id));}return t;}
-function cleanLook(lk){const o={};if(lk&&typeof lk==='object'){for(const c of CATS){const v=lk[c];if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))o[c]=v;}if(SETS.some(s=>s.id===lk.out))o.out=lk.out;}return o;}
+function cleanLook(lk){const o={};if(lk&&typeof lk==='object'){for(const c of CATS){const v=lk[c];if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))o[c]=v;}if(SETS.some(s=>s.id===lk.out))o.out=lk.out;if(Number.isInteger(lk.free))o.free=Math.max(0,Math.min(BAG_MAX,lk.free));}return o;}
 function bonusTxt(k,v){return STAT[k].short+(k==='SPC'?'-':'+')+v+(k==='HP'||k==='REGEN'?'':'%');}
 const zoneIl=(g,x)=>{const zs=levelZones(g.level||1);let i=zs.findIndex(z=>x<z[2]);if(i<0)i=zs.length-1;return clamp((g.level||1)+i,1,10);};
 
@@ -257,6 +258,7 @@ function mkPlayer(g,spec){
 function setStats(p,st,look,quiet){
   const ratio=p.maxhp?p.hp/p.maxhp:1;
   p.st=cleanStats(st);p.maxhp=100+p.st.HP;p.hp=Math.max(p.hp>0?1:0,Math.round(p.maxhp*ratio));p.look=cleanLook(look);
+  p.gfree=Number.isInteger(p.look.free)?p.look.free:Infinity;p.gslot={};for(const c of CATS)if(p.look[c])p.gslot[c]=1;
 }
 /* Difficulty. Easy is the original tuning. att = monsters attacking at once: base + players, capped, +1 every `every` stages.
    tempo scales monster wind-up / recovery / cooldown from stage 1 (t1) to stage 10 (t10). */
@@ -313,8 +315,12 @@ function dropGear(g,x,y,luck,min,il){
   if(b.rar==='u'||b.rar==='s'){toast(g,(b.rar==='u'?'ULTRA RARE':'SET ITEM')+' DROPPED!',RAR[b.rar].col);[784,988,1318].forEach((f,i)=>beep(g,f,.15,'triangle',.06,0,i*90));}
   else if(b.rar==='r')beep(g,988,.12,'triangle',.04);
 }
+// Room for this item? An empty slot for its kind (it gets put on) or a free bag space. A full player leaves it on the ground.
+function gearFits(p,item){const c=BASES[item.k].cat;return !(p.gslot&&p.gslot[c])||!(p.gfree<=0);}
 function pickGear(g,p,k){
   const b=BASES[k.item.k],R=RAR[b.rar];
+  if(!p.gslot)p.gslot={};if(!p.gslot[b.cat])p.gslot[b.cat]=1;else if(p.gfree>0)p.gfree--;
+  (p.lootLog||(p.lootLog=[])).push(JSON.stringify(cleanItem(k.item)));if(p.lootLog.length>6)p.lootLog.shift();
   k.got=true;if(p.rs)p.rs.lt[b.rar]=(p.rs.lt[b.rar]||0)+1;ev(g,{t:'loot',slot:p.slot,item:k.item,x:r1(k.x),y:r1(k.y)});
   floatText(g,k.x,k.y,b.name,R.col,46);beep(g,b.rar==='c'?660:990,.08,'square',.04);
   if(!p.gearHint){p.gearHint=true;ev(g,{t:'gearhint',slot:p.slot});}
@@ -330,6 +336,12 @@ function trySpecial(g,p){
   if(p.hp>cost){p.hp-=cost;p.state='special';p.sp={t:0,hits:new Set(),r:0};p.inv=Math.max(p.inv,40);p.atk=null;beep(g,220,.3,'sawtooth',.05,3);}
   else floatText(g,p.x,p.y,'TOO HURT!','#ff7a5a',44);
 }
+// A client whose bag filled up before the room server heard about it hands a just-looted item back: it goes back on the ground.
+function dropBack(g,p,item){
+  const it=cleanItem(item);if(!it||!p||!p.lootLog)return false;const i=p.lootLog.indexOf(JSON.stringify(it));if(i<0)return false;p.lootLog.splice(i,1);
+  const b=BASES[it.k];if(p.rs&&p.rs.lt[b.rar]>0)p.rs.lt[b.rar]--;p.gfree=0;
+  g.pick.push({x:clamp(p.x-p.face*18,g.cam+24,g.cam+W-24),y:clamp(p.y,TOP+2,BOT),kind:'gear',item:it,t:0,id:++g.kid,skip:p.slot});
+  floatText(g,p.x,p.y-30,'BAG FULL','#ff7a5a',40);return true;}
 function endSp(p){p.state='idle';p.sp=null;}
 function canHit(e){if(e.gone||e.state==='down')return false;if(EN[e.type].boss)return e.state!=='intro'&&e.state!=='dead'&&e.z<30;return true;}
 function strike(g,p,reach,dmg,knock,hits){
@@ -552,7 +564,11 @@ function step(g){
     // Loot never gets left behind: anything that falls off the left edge slides along with the screen.
     // carried items fan out over a band near the left side instead of piling onto one spot
     const minX=g.cam+40+(k.id*37%6)*18,maxX=g.cam+W-24;if(k.x<minX)k.x=Math.min(minX,k.x+Math.max(1.5,(minX-k.x)*.25));else if(k.x>maxX)k.x=maxX;
-    for(const p of act){if(Math.abs(k.x-p.x)<12&&Math.abs(k.y-p.y)<9&&p.z<12&&p.state!=='down'){if(k.kind==='gear'){pickGear(g,p,k);break;}k.got=true;
+    for(const p of act){if(Math.abs(k.x-p.x)<12&&Math.abs(k.y-p.y)<9&&p.z<12&&p.state!=='down'){
+      if(k.kind==='gear'){if(k.skip===p.slot&&k.t<90)continue;
+        if(!gearFits(p,k.item)){if(!(g.time-(p.fullT??-999)<120)){p.fullT=g.time;floatText(g,k.x,k.y,'BAG FULL','#ff7a5a',40);}continue;}
+        pickGear(g,p,k);break;}
+      k.got=true;
       if(k.kind==='pizza'){p.hp=Math.min(p.maxhp,p.hp+30);floatText(g,k.x,k.y,'+30 HP','#c8f05a');}
       else if(k.kind==='tape'){addScore(g,p,1000);floatText(g,k.x,k.y,'RARE TAPE +1000','#ffc93c');}
       else{const P=POW[k.kind];p.pow={k:k.kind,t:P.dur};rumble(g,p.slot,.6,300);floatText(g,k.x,k.y,P.name+'! '+P.desc,P.col,46);sparks(g,p.x,p.y,20,10,[P.col,'#ffffff']);
@@ -611,9 +627,9 @@ function interpolate(g,now,ms){
 }
 
 // Bump on every change to the rules so the website can tell when a room server is out of date.
-const CORE_VERSION='2026.11.02-2';
+const CORE_VERSION='2026.11.02-3';
 const LFCore={CORE_VERSION,W,H,TOP,BOT,LEVEL_END,PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,DIFF,DIFFS,LEVELS,NSTAGES,levelZones,levelLen,genWaves,loadLevel,survFor,
   CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,calcStatsFor,gearLookFor,cleanStats,cleanLook,bonusTxt,
-  clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,step,snapshot,applySnapshot,interpolate,hasPow,active};
+  clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,dropBack,step,snapshot,applySnapshot,interpolate,hasPow,active};
 globalThis.LFCore=LFCore;
 })();

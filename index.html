@@ -122,7 +122,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 </div>
 
 <script src="art/manifest.js?v=2026.11.02-3"></script>
-<script src="game-core.js?v=2026.11.02-2"></script>
+<script src="game-core.js?v=2026.11.02-3"></script>
 <script>
 (()=>{
 const {W,H,TOP,BOT,LEVEL_END,LEVELS,NSTAGES}=LFCore;
@@ -489,12 +489,20 @@ function applyGear(p,quiet){
       else toast(S.name+' '+need+'-PIECE BONUS','#c8f05a');}}
 }
 function invKeyLabel(p){if(isPad(p.dev))return 'SELECT';const set=BIND.kb[+p.dev.slice(2)-1]||{};return set.inv?keyName(set.inv):'PAUSE MENU';}
+// Tell the game (and the room server) how much bag room each local player has, so a full player walks past loot instead of losing it.
+const BAGKEY={};
+let BAGG=null;
+function syncBagRoom(){if(!G)return;if(BAGG!==G){BAGG=G;for(const k in BAGKEY)delete BAGKEY[k];}
+  for(const p of G.ps){if(NET.on&&p.slot!==NET.slot)continue;const g=GEAR[p.ch.id];if(!g)continue;
+    const key=p.ch.id+'|'+g.bag.length+'|'+CATS.map(c=>g.eq[c]?1:0).join('');if(BAGKEY[p.slot]===key)continue;BAGKEY[p.slot]=key;applyGear(p,true);}}
 function onLoot(p,item,x,y){
   const g=GEAR[p.ch.id],b=BASES[item.k],R=RAR[b.rar];
   if(!g.eq[b.cat]){g.eq[b.cat]=item;applyGear(p);toast('P'+(p.slot+1)+' PUT ON '+b.name,R.col);}
   else if(g.bag.length<BAG_MAX)g.bag.push(item);
-  else{g.bag.push(item);g.bag.sort((a,b)=>RAR[BASES[a.k].rar].o-RAR[BASES[b.k].rar].o);const drop=g.bag.pop();toast('BAG FULL: SCRAPPED '+BASES[drop.k].name,'#ff7a5a');}
-  saveGear();
+  else{ // no room after all (the bag filled up a moment before the game heard): hand it back so it lands on the ground
+    if(NET.on)netSend({t:'drop',item});else if(G)C.dropBack(G,p,item);
+    toast('P'+(p.slot+1)+' BAG FULL: '+BASES[item.k].name+' LEFT ON THE GROUND','#ff7a5a');}
+  saveGear();syncBagRoom();
 }
 function shade(hex,amt){const n=parseInt(hex.slice(1,7),16);let r=n>>16,g=(n>>8)&255,b=n&255;
   const f=v=>clamp(Math.round(amt<0?v*(1+amt):v+(255-v)*amt),0,255);return '#'+[f(r),f(g),f(b)].map(v=>v.toString(16).padStart(2,'0')).join('');}
@@ -906,6 +914,7 @@ function drawNLobby(){
 }
 
 function update(){
+  if(G&&GAME_SCENES.has(scene))syncBagRoom();
   T++;pollPads();musicTick();
   const anyOk=()=>devs().find(d=>okHit(d));
   if(T%30===0)renderPadList();if(NET.on&&!NET.ws&&!NET.busy&&NET.tries===0){}
