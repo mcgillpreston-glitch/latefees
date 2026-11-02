@@ -20,9 +20,22 @@ body{
   font-family:var(--body);font-size:20px;line-height:1.25;
   padding-left:max(16px, env(safe-area-inset-left, 0px));
   padding-right:max(16px, env(safe-area-inset-right, 0px));
-  padding-block:20px 48px;
+  padding-block:8px;margin:0;
 }
-.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+html,body{height:100%}
+body{box-sizing:border-box;overflow-x:hidden}
+.wrap{margin:0 auto;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;--padh:0px}
+@media (hover:none) and (pointer:coarse){.wrap{--padh:150px}}
+/* phones held sideways: the game takes the full height and the controls float over its bottom corners */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape){
+  .wrap{--padh:0px}
+  .pad{position:fixed;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:8px;width:auto;pointer-events:none;opacity:.82}
+  .pad>*{pointer-events:auto}
+  .dpad{width:112px;height:112px}.dpad::before{left:37px;top:10px;width:38px;height:92px}.dpad::after{top:37px;left:10px;height:38px;width:92px}
+  .btns button{width:54px;height:54px}
+  .startbtn{position:fixed;bottom:128px;left:max(8px,env(safe-area-inset-left,0px));width:52px;height:24px}
+  .gearbtn{left:calc(max(8px,env(safe-area-inset-left,0px)) + 58px)}
+}
 .marquee{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:repeating-conic-gradient(from 0deg at 50% 150%,#c43a2a 0deg 9deg,#e8663a 9deg 18deg);border:3px solid var(--mustard);border-radius:6px;padding:12px 16px;position:relative;overflow:hidden;box-shadow:0 6px 0 #1c0b07,0 0 0 2px #1c0b07}
 .marquee::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(43,21,15,0) 30%,rgba(43,21,15,.55) 100%);pointer-events:none}
 .marquee>*{position:relative;z-index:1}
@@ -33,10 +46,10 @@ body{
 .marquee p{margin:4px 0 0;color:var(--cream);font-size:20px;text-shadow:1px 1px 0 #1c0b07}
 .titles{flex:1;min-width:0}
 .sticker{flex:none;width:76px;height:76px;border-radius:50%;background:var(--mustard);border:3px dashed #1c0b07;color:#1a0f08;display:grid;place-items:center;text-align:center;font-family:var(--pixel);font-size:8px;line-height:1.5;transform:rotate(-12deg);box-shadow:2px 3px 0 #000}
-.screen{background:#000;border:10px solid #5e2f22;border-radius:10px;box-shadow:0 0 0 3px #1c0b07,0 0 0 6px var(--mustard),0 24px 50px rgba(0,0,0,.55)}
-canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;cursor:pointer;outline:none}
+.screen{width:min(calc(100vw - 40px),calc((100vh - 40px - var(--padh)) * 16 / 9));background:#000;border:6px solid #5e2f22;border-radius:8px;box-shadow:0 0 0 3px #1c0b07,0 0 0 6px var(--mustard),0 24px 50px rgba(0,0,0,.55)}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;image-rendering:auto;cursor:pointer;outline:none}
 canvas:focus-visible{box-shadow:0 0 0 3px var(--orange)}
-.pad{display:none;justify-content:space-between;align-items:center;gap:12px;touch-action:none;user-select:none;-webkit-user-select:none}
+.pad{display:none;width:min(100%,900px);justify-content:space-between;align-items:center;gap:12px;touch-action:none;user-select:none;-webkit-user-select:none}
 @media (hover:none) and (pointer:coarse){.pad{display:flex}.kbd-only{display:none}}
 .dpad{width:132px;height:132px;border-radius:50%;background:var(--panel);border:2px solid var(--line);position:relative;flex:none}
 .dpad::before,.dpad::after{content:"";position:absolute;background:#7a3f26;border-radius:6px}
@@ -88,14 +101,6 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 </style>
 
 <div class="wrap">
-  <header class="marquee">
-    <div class="stripes" aria-hidden="true"></div>
-    <div class="titles">
-      <h1>The Last <span>Video Store</span></h1>
-      <p><b class="tagline">The Dead Don't Rewind.</b> Draft build 0.8. A 1 to 4 player beat-'em-up set in Hollow Pines, Ohio, summer 1996. Couch co-op or online rooms.</p>
-    </div>
-    <div class="sticker" aria-hidden="true">BE KIND<br>REWIND</div>
-  </header>
 
   <div class="screen"><canvas id="game" width="1152" height="648" tabindex="0" aria-label="The Last Video Store game screen"></canvas></div>
 
@@ -110,92 +115,10 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
     </div>
   </div>
 
-  <div class="controls kbd-only" id="legend"></div>
-
-  <section class="pads online" aria-labelledby="onlineh">
-    <div class="padhead">
-      <h2 id="onlineh">ONLINE ROOMS</h2>
-      <p>Pick <b>Online</b> on the title screen to host a room or join one with a 4-letter code. Everyone plays from their own device. The game runs on the room server, so nobody has a lag advantage.</p>
-    </div>
-    <label class="srv">Room server address (already set; only change it if you run your own) <input id="server" type="url" value="https://latefees.prestonmcgill.workers.dev" placeholder="https://latefees.prestonmcgill.workers.dev" autocomplete="off" spellcheck="false"></label>
-    <div class="padgrid">
-      <div><h3>HOW IT WORKS</h3><span>One player hosts and gets a code. Friends enter the code on the same page. Everyone picks a different hero in the shared lobby, then the room starts. People can join a room mid-game and rejoin if their connection drops.</span></div>
-      <div><h3>YOUR GEAR COMES WITH YOU</h3><span>Your hero's equipped gear and bag live in your browser. Online, your stats are sent to the room and loot you pick up goes into your own bag.</span></div>
-      <div><h3>RUNNING THE SERVER</h3><span>Rooms run on a Cloudflare Worker from the <code>server/</code> folder of the repo. The game connects to it automatically, so players only need this page and a room code.</span></div>
-    </div>
-  </section>
-
-  <section class="pads" aria-labelledby="padsh">
-    <div class="padhead">
-      <h2 id="padsh">BLUETOOTH CONTROLLERS</h2>
-      <p id="padnote" aria-live="polite">No controllers yet. Pair one with this device over Bluetooth, then press any button on it.</p>
-    </div>
-    <ul id="padlist" class="padlist"></ul>
-    <div class="padgrid">
-      <div><h3>PAIRING</h3><span>Pair in your computer's or tablet's Bluetooth settings first. <b>Xbox:</b> hold the pair button on top. <b>PlayStation:</b> hold Share + PS. <b>Switch Pro:</b> hold the sync button. <b>8BitDo:</b> use X-input mode if it has one.</span></div>
-      <div><h3>BUTTONS</h3><span>Default: <kbd>X</kbd>/<kbd>□</kbd>hit <kbd>A</kbd>/<kbd>✕</kbd>jump <kbd>B</kbd>/<kbd>○</kbd>special <kbd>START</kbd>pause. Stick or d-pad moves. Each player can remap their buttons in CONTROLS. Menus always use A to pick and B to go back.</span></div>
-      <div><h3>PLAYERS</h3><span>Up to 4 players in all, in any mix. Three controllers can fill three slots, with the keyboard as the fourth if you like. Press A on a free controller to join, even mid-fight. If a controller drops, the game pauses until it reconnects or another controller presses A.</span></div>
-    </div>
-  </section>
-
-  <section class="sheet">
-    <div class="col">
-      <h2>THE NIGHT SHIFT</h2>
-      <ul>
-        <li><b>Dex Moreno, 24</b><span>Video store clerk. Swings a tube sock full of overdue VHS tapes. Balanced. <i>Special: Rewind Spin</i></span></li>
-        <li><b>Rae Kowalski, 22</b><span>Bassist in a band with no drummer. Slow, hits hardest, longest reach. <i>Special: Power Chord</i></span></li>
-        <li><b>Benny Tran, 21</b><span>Pizza driver. Quick, light hits with a delivery bag. <i>Special: Hot Delivery</i></span></li>
-        <li><b>Julia Okafor, 23</b><span>Mall rollerblader with a hockey stick. Fastest mover. <i>Special: Blade Rush</i></span></li>
-      </ul>
-    </div>
-    <div class="col">
-      <h2>POWER-UPS</h2>
-      <ul>
-        <li><b><span class="swatch" style="background:#ff4a3c"></span>Jolt Soda</b><span>10 seconds of faster moves and faster swings.</span></li>
-        <li><b><span class="swatch" style="background:#ff9a3c"></span>Boombox</b><span>Double damage. Every hit knocks enemies flat.</span></li>
-        <li><b><span class="swatch" style="background:#3ad6c0"></span>Pog Slammer</b><span>Every swing also flings a pog across the screen.</span></li>
-        <li><b><span class="swatch" style="background:#ff5fa8"></span>Troll Doll</b><span>8 seconds of invincibility. Anything you touch gets hurt.</span></li>
-        <li><b><span class="swatch" style="background:#c8f05a"></span>Beeper</b><span>Specials cost no health while it buzzes.</span></li>
-      </ul>
-    </div>
-    <div class="col">
-      <h2>GEAR &amp; LOOT</h2>
-      <ul>
-        <li><b>Nine slots</b><span>Hat, glasses, shirt, jacket, belt, pants, shoes, bracelet and ring. 30 items each, 270 in all, with stats rolled when they drop.</span></li>
-        <li><b><span class="swatch" style="background:#f0dcb8"></span>Common</b><span>One stat.</span></li>
-        <li><b><span class="swatch" style="background:#3ad6c0"></span>Rare</b><span>Two stats, about twice as strong.</span></li>
-        <li><b><span class="swatch" style="background:#ff5fa8"></span>Ultra rare</b><span>Three big stats, often life steal or regen.</span></li>
-        <li><b><span class="swatch" style="background:#c8f05a"></span>Sets</b><span>Night Shift, Tour '94, Skate Crew and Mall Security. Bonuses at 2, 3 and all pieces.</span></li>
-        <li><b>Your bag</b><span>Select on a controller, I or ' on the keyboard, or Gear in the pause menu. Each hero keeps their own 24-slot bag between runs.</span></li>
-      </ul>
-    </div>
-    <div class="col">
-      <h2>THE NEIGHBORHOOD WATCH</h2>
-      <ul>
-        <li><b>Shambler</b><span>Slow, weak, arrives in crowds.</span></li>
-        <li><b>Mummy</b><span>Twice as tough. Its swing knocks you flat.</span></li>
-        <li><b>Werewolf in Jeans</b><span>Circles at mid range, then lunges.</span></li>
-        <li><b>Pod Person</b><span>Keeps its distance and spits slime.</span></li>
-        <li><b>Chainsaw Maniac</b><span>Revs, then charges the whole screen. Can't be flinched mid-charge.</span></li>
-        <li><b>Arcade Gremlin</b><span>Small, fast, and pounces from across the screen.</span></li>
-        <li><b>Tape Wraith</b><span>A haunted VHS tape. Floats, and lashes out with long ribbons of tape.</span></li>
-        <li><b>Fry Cook</b><span>Blocks hits from the front with his tray. Hit him from behind or knock him flat.</span></li>
-        <li><b>Mall Cop</b><span>Tough. His baton knocks you down.</span></li>
-        <li><b>Twenty more</b><span>Each stage adds its own: zombie jocks and lunch ladies, bog beasts and mega skeeters, derby demons, martians, greasers, living bowling pins, claw-machine crabs, mannequins, pool sharks, static specters, weathermen and the meteor's own spawn.</span></li>
-        <li><b>Bosses</b><span>The Blob from Aisle 9 (stage 1), Sasquatch Scoutmaster (stage 3), King Pin (stage 6) and The Late Fee Collector (stage 10).</span></li>
-      </ul>
-    </div>
-    <div class="col">
-      <h2>THE ROUTE</h2>
-      <ul>
-        <li><b>10 stages</b><span>Maple Court, Hollow Pines High, Camp Tall Pines, Skate Galaxy, Starlight Drive-In, Strike Zone Lanes, Rewind Video Warehouse, Splash Kingdom, Channel 9 Studios and The Crater. Each one is longer and meaner than the last.</span></li>
-        <li><b>Progress</b><span>Clear a stage and the next one starts after a short breather. Every stage you reach unlocks in the lobby: pick it with up/down (online, the host picks).</span></li>
-        <li><b>Soundtrack</b><span>Suspenseful Piano Intro on the menus and Eerie Disco Groove through Maple Court. From stage 2 on, Smooth Sail FM 96.9 takes over: a station jingle, then each stage's own yacht rock song. Mini-bosses cut to the Eerie Dance Loop; the final boss gets the anthem. Volume lives under Sound on the title screen and pause menu.</span></li>
-        <li><b>Co-op</b><span>On one screen: join any time with start, or A on a controller. Online: host a room and share the code. More players means bigger crowds and tougher bosses. Out of lives? Press start to continue.</span></li>
-      </ul>
-      <p class="todo"><b>Not in this draft:</b> trading gear between heroes, grabs and throws, breakable props.</p>
-    </div>
-  </section>
+  <div hidden>
+    <input id="server" type="url" value="https://latefees.prestonmcgill.workers.dev" placeholder="https://latefees.prestonmcgill.workers.dev" autocomplete="off" spellcheck="false">
+    <ul id="padlist"></ul><p id="padnote"></p><div id="legend"></div>
+  </div>
 </div>
 
 <script src="art/manifest.js"></script>
@@ -212,7 +135,11 @@ function unlockTo(n){n=Math.min(NSTAGES,n);if(n>STG.max){STG.max=n;try{localStor
 const TOTAL_SURV=LEVELS.reduce((a,_,i)=>a+LFCore.survFor(i+1).length,0);
 const zoneAt=(L,x)=>{const z=LFCore.levelZones(L);let i=0;while(i<z.length-1&&x>=z[i][2])i++;return i;};
 const cv=document.getElementById('game'),ctx=cv.getContext('2d');
-const SC=3;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+// Render scale follows the size the canvas is shown at (sharp on big screens), from 2x to 6x the 384x216 game.
+let SC=3;
+function fitCanvas(){const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1,k=Math.max(2,Math.min(6,Math.round((r.width||W*3)*dpr/W)));
+  if(cv.width!==W*k){SC=k;cv.width=W*k;cv.height=H*k;}ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';}
+fitCanvas();addEventListener('resize',fitCanvas);
 const {clamp,lerp,rnd,pick}=LFCore;
 const touchMode=matchMedia('(hover:none) and (pointer:coarse)').matches;
 const C=LFCore;const {PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,bonusTxt,hasPow}=C;
@@ -411,7 +338,7 @@ const MUS={el:{},vol:{},started:false,blocked:false,now:null,lastL:0,jingle:null
 function musEl(k){if(!MUS.el[k]){const a=new Audio(TRACKS[k].src);a.loop=true;a.preload='auto';a.volume=0;MUS.el[k]=a;MUS.vol[k]=0;}return MUS.el[k];}
 const GAME_SCENES=new Set(['play','pause','inv','over','win']);
 function musicWant(){
-  const inGame=GAME_SCENES.has(scene)||((scene==='controls'&&SET.from==='pause')||(scene==='sound'&&SOUND.from==='pause'));
+  const inGame=GAME_SCENES.has(scene)||((scene==='controls'&&SET.from==='pause')||(scene==='sound'&&SOUND.from==='pause')||(scene==='guide'&&GUIDE.from==='pause'));
   if(G&&(scene==='over'||scene==='win'))return 'end';
   if(!inGame||!G)return 'intro';
   const L=G.level||1,song=TRACKS['s'+L]?'s'+L:null;
@@ -421,7 +348,7 @@ function musicWant(){
   return zoneAt(G.level||1,G.cam+W/2)>=LFCore.levelZones(G.level||1).length-1?'dance':'disco';
 }
 function musicTick(){
-  const want=musicWant(),menuDuck=scene!=='play'&&scene!=='over'&&scene!=='win'&&GAME_SCENES.has(scene)||scene==='controls'&&SET.from==='pause'||scene==='sound'&&SOUND.from==='pause';
+  const want=musicWant(),menuDuck=scene!=='play'&&scene!=='over'&&scene!=='win'&&GAME_SCENES.has(scene)||scene==='controls'&&SET.from==='pause'||scene==='sound'&&SOUND.from==='pause'||scene==='guide'&&GUIDE.from==='pause';
   const master=muted?0:SND.music/10*.7*(menuDuck?.5:1);
   radioTick(master);
   MUS.now=master>0?want:null;
@@ -959,11 +886,12 @@ function update(){
   if(T%30===0)renderPadList();if(NET.on&&!NET.ws&&!NET.busy&&NET.tries===0){}
   for(const t of toasts)t.t--;toasts=toasts.filter(t=>t.t>0);
   if(scene==='title'){
-    if(menuHit('up')){tCur=(tCur+3)%4;beep(440,.05);}if(menuHit('down')){tCur=(tCur+1)%4;beep(440,.05);}
+    if(menuHit('up')){tCur=(tCur+4)%5;beep(440,.05);}if(menuHit('down')){tCur=(tCur+1)%5;beep(440,.05);}
     if(tCur<=1){const mv=(menuHit('right')?1:0)-(menuHit('left')?1:0);if(mv){setDiff(DIFFS[(DIFFS.indexOf(DIFFSEL)+mv+DIFFS.length)%DIFFS.length]);beep(600,.06);}}
     const d=anyOk()||(hit('menu','ok')?'kb1':null);
-    if(d){if(tCur===0){lobbyReset();lobbyJoin(d);rumble(d,.4,150);scene='select';}else if(tCur===1){NET.dev=d;NET.cur=0;NET.err='';scene='online';}else if(tCur===2)openControls('title',0);else openSound('title');}}
+    if(d){if(tCur===0){lobbyReset();lobbyJoin(d);rumble(d,.4,150);scene='select';}else if(tCur===1){NET.dev=d;NET.cur=0;NET.err='';scene='online';}else if(tCur===2)openControls('title',0);else if(tCur===3)openSound('title');else openGuide('title');}}
   else if(scene==='sound'){updSound();if(NET.on&&G){netTick();updateFX();}}
+  else if(scene==='guide'){updGuide();if(NET.on&&G){netTick();updateFX();}}
   else if(scene==='online')updOnline();
   else if(scene==='join')updJoin();
   else if(scene==='nlobby')updNLobby();
@@ -979,10 +907,10 @@ function update(){
     if(NET.on){netTick();updateFX();}
     let claimed=false;if(!NET.on)for(const d of devs())if(!joined(d)&&okHit(d)&&claimLost(d))claimed=true;
     if(!claimed){
-      if(menuHit('up')){pCur=(pCur+4)%5;beep(440,.05);}if(menuHit('down')){pCur=(pCur+1)%5;beep(440,.05);}
+      if(menuHit('up')){pCur=(pCur+5)%6;beep(440,.05);}if(menuHit('down')){pCur=(pCur+1)%6;beep(440,.05);}
       if(hit('menu','back')||G.ps.some(p=>p.dev&&(hit(p.dev,'pause')||(isPad(p.dev)&&hit(p.dev,'back')))))scene='play';
       else if(menuHit('ok')||G.ps.some(p=>!p.lostPad&&p.dev&&hit(p.dev,'start'))){const d=devs().find(okHit),who=d&&G.ps.find(q=>q.dev===d);
-        if(pCur===0)scene='play';else if(pCur===1)openInv(NET.on?G.ps.find(q=>q.slot===NET.slot):who&&!who.out?who:active()[0]||G.ps[0],'pause');else if(pCur===2)openControls('pause',who?who.slot:0);else if(pCur===3)openSound('pause');
+        if(pCur===0)scene='play';else if(pCur===1)openInv(NET.on?G.ps.find(q=>q.slot===NET.slot):who&&!who.out?who:active()[0]||G.ps[0],'pause');else if(pCur===2)openControls('pause',who?who.slot:0);else if(pCur===3)openSound('pause');else if(pCur===4)openGuide('pause');
         else if(NET.on){netSend({t:'leave'});netLeave();}else{saveHi();scene='title';tCur=0;}}}}
   else if(scene==='over'||scene==='win'){G.endT++;shakeV*=.86;updateFX();if(NET.on)netTick();const d=G.endT>60&&anyOk();
     if(d){if(NET.on){netSend({t:'again'});}else{lobbyReset();lobbyJoin(d);scene='select';}}}
@@ -1516,14 +1444,14 @@ function drawTitle(){
   logo(26);
   badge(40,52,24,'#ffc93c',['BE KIND','REWIND'],-.22);
   txt('HOLLOW PINES, OHIO   JULY 1996',W/2,99,'#ffe9c2','center',8,INK);
-  vhs(W/2-66,110,132,56,'#ffc93c','rgba(42,20,14,.94)');
-  ['START GAME','ONLINE','CONTROLS','SOUND'].forEach((it,i)=>menuRow(it,W/2+2,116+i*12,tCur===i,116));
+  vhs(W/2-66,110,132,68,'#ffc93c','rgba(42,20,14,.94)');
+  ['START GAME','ONLINE','CONTROLS','SOUND','GUIDE'].forEach((it,i)=>menuRow(it,W/2+2,116+i*12,tCur===i,116));
   {const dn=LFCore.DIFF[DIFFSEL].name,dc={easy:'#c8f05a',normal:'#ffc93c',hard:'#ff5a4a'}[DIFFSEL],on=tCur<=1;
     panel(W/2+72,110,70,46,dc,'rgba(42,20,14,.94)');txt('DIFFICULTY',W/2+107,113,'#d9a87c','center',8,null);
     txt((on&&(T>>4)%2?'<':' ')+' '+dn+' '+(on&&(T>>4)%2?'>':' '),W/2+107,124,dc,'center',8,INK);
     txt(LFCore.DIFF[DIFFSEL].conts===Infinity?'FREE CONTINUES':LFCore.DIFF[DIFFSEL].conts+' CONTINUES',W/2+107,140,'#ffe9c2','center',8,INK);}
-  const np=Object.keys(pads).length;tag(np?np+' CONTROLLER'+(np>1?'S':'')+' READY':'1-4 PLAYERS  KEYS OR PADS',W/2,172,np?'#3ad6c0':'#d9a87c',INK,'center');
-  if(!MUS.started||MUS.blocked)txt((T>>5)%2?'PRESS ANY KEY FOR MUSIC':'',W/2,189,'#ff9a3c','center',8,INK);
+  const np=Object.keys(pads).length;tag(np?np+' CONTROLLER'+(np>1?'S':'')+' READY':'1-4 PLAYERS  KEYS OR PADS',W/2,184,np?'#3ad6c0':'#d9a87c',INK,'center');
+  if(!MUS.started||MUS.blocked)txt((T>>5)%2?'PRESS ANY KEY FOR MUSIC':'',W/2,200,'#ff9a3c','center',8,INK);
   if(hi)tag('HI '+String(hi).padStart(7,'0'),W-4,H-15,'#ff5fa8',INK,'right');
 }
 const HERO_COVER={dex:'#3ad6c0',rae:'#ff5fa8',benny:'#ffc93c',julia:'#c8f05a'};
@@ -1598,6 +1526,7 @@ function renderScene(){
   if(scene==='select')return drawSelect();
   if(scene==='controls')return drawControls();
   if(scene==='sound')return drawSound();
+  if(scene==='guide')return drawGuide();
   if(scene==='inv')return drawInv();
   if(scene==='online')return drawOnline();
   if(scene==='join')return drawJoin();
@@ -1610,10 +1539,10 @@ function renderScene(){
     // VCR pause on-screen display
     if((T>>5)%2||lost){rect(14,46,4,12,'#ffffff');rect(21,46,4,12,'#ffffff');osd(NET.on?'MENU':'PAUSE',32,48,'left',8);}
     if(lost){panel(W/2-130,40,260,40,PCOL[lost.slot],'rgba(26,12,8,.95)');txt('P'+(lost.slot+1)+' CONTROLLER LOST',W/2,45,PCOL[lost.slot],'center',8,INK);txt('TURN IT BACK ON, OR PRESS A',W/2,58,'#ffe9c2','center',8,null);txt('ON ANY FREE CONTROLLER',W/2,69,'#ffe9c2','center',8,null);}
-    vhs(W/2-84,84,168,82,'#ffc93c','rgba(42,20,14,.95)');
-    if(NET.on)txt('THE GAME KEEPS GOING ONLINE',W/2,170,'#d9a87c','center',8,INK);
-    ['RESUME','GEAR','CONTROLS','SOUND',NET.on?'LEAVE ROOM':'QUIT TO TITLE'].forEach((it,i)=>menuRow(it,W/2+2,91+i*14,pCur===i,144));
-    txt('ESC OR B RESUMES   M MUTES',W/2,184,'#ffe9c2','center',8,INK);}
+    vhs(W/2-84,84,168,94,'#ffc93c','rgba(42,20,14,.95)');
+    if(NET.on)txt('THE GAME KEEPS GOING ONLINE',W/2,183,'#d9a87c','center',8,INK);
+    ['RESUME','GEAR','CONTROLS','SOUND','GUIDE',NET.on?'LEAVE ROOM':'QUIT TO TITLE'].forEach((it,i)=>menuRow(it,W/2+2,91+i*14,pCur===i,144));
+    txt('ESC OR B RESUMES   M MUTES',W/2,197,'#ffe9c2','center',8,INK);}
   // stage clear: the rental receipt
   if(g.status==='clear'&&scene==='play'){const a=Math.min(1,(g.clearT||0)/30);ctx.globalAlpha=a;rect(0,0,W,H,'rgba(20,8,6,.7)');
     const rw=236,rx=W/2-rw/2,ry=20,rh=176;rect(rx+3,ry+3,rw,rh,'rgba(0,0,0,.5)');rect(rx,ry,rw,rh,PAPER);
@@ -1665,6 +1594,89 @@ function drawEndScreen(g,won){
   if(!won&&g.level>1)txt('PICK UP FROM STAGE '+g.level+' IN THE LOBBY',rx+10,yb+30,'#1f7a5a','left',8,null);
   stamp(won?'PAID IN FULL':'OVERDUE',rx+rw-72,ry+rh-26,'#e8453c',-.14,won?8:16);
   if(g.endT>60&&(T>>4)%2)txt(NET.on?'PRESS START: BACK TO ROOM':touchMode?'TAP START':won?'PRESS START TO PLAY AGAIN':'PRESS START TO REWIND',rx+10,ry+rh-14,'#b8261e','left',8,null);
+}
+
+
+/* ---------- GUIDE: everything that used to sit below the game, as flip-through pages ---------- */
+const GUIDE={cur:0,from:'title',scroll:0};
+function openGuide(from){GUIDE.from=from;GUIDE.scroll=0;scene='guide';beep(660,.08);}
+function closeGuide(){scene=GUIDE.from==='pause'&&G?'pause':'title';beep(330,.08);}
+function guidePages(){
+  const kbLines=[0,1,2,3].map(i=>{const k=BIND.kb[i]||{},n=a=>k[a]?keyName(k[a]):null;
+    const mv=['up','left','down','right'].map(n).filter(Boolean).join(' ');
+    const parts=[mv&&mv+' MOVE',n('atk')&&n('atk')+' HIT',n('jump')&&n('jump')+' JUMP',n('spec')&&n('spec')+' SPECIAL',n('start')&&n('start')+' JOIN/PAUSE',n('inv')&&n('inv')+' GEAR'].filter(Boolean);
+    return ['PLAYER '+(i+1),parts.length?parts.join(' / '):'No keys yet. Give this player keys in CONTROLS.'];});
+  const padRows=Object.keys(pads).map(d=>padLabel(d)+': '+pads[d].name+(pads[d].std?'':' (no standard layout, Select = gear)'));
+  return [
+  {t:'THE NIGHT SHIFT',c:'#ffc93c',items:[
+    ['DEX MORENO, 24','Video store clerk. Swings a tube sock full of overdue VHS tapes. Balanced. Special: Rewind Spin.'],
+    ['RAE KOWALSKI, 22','Bassist in a band with no drummer. Slow, hits hardest, longest reach. Special: Power Chord.'],
+    ['BENNY TRAN, 21','Pizza driver. Quick, light hits with a delivery bag. Special: Hot Delivery.'],
+    ['JULIA OKAFOR, 23','Mall rollerblader with a hockey stick. Fastest mover. Special: Blade Rush.']]},
+  {t:'POWER-UPS',c:'#ff9a3c',items:[
+    ['JOLT SODA','10 seconds of faster moves and faster swings.'],['BOOMBOX','Double damage. Every hit knocks enemies flat.'],
+    ['POG SLAMMER','Every swing also flings a pog across the screen.'],['TROLL DOLL','8 seconds of invincibility. Anything you touch gets hurt.'],
+    ['BEEPER','Specials cost no health while it buzzes.'],['PIZZA','Heals 30 health.']]},
+  {t:'GEAR & LOOT',c:'#c8f05a',items:[
+    ['NINE SLOTS','Hat, glasses, shirt, jacket, belt, pants, shoes, bracelet and ring. 270 items, stats rolled when they drop.'],
+    ['RARITY','Common: one stat. Rare: two, about twice as strong. Ultra rare: three big stats, often life steal or regen.'],
+    ['SETS','Night Shift, Tour 94, Skate Crew, Mall Security. Bonuses at 2, 3 and all pieces. Wear 3+ pieces of a set to swap into its outfit.'],
+    ['YOUR BAG','Select on a controller, I or \' on the keyboard, GEAR on a phone, or Gear in the pause menu. Each hero keeps a 24-slot bag.']]},
+  {t:'THE NEIGHBORHOOD WATCH',c:'#ff5fa8',inline:true,items:[
+    ['SHAMBLER','Slow, weak, arrives in crowds.'],['MUMMY','Twice as tough. Its swing knocks you flat.'],
+    ['WEREWOLF','Circles at mid range, then lunges.'],['POD PERSON','Keeps its distance and spits slime.'],
+    ['CHAINSAW MANIAC','Revs, then charges. Can\'t be flinched mid-charge.'],['ARCADE GREMLIN','Small, fast, pounces from across the screen.'],
+    ['TAPE WRAITH','Floats and lashes out with ribbons of tape.'],['FRY COOK','Blocks from the front with his tray. Hit him from behind.'],
+    ['MALL COP','Tough. His baton knocks you down.']]},
+  {t:'MORE MONSTERS & BOSSES',c:'#ff5fa8',items:[
+    ['TWENTY MORE','Each stage adds its own: zombie jocks, lunch ladies, bog beasts, mega skeeters, derby demons, martians, greasers, living bowling pins, claw crabs, mannequins, pool sharks, static specters, weathermen and the meteor\'s spawn.'],
+    ['BOSSES','The Blob from Aisle 9 (stage 1), Sasquatch Scoutmaster (stage 3), King Pin (stage 6) and The Late Fee Collector (stage 10).']]},
+  {t:'THE ROUTE',c:'#3ad6c0',items:[
+    ['10 STAGES','Maple Court, Hollow Pines High, Camp Tall Pines, Skate Galaxy, Starlight Drive-In, Strike Zone Lanes, Rewind Video Warehouse, Splash Kingdom, Channel 9 Studios, The Crater.'],
+    ['PROGRESS','Clear a stage and the next starts after a breather. Every stage you reach unlocks: pick it with up/down in the lobby (online, the host picks).'],
+    ['DIFFICULTY','Left/right on START GAME. Easy: free continues. Normal: 3 continues. Hard: 1 extra life, 2 continues.']]},
+  {t:'CO-OP & ONLINE',c:'#3ad6c0',items:[
+    ['ONE SCREEN','Up to 4 players. Join any time with start, or A on a controller. More players means bigger crowds and tougher bosses.'],
+    ['ONLINE ROOMS','Pick ONLINE to host a room or join with a 4-letter code. Everyone plays on their own device; the game runs on the room server, so nobody has a lag edge.'],
+    ['JOINING','People can join mid-game and rejoin if their connection drops. Your gear lives in your browser and comes with you.']]},
+  {t:'BLUETOOTH CONTROLLERS',c:'#7aa0ff',items:[
+    ['PAIRING','Pair in your device\'s Bluetooth settings. Xbox: hold the pair button. PlayStation: Share + PS. Switch Pro: sync button. 8BitDo: X-input mode if it has one.'],
+    ['BUTTONS','X hit, A jump, B special, START pause, SELECT gear. Stick or d-pad moves. Remap in CONTROLS. Menus: A picks, B goes back.'],
+    ['CONNECTED NOW',padRows.length?padRows.join('. '):'No controllers yet. Pair one, then press any button on it.']]},
+  {t:'KEYBOARD',c:'#ffe9c2',items:kbLines.concat([['CHANGE KEYS','Pick CONTROLS on the title screen or pause menu. Changes are saved in this browser.']])},
+  {t:'SOUNDTRACK',c:'#c8f05a',items:[
+    ['SMOOTH SAIL FM 96.9','Every stage has its own yacht rock song, opened by a station jingle.'],
+    ['BOSSES','Mini-bosses cut to the Eerie Dance Loop; the final boss gets the anthem.'],
+    ['VOLUME','SOUND on the title screen or pause menu. M mutes.']]},
+  ];
+}
+// word-wrap for the 8px pixel font (8px per character)
+function wrapLines(s,maxCh){const out=[];let line='';for(const w of String(s).split(' ')){if((line+(line?' ':'')+w).length>maxCh){if(line)out.push(line);line=w;}else line+=(line?' ':'')+w;}if(line)out.push(line);return out;}
+function updGuide(){
+  const P=guidePages(),n=P.length;
+  if(menuHit('right')){GUIDE.cur=(GUIDE.cur+1)%n;GUIDE.scroll=0;beep(520,.05);}
+  if(menuHit('left')){GUIDE.cur=(GUIDE.cur+n-1)%n;GUIDE.scroll=0;beep(520,.05);}
+  if(menuHit('down'))GUIDE.scroll++;if(menuHit('up'))GUIDE.scroll=Math.max(0,GUIDE.scroll-1);
+  if(menuHit('back')||menuHit('ok')||hit('menu','back'))closeGuide();
+}
+function drawGuide(){
+  const P=guidePages(),pg=P[GUIDE.cur%P.length];
+  uiBg('GUIDE',(GUIDE.cur+1)+'/'+P.length,'#d9a87c');
+  // page tabs: one dot per page
+  P.forEach((q,i)=>{const x=W/2-P.length*6+i*12;rect(x,27,8,4,i===GUIDE.cur?q.c:'#5e2f22');});
+  vhs(6,35,W-12,H-52,pg.c,'rgba(42,20,14,.95)');
+  txt(pg.t,W/2+2,41,pg.c,'center',8,INK);
+  const lines=[];for(const [h,b] of pg.items){
+    if(pg.inline){wrapLines(h+': '+b,44).forEach((l,i)=>lines.push([l,i===0?h.length+1:0]));}
+    else{lines.push([h,-1]);wrapLines(b,43).forEach(l=>lines.push([l,0]));}
+    lines.push(null);}
+  const per=15,maxS=Math.max(0,lines.length-per);GUIDE.scroll=Math.min(GUIDE.scroll,maxS);
+  lines.slice(GUIDE.scroll,GUIDE.scroll+per).forEach((ln,i)=>{if(!ln)return;const y=54+i*9,[s,hl]=ln;
+    if(hl===-1)txt(s,14,y,pg.c,'left',8,null);
+    else if(hl>0){txt(s.slice(0,hl),14,y,pg.c,'left',8,null);txt(s.slice(hl),14+hl*8,y,'#ffe9c2','left',8,null);}
+    else txt(s,(pg.inline?14:20),y,'#ffe9c2','left',8,null);});
+  if(maxS>0){txt(GUIDE.scroll>0?'^':' ',W-16,54,'#ffc93c','left',8,null);txt(GUIDE.scroll<maxS?'v':' ',W-16,H-28,'#ffc93c','left',8,null);}
+  txt('< > PAGE   ^v SCROLL   B/ESC BACK',W/2,H-12,'#ffe9c2','center',8,INK);
 }
 
 /* ---------- loop ---------- */
