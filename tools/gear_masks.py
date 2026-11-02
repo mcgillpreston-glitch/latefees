@@ -13,7 +13,8 @@ import cv2, numpy as np
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FR = ['', 'walk1', 'walk2', 'attack1', 'attack2', 'jump', 'kick', 'hurt', 'down', 'special']
+FR = ['', 'walk1', 'walk2', 'walk3', 'walk4', 'attack1', 'attack2', 'attack3', 'finish1', 'finish2', 'finish3', 'jump', 'jump2', 'jump3', 'kick',
+      'hurt', 'hurt2', 'down', 'getup1', 'getup2', 'special', 'special2', 'special3', 'special4']
 
 def hsv_of(im):
     hsv = cv2.cvtColor(im[..., :3], cv2.COLOR_RGB2HSV).astype(np.int16)

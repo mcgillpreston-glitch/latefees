@@ -208,7 +208,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 </div>
 
 <script src="art/manifest.js?v=2026.11.02-5"></script>
-<script src="game-core.js?v=2026.11.02-4"></script>
+<script src="game-core.js?v=2026.11.02-5"></script>
 <script>
 (()=>{
 const {W,H,TOP,BOT,LEVEL_END,LEVELS,NSTAGES}=LFCore;
@@ -954,6 +954,12 @@ function updSelect(){
 
 /* ---------- game setup: the shared core runs the rules, this file feeds it inputs and shows its events ---------- */
 const FX={parts:[],texts:[]};let shakeV=0;
+// Per-body render memory (not part of the sim): previous height for landing squash, a short position trail for afterimages, combo pops.
+const FXE=new Map();
+function fxe(key,x,y,z){let m=FXE.get(key);if(!m){m={pz:z,sq:0,hist:[],pop:0,combo:0};FXE.set(key,m);}
+  if(m.pz>0&&z<=0){m.sq=9;for(let i=0;i<5;i++)FX.parts.push({x:x+rnd(-6,6),y:y+rnd(-2,2),z:0,vx:rnd(-1.2,1.2),vy:0,vz:rnd(.3,1.1),t:rnd(8,14),c:i%2?'#8a7a6a':'#b8a890',s:2,g:.05});}
+  m.pz=z;if(m.sq>0)m.sq--;m.hist.unshift({x,y,z});if(m.hist.length>4)m.hist.length=4;return m;}
+const squash=(o,m)=>{if(m.sq>0){const k=m.sq/9;o.sx=(o.sx||1)*(1+.16*k);o.sy=(o.sy||1)*(1-.16*k);}};
 const active=()=>G?C.active(G):[];
 function playerSpec(slot,hero){return {slot,hero,st:calcStats(HEROES[hero].id),look:gearLook(HEROES[hero].id)};}
 function newGame(){
@@ -1239,22 +1245,34 @@ function heroSprite(id,pose){
   const H=pose.h||SPR_H[id]||50,lk=pose.gear||null,o={h:H};let f=null,sk=id;
   // a worn set with outfit art replaces the stock look entirely; otherwise equipped colours tint the stock clothes
   if(lk&&lk.out&&SPR[id+'_'+lk.out])sk=id+'_'+lk.out;else o.look=lk;
-  if(pose.down){o.lying=true;return drawSpr(sk,o,'down');}
-  if(pose.walk){const ph=Math.sin(pose.walk*.28);o.oy=-Math.abs(ph)*H*.05;o.rot=ph*.04;f=ph>0?'walk1':'walk2';}
+  const has=n=>!!SPR[sk+':'+n];
+  if(pose.down){ // knocked flat; getting back up uses the get-up frames when the hero has them
+    if(pose.getup>0&&has('getup1')){f=pose.getup>1&&has('getup2')?'getup2':'getup1';o.rot=-.08;}
+    else{o.lying=true;if(pose.spin)o.rot=pose.spin;f='down';}
+    if(pose.sq)squash(o,pose.sq);return drawSpr(sk,o,f);}
+  if(pose.walk){const ph=Math.sin(pose.walk*.28);o.oy=-Math.abs(ph)*H*.05;o.rot=ph*.04;
+    if(has('walk3')&&has('walk4')){const i=Math.floor((pose.walk*.14/Math.PI)%1*4+4)%4;f='walk'+(i+1);}else f=ph>0?'walk1':'walk2';}
   else o.sy=1+Math.sin(T*.08)*.012;
-  if(pose.air){o.sx=.96;o.sy=1.04;f='jump';if(pose.kick){o.rot=.3;f='kick';}}
+  if(pose.air){o.sx=.96;o.sy=1.04;f='jump';const vz=pose.vz||0;if(vz<-1.2&&has('jump3'))f='jump3';else if(Math.abs(vz)<=1.2&&has('jump2'))f='jump2';
+    if(pose.kick){o.rot=.3;f='kick';}}
   let arc=null;
   if(pose.atkP>=0){const t=pose.atkP,big=pose.n===3,lean=big?.24:.15,pr=pose.n===2?[1.6,-.5]:big?[-2.5,.9]:[-1.9,.25];
-    if(t<.28){o.rot=-.12*(t/.28);o.ox=-H*.03;f='attack1';}
-    else if(t<.62){o.rot=lean;o.ox=H*(big?.12:.08);o.sx=1.05;f='attack2';arc=[pr[0],lerp(pr[0],pr[1],(t-.28)/.34)];}
-    else{const r=1-(t-.62)/.38;o.rot=lean*r;o.ox=H*.08*r;f='attack2';}}
-  if(pose.hurt){o.rot=-.22;o.ox=-H*.06;f='hurt';}
-  if(pose.spec!=null){const s=pose.spec;f='special';
+    const F=big&&has('finish1')?['finish1','finish2',has('finish3')?'finish3':'finish2']:['attack1','attack2',has('attack3')?'attack3':'attack2'];
+    if(t<.28){const k=t/.28;o.rot=-.14*k;o.ox=-H*.04*k;o.sx=1-.05*k;o.sy=1+.04*k;f=F[0];}   // anticipation: coil back and up
+    else if(t<.62){o.rot=lean;o.ox=H*(big?.12:.08);o.sx=1.06;o.sy=.97;f=F[1];arc=[pr[0],lerp(pr[0],pr[1],(t-.28)/.34)];
+      if(t<.44)pose.smear=1;}
+    else{const r=1-(t-.62)/.38;o.rot=lean*r;o.ox=H*.08*r;o.sy=1-.03*r;f=F[2];}}
+  if(pose.hurt){o.rot=-.22;o.ox=-H*.06;f=pose.hurt2&&has('hurt2')?'hurt2':'hurt';}
+  if(pose.hs>0){ // hit-stop: the attacker leans into the blow, the one being hit shudders
+    if(pose.atkP>=0)o.ox=(o.ox||0)+H*.03;else o.ox=(o.ox||0)+(T%2?1.5:-1.5);}
+  if(pose.spec!=null){const s=pose.spec;f='special';if(has('special2')){const n=has('special4')?4:has('special3')?3:2;f=['special','special2','special3','special4'][Math.floor(s/4)%n];}
     if(id==='dex'){if(SPR[sk+':special'])o.sx=Math.floor(s/5)%2?-1:1;else{const c=Math.cos(s*.55);o.sx=Math.sign(c||1)*Math.max(.18,Math.abs(c));}}
     else if(id==='rae'){o.ox=T%4<2?1:-1;o.rot=-.06;}
     else if(id==='benny'){o.rot=s<7?-.22:.2;o.ox=s<7?-2:4;}
     else{o.rot=.28;o.ox=3;drawSpr(sk,{...o,ox:-10,alpha:.3});drawSpr(sk,{...o,ox:-5,alpha:.5});}}
   if(pose.flash)o.flash=pose.flash;
+  if(pose.sq)squash(o,pose.sq);
+  if(pose.smear){drawSpr(sk,{...o,ox:(o.ox||0)-H*.16,alpha:.16},f);drawSpr(sk,{...o,ox:(o.ox||0)-H*.08,alpha:.3},f);}   // swing smear
   drawSpr(sk,o,f);
   if(arc&&!SPR[sk+':attack2']){ctx.save();ctx.strokeStyle=pose.trail||'rgba(255,240,200,.65)';ctx.lineWidth=3;ctx.beginPath();
     ctx.arc(H*.08,-H*.6,H*.55,Math.min(arc[0],arc[1]),Math.max(arc[0],arc[1]));ctx.stroke();ctx.restore();}
@@ -1264,11 +1282,16 @@ function enemySprite(e){
   const H=sprH0(e.type),o={h:H},st=e.state,w=e.walk||0;let f=null;
   if(st==='down'){o.lying=true;f='down';}
   else if(st==='walk'){const k=e.type==='sh'||e.type==='mummy'?.18:e.type==='gremlin'?.35:.25,ph=Math.sin(w*k);
-    o.oy=-Math.abs(ph)*H*(e.type==='gremlin'?.08:.035);o.rot=ph*(e.type==='sh'?.08:.04);f=ph>0?'walk1':'walk2';}
-  else if(st==='windup'){o.rot=-.12;o.ox=(T%4<2?-1:1)-H*.03;f='attack1';}
-  else if(st==='attack'){o.rot=.18;o.ox=H*.08;o.sx=1.04;f='attack2';if(e.type==='chainsaw'){o.ox+=T%2?1:-1;o.oy=T%2?-1:0;}}
-  else if(st==='recover')o.rot=.05;
+    o.oy=-Math.abs(ph)*H*(e.type==='gremlin'?.08:.035);o.rot=ph*(e.type==='sh'?.08:.04);
+    if(SPR[e.type+':walk3']&&SPR[e.type+':walk4']){const i=Math.floor((w*k/Math.PI/2)%1*4+4)%4;f='walk'+(i+1);}else f=ph>0?'walk1':'walk2';}
+  else if(st==='windup'){o.rot=-.12;o.ox=(T%4<2?-1:1)-H*.03;o.sx=.96;o.sy=1.03;f='attack1';}
+  else if(st==='attack'){o.rot=.18;o.ox=H*.08;o.sx=1.04;f='attack2';const d=EN[e.type];if(d&&d.atk&&e.timer<d.atk*.45&&SPR[e.type+':attack3'])f='attack3';
+    if(e.type==='chainsaw'){o.ox+=T%2?1:-1;o.oy=T%2?-1:0;}}
+  else if(st==='recover'){o.rot=.05;if(SPR[e.type+':attack3'])f='attack3';}
   else if(st==='hurt'){o.rot=-.2;o.ox=-H*.05;f='hurt';}
+  if(st==='down'&&e.z>0)o.rot=(o.rot||0)+clamp(-(e.vz||0)*.07,-.45,.45);   // tumbles through the air
+  if(e.hs>0&&st!=='down')o.ox=(o.ox||0)+(T%2?1.5:-1.5);
+  if(e.fxm)squash(o,e.fxm);
   if(e.type==='tape'&&st!=='down')o.rot=(o.rot||0)+Math.sin(T*.07+e.id)*.06;
   if(e.flash>0)o.flash=e.flash%2?.75:.35;
   return drawSpr(e.type,o,f);
@@ -1370,19 +1393,25 @@ function drawPlayer(p){
   if(hasPow(p,'troll')){ctx.strokeStyle=`hsl(${(T*12)%360},100%,65%)`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(sx,sy-HH/2,HH*.32,HH*.58,0,0,Math.PI*2);ctx.stroke();}
   ctx.save();ctx.translate(sx,sy);ctx.scale(p.face,1);
   if(p.state==='down'&&!SPR[p.ch.id]){ctx.translate(14,-3);ctx.rotate(-Math.PI/2);}
-  const pose={walk:p.moving&&p.z===0&&!p.atk&&p.state==='idle'?p.walk:0,air:p.z>0&&p.state!=='down',atkP:-1,n:1,kick:!!(p.atk&&p.atk.air),hurt:p.state==='hurt',
-    spec:p.state==='special'?p.sp.t:null,trail:p.pow?POW[p.pow.k].col:null,gear:p.look,down:p.state==='down',flash:p.state==='hurt'&&p.timer>10?.6:0};
+  const m=fxe('p'+p.slot,p.x,p.y,p.z);
+  const pose={walk:p.moving&&p.z===0&&!p.atk&&p.state==='idle'?p.walk:0,air:p.z>0&&p.state!=='down',atkP:-1,n:1,kick:!!(p.atk&&p.atk.air),hurt:p.state==='hurt',hurt2:p.state==='hurt'&&p.timer<=8,
+    spec:p.state==='special'?p.sp.t:null,trail:p.pow?POW[p.pow.k].col:null,gear:p.look,down:p.state==='down',flash:p.state==='hurt'&&p.timer>10?.6:0,
+    vz:p.vz||0,hs:p.hs||0,sq:m,getup:p.state==='down'&&p.z===0&&p.hp>0&&p.timer<14?(p.timer<7?2:1):0,spin:p.state==='down'&&p.z>0?clamp(-(p.vz||0)*.07,-.45,.45):0};
   if(p.atk&&!p.atk.air){pose.atkP=p.atk.t/p.atk.len;pose.n=p.atk.n;}
+  if(p.state==='down'&&p.z>2)for(let i=m.hist.length-1;i>=1;i--){const h=m.hist[i];ctx.save();ctx.globalAlpha=.1+.07*(m.hist.length-i);ctx.translate(Math.round(h.x-p.x),Math.round(h.y-h.z-(p.y-p.z)));drawHero(p.ch.id,{...pose,sq:null,gear:p.look});ctx.restore();}
   drawHero(p.ch.id,pose);ctx.restore();
+  if(p.combo>m.combo)m.pop=8;m.combo=p.combo;
   if(p.state!=='down'){const ty=sy-HH-8;tri(sx-3,ty,sx+3,ty,sx,ty+4,col);
     if(g.ps.length>1)txt('P'+(p.slot+1),sx,ty-9,col,'center');}
-  if(p.combo>=2)txt(p.combo+' HITS',sx,sy-HH-(g.ps.length>1?28:18),(T>>2)%2?'#ffc93c':'#ff9a3c','center');
+  if(p.combo>=2){const k=m.pop>0?1+m.pop/8*.6:1;if(m.pop>0)m.pop--;ctx.save();ctx.translate(sx,sy-HH-(g.ps.length>1?28:18)+4);ctx.scale(k,k);txt(p.combo+' HITS',0,-4,(T>>2)%2?'#ffc93c':'#ff9a3c','center');ctx.restore();}
 }
 function drawEnemy(e){
   if(EN[e.type]&&EN[e.type].boss)return e.type==='blob'?drawBlob(e):drawBossFig(e);
   if(e.dying&&e.timer<30&&(T>>1)%2)return;
   const sx=Math.round(e.x-G.cam),sy=Math.round(e.y-e.z);
-  if(SPR[e.type]){ctx.save();ctx.translate(sx,sy);ctx.scale(e.face,1);enemySprite(e);ctx.restore();return;}
+  if(SPR[e.type]){const m=fxe('e'+e.id,e.x,e.y,e.z);e.fxm=m;
+    if(e.state==='down'&&e.z>2)for(let i=m.hist.length-1;i>=1;i--){const h=m.hist[i];ctx.save();ctx.globalAlpha=.08+.07*(m.hist.length-i);ctx.translate(Math.round(h.x-G.cam),Math.round(h.y-h.z));ctx.scale(e.face,1);const sq=e.fxm;e.fxm=null;enemySprite(e);e.fxm=sq;ctx.restore();}
+    ctx.save();ctx.translate(sx,sy);ctx.scale(e.face,1);enemySprite(e);ctx.restore();return;}
   if(!DRAW[e.type]){if(EN[e.type]&&EN[e.type].look){ctx.save();ctx.translate(sx,sy);ctx.scale(e.face,1);standIn(e,EN[e.type].look,1);ctx.restore();}return;}
   if(e.flash>0&&e.flash%2)ctx.globalAlpha=.4;
   ctx.save();ctx.translate(sx+(e.state==='windup'&&T%4<2?1:0),sy);ctx.scale(e.face,1);
