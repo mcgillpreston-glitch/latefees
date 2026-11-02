@@ -188,7 +188,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
       <ul>
         <li><b>10 stages</b><span>Maple Court, Hollow Pines High, Camp Tall Pines, Skate Galaxy, Starlight Drive-In, Strike Zone Lanes, Rewind Video Warehouse, Splash Kingdom, Channel 9 Studios and The Crater. Each one is longer and meaner than the last.</span></li>
         <li><b>Progress</b><span>Clear a stage and the next one starts after a short breather. Every stage you reach unlocks in the lobby: pick it with up/down (online, the host picks).</span></li>
-        <li><b>Soundtrack</b><span>Suspenseful Piano Intro on the menus, Eerie Disco Groove through each stage, Eerie Dance Loop for the last stretch and every boss. Volume lives under Sound on the title screen and pause menu.</span></li>
+        <li><b>Soundtrack</b><span>Suspenseful Piano Intro on the menus and Eerie Disco Groove through Maple Court. From stage 2 on, Smooth Sail FM 96.9 takes over: a station jingle, then each stage's own yacht rock song. Mini-bosses cut to the Eerie Dance Loop; the final boss gets the anthem. Volume lives under Sound on the title screen and pause menu.</span></li>
         <li><b>Co-op</b><span>On one screen: join any time with start, or A on a controller. Online: host a room and share the code. More players means bigger crowds and tougher bosses. Out of lives? Press start to continue.</span></li>
       </ul>
       <p class="todo"><b>Not in this draft:</b> trading gear between heroes, grabs and throws, breakable props.</p>
@@ -388,19 +388,35 @@ const TRACKS={
   intro:{src:'music/suspenseful-piano-intro.mp3',name:'SUSPENSEFUL PIANO INTRO'},
   disco:{src:'music/eerie-disco-groove.mp3',name:'EERIE DISCO GROOVE'},
   dance:{src:'music/eerie-dance-loop.mp3',name:'EERIE DANCE LOOP'},
+  // Smooth Sail FM 96.9: one yacht rock song per stage (stage 1 keeps the eerie disco until its song exists)
+  s2:{src:'music/yacht-02-hall-pass-breeze.mp3',name:'HALL PASS BREEZE'},
+  s3:{src:'music/yacht-03-lake-effect.mp3',name:'LAKE EFFECT'},
+  s4:{src:'music/yacht-04-couples-skate.mp3',name:'COUPLES SKATE (FOREVER)'},
+  s5:{src:'music/yacht-05-double-feature-drift.mp3',name:'DOUBLE FEATURE DRIFT'},
+  s6:{src:'music/yacht-06-last-call-lane-nine.mp3',name:'LAST CALL AT LANE NINE'},
+  s7:{src:'music/yacht-07-be-kind-rewind.mp3',name:'BE KIND, REWIND'},
+  s8:{src:'music/yacht-08-closed-for-the-season.mp3',name:'CLOSED FOR THE SEASON'},
+  s9:{src:'music/yacht-09-we-interrupt.mp3',name:'WE INTERRUPT THIS BROADCAST'},
+  s10:{src:'music/yacht-10-return-all-tapes.mp3',name:'RETURN ALL TAPES'},
 };
-const MUS={el:{},vol:{},started:false,blocked:false,now:null};
+const JINGLES=['music/jingle-1-wsmo.mp3','music/jingle-2-survival-tips.mp3','music/jingle-3-stay-smooth.mp3'];
+const STATION='SMOOTH SAIL FM 96.9';
+const MUS={el:{},vol:{},started:false,blocked:false,now:null,lastL:0,jingle:null,ji:Math.floor(Math.random()*3),announced:null};
 function musEl(k){if(!MUS.el[k]){const a=new Audio(TRACKS[k].src);a.loop=true;a.preload='auto';a.volume=0;MUS.el[k]=a;MUS.vol[k]=0;}return MUS.el[k];}
 const GAME_SCENES=new Set(['play','pause','inv','over','win']);
 function musicWant(){
   const inGame=GAME_SCENES.has(scene)||((scene==='controls'&&SET.from==='pause')||(scene==='sound'&&SOUND.from==='pause'));
   if(!inGame||!G)return 'intro';
-  if(G.boss&&!G.boss.gone)return 'dance';
+  const L=G.level||1,song=TRACKS['s'+L]?'s'+L:null;
+  // mini-bosses cut to the eerie loop; the final boss gets the stage's anthem
+  if(G.boss&&!G.boss.gone&&!(song&&EN[G.boss.type]&&EN[G.boss.type].final))return 'dance';
+  if(song)return MUS.jingle?null:song;
   return zoneAt(G.level||1,G.cam+W/2)>=LFCore.levelZones(G.level||1).length-1?'dance':'disco';
 }
 function musicTick(){
   const want=musicWant(),menuDuck=scene!=='play'&&GAME_SCENES.has(scene)||scene==='controls'&&SET.from==='pause'||scene==='sound'&&SOUND.from==='pause';
   const master=muted?0:SND.music/10*.7*(menuDuck?.5:1);
+  radioTick(master);
   MUS.now=master>0?want:null;
   for(const k in TRACKS){
     const target=k===want?master:0;if(!MUS.el[k]&&target===0)continue;
@@ -408,6 +424,17 @@ function musicTick(){
     if(v>.001&&a.paused&&MUS.started){const pr=a.play();if(pr&&pr.catch)pr.then(()=>{MUS.blocked=false;}).catch(()=>{MUS.blocked=true;});}
     else if(v<=.001&&target===0&&!a.paused){a.pause();a.currentTime=0;}
   }
+}
+// Radio: each new stage with a station song opens with a station jingle, then the song, with a NOW PLAYING sticker.
+function radioTick(master){
+  const inGame=G&&GAME_SCENES.has(scene),L=inGame?G.level||1:0;
+  if(!inGame){MUS.lastL=0;if(MUS.jingle){MUS.jingle.pause();MUS.jingle=null;}return;}
+  if(L!==MUS.lastL){MUS.lastL=L;MUS.announced=null;
+    if(TRACKS['s'+L]&&MUS.started&&master>0){const j=new Audio(JINGLES[MUS.ji++%JINGLES.length]);j.volume=clamp(master*1.2,0,1);MUS.jingle=j;
+      j.onended=j.onerror=()=>{if(MUS.jingle===j)MUS.jingle=null;};const pr=j.play();if(pr&&pr.catch)pr.catch(()=>{if(MUS.jingle===j)MUS.jingle=null;});
+      setTimeout(()=>{if(MUS.jingle===j)MUS.jingle=null;},12000);}}
+  if(MUS.jingle)MUS.jingle.volume=clamp(master*1.2,0,1);
+  const want=musicWant();if(want&&want[0]==='s'&&MUS.announced!==want&&master>0&&scene==='play'){MUS.announced=want;toast('96.9 FM  '+TRACKS[want].name,'#3ad6c0');}
 }
 function audioInit(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}else if(ac.state==='suspended')ac.resume();
   if(!MUS.started||MUS.blocked){MUS.started=true;MUS.blocked=false;for(const k in MUS.el){const a=MUS.el[k];if(MUS.vol[k]>.001&&a.paused){const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{MUS.blocked=true;});}}}}
@@ -473,7 +500,7 @@ function drawSound(){
     ['MUTE ALL',y=>{rect(170,y-2,48,12,muted?'#e8453c':'#45221a');txt(muted?'ON':'OFF',194,y,muted?'#ffe9c2':'#d9a87c','center',8,null);}],['BACK',()=>{}]];
   rows.forEach(([lab,draw],i)=>{const y=44+i*24,on=SOUND.cur===i;if(on){rect(8,y-5,W-16,18,'#5e2f22');rect(8,y-5,3,18,'#ffc93c');tri(13,y-1,13,y+7,18,y+3,'#ffc93c');}
     txt(lab,22,y,on?'#ffc93c':'#ffe9c2');draw(y);});
-  const now=MUS.now?TRACKS[MUS.now].name:'MUSIC OFF';
+  const now=MUS.now?(MUS.now[0]==='s'?'96.9 FM  ':'')+TRACKS[MUS.now].name:MUS.jingle?'96.9 FM  STATION BREAK':'MUSIC OFF';
   txt('NOW PLAYING',22,148,'#d9a87c','left',8,null);txt(now,22,160,MUS.now?'#3ad6c0':'#8a5a44','left',8,null);
   if(MUS.blocked||!MUS.started)txt('CLICK OR PRESS A KEY TO START MUSIC',22,174,'#ff7a5a','left',8,null);
   txt('< > ADJUST   ESC/B BACK   M MUTES',22,192,'#d9a87c','left',8,null);
@@ -1613,6 +1640,6 @@ let last=performance.now(),acc=0;const STEP=1000/60;
 function frame(now){acc+=Math.min(100,now-last);last=now;let n=0;while(acc>=STEP&&n<5){update();acc-=STEP;n++;}render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 rebuildKeys();renderPadList();renderLegend();
-window.__lf={get DIFFSEL(){return DIFFSEL},setDiff,STG,unlockTo,enemySprite,MUS,SND,SPR,drawHero,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
+window.__lf={MUSW:()=>[musicWant(),MUS.now,!!MUS.jingle,Object.fromEntries(Object.entries(MUS.el).map(([k,a])=>[k,[a.paused?'paused':'playing',+a.volume.toFixed(2)]]))],get DIFFSEL(){return DIFFSEL},setDiff,STG,unlockTo,enemySprite,MUS,SND,SPR,drawHero,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
 })();
 </script>
