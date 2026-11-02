@@ -21,7 +21,8 @@ LABELS = {
     'vhs': ('px', 'VHS QUALITY WITH STEREO SOUND', None), 'brand': ('px', 'THE LAST VIDEO STORE', None),
     'ok': ('px', 'OK', None), 'back': ('px', 'BACK', None), 'equip': ('px', 'EQUIP', None), 'scrap': ('px', 'SCRAP', None),
     'scrapq': ('px', 'SCRAP?', None), 'close': ('px', 'CLOSE', None), 'sort': ('px', 'SORT', None), 'takeoff': ('px', 'TAKE OFF', None),
-    'mark': ('bg', 'REWIND', None), 'mark2': ('bg', 'POCKET', ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']),
+    'pwr': ('px', 'PWR', None), 'vol': ('px', 'VOL', None), 'hifi': ('px', 'HI-FI STEREO', None), 'pockettv': ('px', 'POCKET TV', None),
+    'model': ('px', 'MODEL RP-1996', None), 'mark': ('bg', 'REWIND', None),
 }
 
 
@@ -80,13 +81,13 @@ def main():
     n = 0
     def rep(m):
         nonlocal n
-        key = m.group(1)
+        key = m.group(2)
         if key not in svgs:
             print('no label for', key, file=sys.stderr)
             return m.group(0)
         n += 1
-        return svgs[key]
-    html2 = re.sub(r'<svg class="lab" data-l="([a-z0-9]+)"[^>]*>.*?</svg>', rep, html, flags=re.S)
+        return svgs[key].replace('class="lab"', 'class="%s"' % m.group(1), 1)
+    html2 = re.sub(r'<svg class="(lab[^"]*)" data-l="([a-z0-9]+)"[^>]*>.*?</svg>', rep, html, flags=re.S)
     open(a.html, 'w', encoding='utf-8').write(html2)
     print('filled', n, 'labels;', len(html2) - len(html), 'bytes added')
 
