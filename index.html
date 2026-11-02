@@ -312,9 +312,9 @@ dpad.addEventListener('pointermove',e=>{if(dActive)dset(e);});
 /* ---------- audio ---------- */
 let ac=null,muted=false;
 // Sound settings: music and effects volume 0-10, plus mute. Saved per browser.
-const SND={music:7,sfx:8};
-try{const sv=JSON.parse(localStorage.getItem('lfotd-sound')||'null');if(sv){if(Number.isFinite(sv.music))SND.music=clamp(Math.round(sv.music),0,10);if(Number.isFinite(sv.sfx))SND.sfx=clamp(Math.round(sv.sfx),0,10);muted=!!sv.muted;}}catch(e){}
-function saveSound(){try{localStorage.setItem('lfotd-sound',JSON.stringify({music:SND.music,sfx:SND.sfx,muted}));}catch(e){}}
+const SND={music:7,sfx:8,dj:'on'};const DJ_MODES=['on','short','off'];
+try{const sv=JSON.parse(localStorage.getItem('lfotd-sound')||'null');if(sv){if(Number.isFinite(sv.music))SND.music=clamp(Math.round(sv.music),0,10);if(Number.isFinite(sv.sfx))SND.sfx=clamp(Math.round(sv.sfx),0,10);muted=!!sv.muted;if(DJ_MODES.includes(sv.dj))SND.dj=sv.dj;}}catch(e){}
+function saveSound(){try{localStorage.setItem('lfotd-sound',JSON.stringify({music:SND.music,sfx:SND.sfx,dj:SND.dj,muted}));}catch(e){}}
 const TRACKS={
   intro:{src:'music/suspenseful-piano-intro.mp3',name:'SUSPENSEFUL PIANO INTRO'},
   disco:{src:'music/eerie-disco-groove.mp3',name:'EERIE DISCO GROOVE'},
@@ -334,7 +334,12 @@ const TRACKS={
 };
 const JINGLES=['music/jingle-1-wsmo.mp3','music/jingle-2-survival-tips.mp3','music/jingle-3-stay-smooth.mp3'];
 const STATION='SMOOTH SAIL FM 96.9';
-const MUS={el:{},vol:{},started:false,blocked:false,now:null,lastL:0,jingle:null,ji:Math.floor(Math.random()*3),announced:null};
+const MUS={el:{},vol:{},started:false,blocked:false,now:null,lastL:0,jingle:null,jk:null,jtitle:null,ji:Math.floor(Math.random()*3),announced:null,
+  heard:new Set(),bi:Math.floor(Math.random()*4),lt:{},looped:false};
+// Late Night with June: a DJ break opens each stage (each break once per session), short bumpers after that and whenever the stage song comes round again.
+const DJ_BREAKS={1:['dj-01-sign-on','dj-02-brenda'],2:['dj-03-marcus'],3:['dj-04-camp-letter'],4:['dj-05-skate'],5:['dj-06-drive-in'],
+  6:['dj-07-walt'],7:['dj-08-video-store'],8:['dj-09-lena'],9:['dj-10-still-here'],10:['dj-11-sign-off']};
+const DJ_BUMPS=['dj-bump-1','dj-bump-2','dj-bump-3','dj-bump-4'];
 function musEl(k){if(!MUS.el[k]){const a=new Audio(TRACKS[k].src);a.loop=true;a.preload='auto';a.volume=0;MUS.el[k]=a;MUS.vol[k]=0;}return MUS.el[k];}
 const GAME_SCENES=new Set(['play','pause','inv','over','win']);
 function musicWant(){
@@ -344,7 +349,7 @@ function musicWant(){
   const L=G.level||1,song=TRACKS['s'+L]?'s'+L:null;
   // mini-bosses cut to the eerie loop; the final boss gets the stage's anthem
   if(G.boss&&!G.boss.gone&&!(song&&EN[G.boss.type]&&EN[G.boss.type].final))return 'dance';
-  if(song)return MUS.jingle?null:song;
+  if(song)return MUS.jingle&&MUS.jk==='start'?null:song;
   return zoneAt(G.level||1,G.cam+W/2)>=LFCore.levelZones(G.level||1).length-1?'dance':'disco';
 }
 function musicTick(){
@@ -353,20 +358,35 @@ function musicTick(){
   radioTick(master);
   MUS.now=master>0?want:null;
   for(const k in TRACKS){
-    const target=k===want?master:0;if(!MUS.el[k]&&target===0)continue;
+    const target=k===want?master*(MUS.jingle&&MUS.jk==='bump'?.3:1):0;if(!MUS.el[k]&&target===0)continue;
     const a=musEl(k);let v=MUS.vol[k]||0;v+=(target-v)*.06;if(Math.abs(target-v)<.004)v=target;MUS.vol[k]=v;a.volume=clamp(v,0,1);
     if(v>.001&&a.paused&&MUS.started){const pr=a.play();if(pr&&pr.catch)pr.then(()=>{MUS.blocked=false;}).catch(()=>{MUS.blocked=true;});}
-    else if(v<=.001&&target===0&&!a.paused){a.pause();a.currentTime=0;}
+    else if(v<=.001&&target===0&&!a.paused){a.pause();a.currentTime=0;MUS.lt[k]=0;}
+    if(k===want&&k[0]==='s'&&!a.paused){const t=a.currentTime;if(t+3<(MUS.lt[k]||0))MUS.looped=true;MUS.lt[k]=t;}
   }
 }
-// Radio: each new stage with a station song opens with a station jingle, then the song, with a NOW PLAYING sticker.
+// Radio: each new stage opens with June's DJ break (or a bumper or station jingle), then the stage song; a bumper plays over the song each time it comes round.
+function playVoice(src,kind,title,fallback){
+  const j=new Audio(src);j.volume=0;MUS.jingle=j;MUS.jk=kind;MUS.jtitle=title||null;
+  const done=()=>{if(MUS.jingle===j){MUS.jingle=null;MUS.jk=null;MUS.jtitle=null;}};
+  const fail=()=>{if(MUS.jingle!==j)return;done();if(fallback)fallback();};
+  j.onended=done;j.onerror=fail;
+  if(title)j.onplaying=()=>{if(MUS.jingle===j&&scene==='play')toast('96.9 FM  '+title,'#ffc93c');};
+  const pr=j.play();if(pr&&pr.catch)pr.catch(e=>{if(e&&e.name==='NotAllowedError')done();else fail();});
+  setTimeout(done,kind==='start'&&title?150000:20000);
+}
+function stopVoice(){if(MUS.jingle){MUS.jingle.pause();MUS.jingle=null;MUS.jk=null;MUS.jtitle=null;}}
 function radioTick(master){
   const inGame=G&&GAME_SCENES.has(scene),L=inGame?G.level||1:0;
-  if(!inGame){MUS.lastL=0;if(MUS.jingle){MUS.jingle.pause();MUS.jingle=null;}return;}
-  if(L!==MUS.lastL){MUS.lastL=L;MUS.announced=null;
-    if(TRACKS['s'+L]&&MUS.started&&master>0){const j=new Audio(JINGLES[MUS.ji++%JINGLES.length]);j.volume=clamp(master*1.2,0,1);MUS.jingle=j;
-      j.onended=j.onerror=()=>{if(MUS.jingle===j)MUS.jingle=null;};const pr=j.play();if(pr&&pr.catch)pr.catch(()=>{if(MUS.jingle===j)MUS.jingle=null;});
-      setTimeout(()=>{if(MUS.jingle===j)MUS.jingle=null;},12000);}}
+  if(!inGame){MUS.lastL=0;MUS.looped=false;stopVoice();return;}
+  const jingle=kind=>playVoice(JINGLES[MUS.ji++%JINGLES.length],kind||'start');
+  const bump=kind=>playVoice('music/'+DJ_BUMPS[MUS.bi++%DJ_BUMPS.length]+'.mp3',kind,null,kind==='start'?jingle:null);
+  if(L!==MUS.lastL){MUS.lastL=L;MUS.announced=null;MUS.looped=false;stopVoice();
+    if(TRACKS['s'+L]&&MUS.started&&master>0){
+      const brk=SND.dj==='on'&&(DJ_BREAKS[L]||[]).find(n=>!MUS.heard.has(n));
+      if(brk){MUS.heard.add(brk);playVoice('music/'+brk+'.mp3','start','LATE NIGHT WITH JUNE',jingle);}
+      else if(SND.dj!=='off')bump('start');else jingle();}}
+  if(MUS.looped){MUS.looped=false;if(!MUS.jingle&&SND.dj!=='off'&&scene==='play'&&master>0)bump('bump');}
   if(MUS.jingle)MUS.jingle.volume=clamp(master*1.2,0,1);
   const want=musicWant();if(want&&want[0]==='s'&&MUS.announced!==want&&master>0&&scene==='play'){MUS.announced=want;toast('96.9 FM  '+TRACKS[want].name,'#3ad6c0');}
 }
@@ -412,7 +432,7 @@ function updControls(){
     else closeControls();}
 }
 const SOUND={cur:0,from:'title'};
-const SOUND_ROWS=['music','sfx','mute','back'];
+const SOUND_ROWS=['music','sfx','dj','mute','back'];
 function openSound(from){SOUND.from=from;SOUND.cur=0;scene='sound';beep(660,.08);}
 function closeSound(){scene=SOUND.from==='pause'&&G?'pause':'title';beep(330,.08);}
 function updSound(){
@@ -422,20 +442,23 @@ function updSound(){
   const row=SOUND_ROWS[SOUND.cur],dv=(menuHit('right')?1:0)-(menuHit('left')?1:0);
   if(dv&&row==='music'){SND.music=clamp(SND.music+dv,0,10);if(dv>0&&muted)muted=false;saveSound();}
   if(dv&&row==='sfx'){SND.sfx=clamp(SND.sfx+dv,0,10);if(dv>0&&muted)muted=false;saveSound();beep(660,.08,'square',.05);}
+  if(dv&&row==='dj'){SND.dj=DJ_MODES[(DJ_MODES.indexOf(SND.dj)+(dv>0?1:2))%3];if(SND.dj==='off'||SND.dj==='short'&&MUS.jtitle)stopVoice();saveSound();beep(660,.06);}
   if(dv&&row==='mute'){muted=!muted;saveSound();}
   if(hit('menu','back')||devs().some(d=>isPad(d)&&hit(d,'back'))){closeSound();return;}
-  if(menuHit('ok')){if(row==='mute'){muted=!muted;saveSound();beep(660,.08);}else if(row==='back')closeSound();}
+  if(menuHit('ok')){if(row==='dj'){SND.dj=DJ_MODES[(DJ_MODES.indexOf(SND.dj)+1)%3];if(SND.dj==='off'||SND.dj==='short'&&MUS.jtitle)stopVoice();saveSound();beep(660,.06);}
+    else if(row==='mute'){muted=!muted;saveSound();beep(660,.08);}else if(row==='back')closeSound();}
 }
 function drawSound(){
   uiBg('SOUND');panel(4,32,W-8,100,'#ffc93c','rgba(42,20,14,.94)');panel(4,140,W-8,62,'#3ad6c0','rgba(42,20,14,.94)');
   const bar=(y,v,on)=>{for(let i=0;i<10;i++){const x=170+i*15,fill=i<v;rect(x,y-1,12,10,fill?(muted?'#7a3f26':on?'#ffc93c':'#d9771e'):'#45221a');if(fill&&!muted)rect(x,y-1,12,2,'#ffe9a0');}
     txt(String(v),W-12,y,on?'#ffe9c2':'#d9a87c','right',8,null);};
   const rows=[['MUSIC',y=>bar(y,SND.music,SOUND.cur===0)],['SOUND FX',y=>bar(y,SND.sfx,SOUND.cur===1)],
+    ['DJ JUNE',y=>{['on','short','off'].forEach((m,i)=>{const x=170+i*50,sel=SND.dj===m;rect(x,y-2,46,12,sel?(SOUND.cur===2?'#ffc93c':'#d9771e'):'#45221a');txt(m.toUpperCase(),x+23,y,sel?'#2a140e':'#d9a87c','center',8,null);});}],
     ['MUTE ALL',y=>{rect(170,y-2,48,12,muted?'#e8453c':'#45221a');txt(muted?'ON':'OFF',194,y,muted?'#ffe9c2':'#d9a87c','center',8,null);}],['BACK',()=>{}]];
-  rows.forEach(([lab,draw],i)=>{const y=44+i*24,on=SOUND.cur===i;if(on){rect(8,y-5,W-16,18,'#5e2f22');rect(8,y-5,3,18,'#ffc93c');tri(13,y-1,13,y+7,18,y+3,'#ffc93c');}
+  rows.forEach(([lab,draw],i)=>{const y=42+i*19,on=SOUND.cur===i;if(on){rect(8,y-5,W-16,18,'#5e2f22');rect(8,y-5,3,18,'#ffc93c');tri(13,y-1,13,y+7,18,y+3,'#ffc93c');}
     txt(lab,22,y,on?'#ffc93c':'#ffe9c2');draw(y);});
-  const now=MUS.now?(MUS.now[0]==='s'?'96.9 FM  ':'')+TRACKS[MUS.now].name:MUS.jingle?'96.9 FM  STATION BREAK':'MUSIC OFF';
-  txt('NOW PLAYING',22,148,'#d9a87c','left',8,null);txt(now,22,160,MUS.now?'#3ad6c0':'#8a5a44','left',8,null);
+  const now=MUS.jingle&&MUS.jk==='start'?'96.9 FM  '+(MUS.jtitle||'STATION BREAK'):MUS.now?(MUS.now[0]==='s'?'96.9 FM  ':'')+TRACKS[MUS.now].name:MUS.jingle?'96.9 FM  STATION BREAK':'MUSIC OFF';
+  txt('NOW PLAYING',22,148,'#d9a87c','left',8,null);txt(now,22,160,MUS.now||MUS.jingle?'#3ad6c0':'#8a5a44','left',8,null);
   if(MUS.blocked||!MUS.started)txt('CLICK OR PRESS A KEY TO START MUSIC',22,174,'#ff7a5a','left',8,null);
   txt('< > ADJUST   ESC/B BACK   M MUTES',22,192,'#d9a87c','left',8,null);
 }
@@ -1652,7 +1675,7 @@ function guidePages(){
     ['CONNECTED NOW',padRows.length?padRows.join('. '):'No controllers yet. Pair one, then press any button on it.']]},
   {t:'KEYBOARD',c:'#ffe9c2',items:kbLines.concat([['CHANGE KEYS','Pick CONTROLS on the title screen or pause menu. Changes are saved in this browser.']])},
   {t:'SOUNDTRACK',c:'#c8f05a',items:[
-    ['SMOOTH SAIL FM 96.9','Every stage has its own yacht rock song, opened by a station jingle.'],
+    ['SMOOTH SAIL FM 96.9','Every stage has its own yacht rock song. June, the late-night DJ, takes a caller before each one. SOUND > DJ JUNE: ON plays her calls, SHORT only quick station IDs, OFF just jingles.'],
     ['BOSSES','Mini-bosses cut to the Eerie Dance Loop; the final boss gets the anthem.'],
     ['VOLUME','SOUND on the title screen or pause menu. M mutes.']]},
   {t:'VERSION',c:'#d9a87c',items:[['THIS GAME',C.CORE_VERSION],['ROOM SERVER',NET.serverCore?(NET.serverCore===C.CORE_VERSION?NET.serverCore+' (matches)':NET.serverCore+' - out of date: redeploy the server'):'Join a room to check it.']]},

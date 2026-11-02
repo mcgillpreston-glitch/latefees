@@ -36,7 +36,9 @@ singing, sung vocals, melody vocals, choir, rap, drums, beat, auto-tune, EDM, ro
 - Suno does one voice well, so June tells each caller's story herself ("Brenda called tonight and told me…"). That keeps it to one convincing voice.
 - If a take runs past the `[End]` tag with extra music, trim it in Suno's editor or tell me and I'll cut it.
 
-Download each as MP3 and name it with the file name shown (for example `dj-01-sign-on.mp3`). Send them to me and I'll put them on the station between songs.
+Download each as MP3 and name it with the file name shown (for example `dj-01-sign-on.mp3`). The game already plays them. Either send them to me, or drop them straight into the game's `music` folder with exactly these names, then push to GitHub (`git add music`, `git commit -m "June DJ audio"`, `git push`).
+
+**How the game uses them:** when a stage starts, June's break for that stage plays, then the stage song. Each break plays once per session; replaying a stage gets a short bumper instead. Each time the stage song comes round again, a bumper plays over it with the music turned down. Players can pick **SOUND > DJ JUNE: ON / SHORT / OFF**. Any file that's missing is simply skipped (the old station jingle plays instead), so you can add them one at a time.
 
 ---
 
