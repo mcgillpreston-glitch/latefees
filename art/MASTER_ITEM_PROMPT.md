@@ -1,45 +1,124 @@
-# Master prompt: all 270 gear items in one ChatGPT chat
+# Master prompts: all 270 gear items (3 ChatGPT chats)
 
-1. Start a new ChatGPT chat and upload the 4 hero images: Dex, Rae, Benny, Julia (`art/dex.webp`, `rae.webp`, `benny.webp`, `julia.webp`).
-2. Copy everything inside the box below and send it as one message.
-3. Each time it stops, reply **continue**. There are 45 sheets, and ChatGPT usually draws a few per reply.
-4. When it says all sheets are done, reply **make the zip**, then download the zip and send it to me.
+The gear's colours already change how the heroes look in the game. This art adds the rest:
+- **Hats and glasses** are drawn on the heroes' heads in every animation frame.
+- **Every item** gets its own icon in the gear bag and when it drops as loot.
+
+The 270 items are split across **3 chats**, because one long chat tends to lose its place. Do them in any order; chat A has the biggest visible payoff.
+
+| Chat | Items | Sheets | Zip |
+|---|---|---|---|
+| A | Hats and glasses (60): these are drawn on the heroes' heads in every animation, so do this chat first | 10 | `items_a.zip` |
+| B | Shirts, jackets, pants and shoes (120): their colours already recolour the heroes; this art adds their bag icons | 20 | `items_b.zip` |
+| C | Belts, bracelets and rings (90): bag and loot icons | 15 | `items_c.zip` |
+
+**Every chat works the same way:**
+1. Start a new ChatGPT chat and upload the 4 hero images: `art/dex.webp`, `rae.webp`, `benny.webp`, `julia.webp` (style reference only).
+2. Copy everything inside that chat's box and send it as one message.
+3. Each time it stops, reply **continue**. ChatGPT usually draws a few sheets per reply.
+4. When it says all sheets are done, reply **make the zip**, download it and send it to me.
+
+---
+
+## Chat A: Hats and glasses
 
 ```
 You are producing game art for my 90s beat-'em-up "The Last Video Store". The 4 attached images are the heroes. Use them ONLY as the art-style reference: thick black ink outlines, grainy 90s comic-book print texture, warm saturated campy colours. Do NOT draw the heroes.
 
-TASK: draw all 270 wearable items listed at the bottom, as 45 grid sheets, then slice them into 270 PNGs and give me one zip.
+TASK: draw the 60 wearable items listed at the bottom (HAT, GLASSES) as 10 grid sheets, then slice them into 60 PNGs and give me one zip.
 
 SHEET RULES (follow exactly, every sheet):
 - One image per sheet, landscape 1536x1024, a 3-column x 2-row grid = 6 items per sheet.
-- Order: left to right, top row first. Sheet 1 = HAT 0-5, sheet 2 = HAT 6-11, ... 5 sheets per slot, slots in the order listed (HAT, GLASSES, SHIRT, JACKET, BELT, PANTS, SHOES, BRACELET, RING).
-- Exactly one item per cell, centred in its cell, about 65% of the cell size, with clear empty space between cells. No grid lines, no labels, no text, no hands, no people, no shadows.
+- Order: left to right, top row first. Sheet 1 = HAT 0-5, sheet 2 = HAT 6-11, ... 5 sheets per slot, slots in this order: HAT, GLASSES.
+- Exactly one item per cell, centred, about 55% of the cell size. Leave wide empty margins: nothing may touch or cross into a neighbouring cell or the image edge. No grid lines, no labels, no text, no hands, no people, no shadows, no sparkles or effects outside the item.
 - Background: plain flat solid white (#FFFFFF) everywhere.
-- HAT and GLASSES: strict side view facing RIGHT, exactly as worn on the head of a character facing right (hat opening at the bottom with the brim or front pointing right; glasses seen from the side with the lens at the right and the arm going back left).
-- All other slots: a clean product shot (clothing laid flat or on an invisible mannequin, shoes as a pair seen from the side facing right, jewellery large at a 3/4 angle).
+- HAT and GLASSES: strict side view facing RIGHT, exactly as worn on the head of a character facing right (hat opening at the bottom with the brim or front pointing right; glasses seen from the side with the lens at the right and the arm going back left). Draw them at the same scale as each other, as if sized for the same head.
 - The colour in brackets is the item's MAIN colour and must dominate it.
-- Plain item = everyday 90s thrift-store version. [R] = rare: one fun extra detail. [U] = ultra rare: legendary, over-the-top campy version. [S] = set piece: Night Shift (video-store clerk, teal, rewind symbols), Tour '94 (grunge tour merch, red and black, safety pins), Skate Crew (hot pink and black checkerboard, stickers) or Mall Security (mustard and navy, badges, rent-a-cop gear); slot 28 and 29 of each list are set pieces.
-- Before each sheet, write one line, for example: "Sheet 7 - GLASSES 6-11". Then draw it. Draw as many sheets per reply as you can, in order. When you must stop, say which sheet is next, and when I say "continue" pick up exactly there. Never skip or reorder items. If a sheet comes out wrong (wrong count, wrong order, overlapping items), redraw that same sheet.
+- Plain item = everyday 90s thrift-store version. [R] = rare: one fun extra detail. [U] = ultra rare: legendary, over-the-top campy version. [S] = set piece: Night Shift (video-store clerk, teal, rewind symbols), Tour '94 (grunge tour merch, red and black, safety pins), Skate Crew (hot pink and black checkerboard, stickers) or Mall Security (mustard and navy, badges, rent-a-cop gear).
+- Before each sheet, write one line, for example: "Sheet 2 - HAT 6-11". Then draw it. Draw as many sheets per reply as you can, in order. When you must stop, say which sheet is next, and when I say "continue" pick up exactly there. Never skip or reorder items. If a sheet comes out wrong (wrong count, wrong order, items touching), redraw that same sheet.
 
 WHEN I SAY "make the zip" (use your Python tool):
 - Load every sheet in order. Cut each sheet into its 3x2 grid of equal cells.
-- In each cell, turn the white background transparent (near-white pixels connected to the edges become alpha 0), then crop to the item with 24 px padding.
-- Save each as PNG named item_<slot>_<index>.png using the lowercase slot name and the item index from the list (item_hat_0.png ... item_ring_29.png). That gives 270 files.
-- Also save each original full sheet as sheet_01.png ... sheet_45.png in a "sheets" folder.
-- Zip everything as late_fees_items.zip and give me the download link. Also tell me any item you think came out wrong so I can ask for a redraw.
+- In each cell, turn the white background transparent (near-white pixels connected to the edges become alpha 0). Keep only the item: drop any small separate scraps near the cell edges. Crop to the item with 24 px padding.
+- Save each as PNG named item_<slot>_<index>.png using the lowercase slot name and the item index from the list (e.g. item_hat_0.png). That gives 60 files.
+- Also save each original full sheet as sheets/sheet_01.png ... sheets/sheet_10.png.
+- Zip everything as items_a.zip and give me the download link. Also tell me any item you think came out wrong so I can ask for a redraw.
 
 ITEM LIST (index=name (main colour) [rarity]):
 HAT (sheets 1-5): 0=Backwards Cap (red); 1=Bucket Hat (orange); 2=Trucker Cap (tan); 3=Beanie (teal); 4=Visor (brown); 5=Snapback (dark brown); 6=Painter's Cap (mustard); 7=Newsboy Cap (cream); 8=Fishing Hat (coral); 9=Headband (aqua); 10=Bandana (lime); 11=Earflap Hat (burnt orange); 12=Paper Crown (raspberry); 13=Hard Hat (hot pink); 14=Sweatband (red); 15=Golf Cap (orange); 16=Foam Visor (tan); 17=Propeller Beanie (teal) [R]; 18=Fry Cook Hat (brown) [R]; 19=Lifeguard Visor (dark brown) [R]; 20=Raver Bucket Hat (mustard) [R]; 21=Rodeo Hat (cream) [R]; 22=Slime-dipped Cap (coral) [R]; 23=Neon Snapback (aqua) [R]; 24=Grandpa's Fedora (lime) [R]; 25=Prom King Crown (gold) [U]; 26=Meteor Shard Helm (lime) [U]; 27=Arcade Legend Cap (purple) [U]; 28=Night Shift Visor (teal) [S]; 29=Skate Crew Lid (hot pink) [S]
 GLASSES (sheets 6-10): 0=Shades (aqua); 1=Aviators (lime); 2=Nerd Specs (burnt orange); 3=Safety Goggles (raspberry); 4=Swim Goggles (hot pink); 5=Clip-ons (red); 6=Reading Glasses (orange); 7=Round Specs (tan); 8=Wraparounds (teal); 9=Sport Shades (brown); 10=3D Glasses (dark brown); 11=Tinted Lenses (mustard); 12=Cat-eye Frames (cream); 13=Gas Station Shades (coral); 14=Snow Goggles (aqua); 15=Monocle (lime); 16=Lab Goggles (burnt orange); 17=Laser Eye Shades (raspberry) [R]; 18=Mirror Aviators (hot pink) [R]; 19=X-ray Specs (red) [R]; 20=Slap-wrap Shades (orange) [R]; 21=Blacklight Goggles (tan) [R]; 22=Neon Squares (teal) [R]; 23=Night Vision Goggles (brown) [R]; 24=Hypno Specs (dark brown) [R]; 25=Third Eye Visor (gold) [U]; 26=Moonbeam Lenses (lime) [U]; 27=Blob-proof Goggles (purple) [U]; 28=Rewind Readers (teal) [S]; 29=Mall Cop Mirrors (mustard) [S]
-SHIRT (sheets 11-15): 0=Plain Tee (brown); 1=Band Tee (dark brown); 2=Flannel (mustard); 3=Polo (cream); 4=Tank Top (coral); 5=Ringer Tee (aqua); 6=Henley (lime); 7=Hawaiian Shirt (burnt orange); 8=Rugby Shirt (raspberry); 9=Thermal (hot pink); 10=Bowling Shirt (red); 11=Tie-dye Tee (orange); 12=Jersey (tan); 13=Turtleneck (teal); 14=Pocket Tee (brown); 15=Work Shirt (dark brown); 16=Mesh Tank (mustard); 17=Glow-paint Tee (cream) [R]; 18=Bootleg Concert Tee (coral) [R]; 19=Heat-shift Tee (aqua) [R]; 20=Pizza Grease Tee (lime) [R]; 21=Varsity Jersey (burnt orange) [R]; 22=Rave Tee (raspberry) [R]; 23=Lucky Bowling Shirt (hot pink) [R]; 24=Wrestling Tee (red) [R]; 25=Tee Of Infinite Merch (gold) [U]; 26=Meteor-dyed Shirt (lime) [U]; 27=Signed Tour Shirt (purple) [U]; 28=Rental Clerk Vest (teal) [S]; 29=Tour '94 Flannel (red) [S]
-JACKET (sheets 16-20): 0=Denim Jacket (hot pink); 1=Windbreaker (red); 2=Bomber (orange); 3=Varsity Jacket (tan); 4=Hoodie (teal); 5=Fleece (brown); 6=Puffer (dark brown); 7=Track Jacket (mustard); 8=Rain Slicker (cream); 9=Corduroy Jacket (coral); 10=Team Jacket (aqua); 11=Army Jacket (lime); 12=Leather Jacket (burnt orange); 13=Cardigan (raspberry); 14=Zip Hoodie (hot pink); 15=Overshirt (red); 16=Puffy Vest (orange); 17=Glow Windbreaker (tan) [R]; 18=Studded Leather (teal) [R]; 19=Eight-ball Jacket (brown) [R]; 20=Reflective Vest (dark brown) [R]; 21=Satin Tour Jacket (mustard) [R]; 22=Arcade Jacket (cream) [R]; 23=Camo Parka (coral) [R]; 24=Patchwork Denim (aqua) [R]; 25=Coat Of 1000 Pins (gold) [U]; 26=Meteor Shard Parka (lime) [U]; 27=Prom Night Tux Coat (purple) [U]; 28=Tour '94 Denim (red) [S]; 29=Skate Crew Hoodie (hot pink) [S]
-BELT (sheets 21-25): 0=Leather Belt (coral); 1=Web Belt (aqua); 2=Braided Belt (lime); 3=Canvas Belt (burnt orange); 4=Studded Belt (raspberry); 5=Fanny Pack (hot pink); 6=Tool Belt (red); 7=Chain Belt (orange); 8=Rope Belt (tan); 9=Bike Chain Belt (teal); 10=Elastic Belt (brown); 11=Weight Belt (dark brown); 12=Wallet Chain (mustard); 13=Suspenders (cream); 14=Snap Belt (coral); 15=Rodeo Buckle (aqua); 16=Ribbon Belt (lime); 17=Pager Holster (burnt orange) [R]; 18=Glow Belt (raspberry) [R]; 19=Lucky Buckle (hot pink) [R]; 20=Champion Buckle (red) [R]; 21=Utility Belt (orange) [R]; 22=Bandolier Of Pogs (tan) [R]; 23=Walkman Clip (teal) [R]; 24=Arcade Coin Belt (brown) [R]; 25=Belt Of The Blob (gold) [U]; 26=Title Belt (lime) [U]; 27=Infinite Pocket Pack (purple) [U]; 28=Night Shift Keychain (teal) [S]; 29=Mall Cop Duty Belt (mustard) [S]
-PANTS (sheets 26-30): 0=Jeans (teal); 1=Cargo Shorts (brown); 2=Sweatpants (dark brown); 3=Khakis (mustard); 4=Track Pants (cream); 5=Overalls (coral); 6=Corduroys (aqua); 7=Board Shorts (lime); 8=Carpenter Jeans (burnt orange); 9=Parachute Pants (raspberry); 10=Bike Shorts (hot pink); 11=Zip-off Pants (red); 12=Gym Shorts (orange); 13=Painter Pants (tan); 14=Stonewash Jeans (teal); 15=Flannel Pjs (brown); 16=Camo Pants (dark brown); 17=Ripped Jeans (mustard) [R]; 18=Phat Raver Pants (cream) [R]; 19=Glow Joggers (coral) [R]; 20=Patch Jeans (aqua) [R]; 21=Genie Pants (lime) [R]; 22=Zip-leg Jeans (burnt orange) [R]; 23=Snap Pants (raspberry) [R]; 24=Sweat-proof Shorts (hot pink) [R]; 25=Pants Of Holding (gold) [U]; 26=Meteor-washed Jeans (lime) [U]; 27=Legendary Overalls (purple) [U]; 28=Tour '94 Jeans (red) [S]; 29=Skate Crew Shorts (hot pink) [S]
-SHOES (sheets 31-35): 0=Sneakers (raspberry); 1=High-tops (hot pink); 2=Skate Shoes (red); 3=Combat Boots (orange); 4=Loafers (tan); 5=Sandals (teal); 6=Flip-flops (brown); 7=Hiking Boots (dark brown); 8=Jelly Shoes (mustard); 9=Slip-ons (cream); 10=Running Shoes (coral); 11=Moon Boots (aqua); 12=Work Boots (lime); 13=Canvas Low-tops (burnt orange); 14=Cowboy Boots (raspberry); 15=Platform Shoes (hot pink); 16=Bowling Shoes (red); 17=Light-up Sneakers (orange) [R]; 18=Pump-up Kicks (tan) [R]; 19=Inline Skates (teal) [R]; 20=Steel-toe Boots (brown) [R]; 21=Velcro Kicks (dark brown) [R]; 22=Turbo Runners (mustard) [R]; 23=Wheel Heels (cream) [R]; 24=Spring Shoes (coral) [R]; 25=Rocket Boots (gold) [U]; 26=Kicks Of The Meteor (lime) [U]; 27=Golden High-tops (purple) [U]; 28=Tour '94 Boots (red) [S]; 29=Skate Crew Kicks (hot pink) [S]
-BRACELET (sheets 36-40): 0=Slap Bracelet (cream); 1=Friendship Band (coral); 2=Wrist Sweatband (aqua); 3=Digital Watch (lime); 4=Rubber Band (burnt orange); 5=Hemp Bracelet (raspberry); 6=Bead Bracelet (hot pink); 7=Bangle (red); 8=Charm Bracelet (orange); 9=Wristband (tan); 10=Id Bracelet (teal); 11=Mood Band (brown); 12=Leather Cuff (dark brown); 13=Chain Bracelet (mustard); 14=Shell Bracelet (cream); 15=Hair Tie (coral); 16=Glow Stick Band (aqua); 17=Calculator Watch (lime) [R]; 18=Spiked Cuff (burnt orange) [R]; 19=Color-change Band (raspberry) [R]; 20=Lucky Charm Chain (hot pink) [R]; 21=Virtual Pet Strap (red) [R]; 22=Power Band (orange) [R]; 23=Pager Strap (tan) [R]; 24=Glow Cuff (teal) [R]; 25=Bangle Of Rewind (gold) [U]; 26=Meteor Charm (lime) [U]; 27=Gauntlet Of Pogs (purple) [U]; 28=Tour '94 Wristband (red) [S]; 29=Mall Cop Watch (mustard) [S]
-RING (sheets 41-45): 0=Mood Ring (tan); 1=Class Ring (teal); 2=Plastic Ring (brown); 3=Silver Band (dark brown); 4=Spoon Ring (mustard); 5=Toe Ring (cream); 6=Candy Ring (coral); 7=Puzzle Ring (aqua); 8=Skull Ring (lime); 9=Heart Ring (burnt orange); 10=Turquoise Ring (raspberry); 11=Pinky Ring (hot pink); 12=Signet Ring (red); 13=Washer Ring (orange); 14=Bubblegum Ring (tan); 15=Pop-tab Ring (teal); 16=Cereal Box Ring (brown); 17=Decoder Ring (dark brown) [R]; 18=Glow Ring (mustard) [R]; 19=Lucky Dice Ring (cream) [R]; 20=Championship Ring (coral) [R]; 21=Pizza Ring (aqua) [R]; 22=Spider Ring (lime) [R]; 23=Smiley Ring (burnt orange) [R]; 24=Opal Ring (raspberry) [R]; 25=Ring Of The Late Fee (gold) [U]; 26=Meteor Signet (lime) [U]; 27=Prom Queen Ring (purple) [U]; 28=Night Shift Ring (teal) [S]; 29=Mall Cop Badge Ring (mustard) [S]
 ```
 
-**If ChatGPT loses track partway through:** reply *"Redraw sheet N"* or *"Continue from sheet N"*. Each sheet is numbered in the prompt, so it can always find its place. If the chat gets too long, start a new chat, upload the 4 heroes again, paste the same prompt, and add *"Start at sheet N"*. Then send me both zips; I can merge them.
+---
 
-**When the zip reaches me:** I cut the items out properly and size them. Hats and glasses go on the heroes' heads in every animation frame; shirts, jackets, pants and shoes recolour the heroes' own clothes; every item gets its own icon in the bag and on the ground.
+## Chat B: Shirts, jackets, pants and shoes
+
+```
+You are producing game art for my 90s beat-'em-up "The Last Video Store". The 4 attached images are the heroes. Use them ONLY as the art-style reference: thick black ink outlines, grainy 90s comic-book print texture, warm saturated campy colours. Do NOT draw the heroes.
+
+TASK: draw the 120 wearable items listed at the bottom (SHIRT, JACKET, PANTS, SHOES) as 20 grid sheets, then slice them into 120 PNGs and give me one zip.
+
+SHEET RULES (follow exactly, every sheet):
+- One image per sheet, landscape 1536x1024, a 3-column x 2-row grid = 6 items per sheet.
+- Order: left to right, top row first. Sheet 1 = SHIRT 0-5, sheet 2 = SHIRT 6-11, ... 5 sheets per slot, slots in this order: SHIRT, JACKET, PANTS, SHOES.
+- Exactly one item per cell, centred, about 55% of the cell size. Leave wide empty margins: nothing may touch or cross into a neighbouring cell or the image edge. No grid lines, no labels, no text, no hands, no people, no shadows, no sparkles or effects outside the item.
+- Background: plain flat solid white (#FFFFFF) everywhere.
+- Every item: a clean product shot (clothing laid flat or on an invisible mannequin, shoes as a pair seen from the side facing right, belts curled or laid flat, jewellery large at a 3/4 angle).
+- The colour in brackets is the item's MAIN colour and must dominate it.
+- Plain item = everyday 90s thrift-store version. [R] = rare: one fun extra detail. [U] = ultra rare: legendary, over-the-top campy version. [S] = set piece: Night Shift (video-store clerk, teal, rewind symbols), Tour '94 (grunge tour merch, red and black, safety pins), Skate Crew (hot pink and black checkerboard, stickers) or Mall Security (mustard and navy, badges, rent-a-cop gear).
+- Before each sheet, write one line, for example: "Sheet 2 - SHIRT 6-11". Then draw it. Draw as many sheets per reply as you can, in order. When you must stop, say which sheet is next, and when I say "continue" pick up exactly there. Never skip or reorder items. If a sheet comes out wrong (wrong count, wrong order, items touching), redraw that same sheet.
+
+WHEN I SAY "make the zip" (use your Python tool):
+- Load every sheet in order. Cut each sheet into its 3x2 grid of equal cells.
+- In each cell, turn the white background transparent (near-white pixels connected to the edges become alpha 0). Keep only the item: drop any small separate scraps near the cell edges. Crop to the item with 24 px padding.
+- Save each as PNG named item_<slot>_<index>.png using the lowercase slot name and the item index from the list (e.g. item_shirt_0.png). That gives 120 files.
+- Also save each original full sheet as sheets/sheet_01.png ... sheets/sheet_20.png.
+- Zip everything as items_b.zip and give me the download link. Also tell me any item you think came out wrong so I can ask for a redraw.
+
+ITEM LIST (index=name (main colour) [rarity]):
+SHIRT (sheets 1-5): 0=Plain Tee (brown); 1=Band Tee (dark brown); 2=Flannel (mustard); 3=Polo (cream); 4=Tank Top (coral); 5=Ringer Tee (aqua); 6=Henley (lime); 7=Hawaiian Shirt (burnt orange); 8=Rugby Shirt (raspberry); 9=Thermal (hot pink); 10=Bowling Shirt (red); 11=Tie-dye Tee (orange); 12=Jersey (tan); 13=Turtleneck (teal); 14=Pocket Tee (brown); 15=Work Shirt (dark brown); 16=Mesh Tank (mustard); 17=Glow-paint Tee (cream) [R]; 18=Bootleg Concert Tee (coral) [R]; 19=Heat-shift Tee (aqua) [R]; 20=Pizza Grease Tee (lime) [R]; 21=Varsity Jersey (burnt orange) [R]; 22=Rave Tee (raspberry) [R]; 23=Lucky Bowling Shirt (hot pink) [R]; 24=Wrestling Tee (red) [R]; 25=Tee Of Infinite Merch (gold) [U]; 26=Meteor-dyed Shirt (lime) [U]; 27=Signed Tour Shirt (purple) [U]; 28=Rental Clerk Vest (teal) [S]; 29=Tour '94 Flannel (red) [S]
+JACKET (sheets 6-10): 0=Denim Jacket (hot pink); 1=Windbreaker (red); 2=Bomber (orange); 3=Varsity Jacket (tan); 4=Hoodie (teal); 5=Fleece (brown); 6=Puffer (dark brown); 7=Track Jacket (mustard); 8=Rain Slicker (cream); 9=Corduroy Jacket (coral); 10=Team Jacket (aqua); 11=Army Jacket (lime); 12=Leather Jacket (burnt orange); 13=Cardigan (raspberry); 14=Zip Hoodie (hot pink); 15=Overshirt (red); 16=Puffy Vest (orange); 17=Glow Windbreaker (tan) [R]; 18=Studded Leather (teal) [R]; 19=Eight-ball Jacket (brown) [R]; 20=Reflective Vest (dark brown) [R]; 21=Satin Tour Jacket (mustard) [R]; 22=Arcade Jacket (cream) [R]; 23=Camo Parka (coral) [R]; 24=Patchwork Denim (aqua) [R]; 25=Coat Of 1000 Pins (gold) [U]; 26=Meteor Shard Parka (lime) [U]; 27=Prom Night Tux Coat (purple) [U]; 28=Tour '94 Denim (red) [S]; 29=Skate Crew Hoodie (hot pink) [S]
+PANTS (sheets 11-15): 0=Jeans (teal); 1=Cargo Shorts (brown); 2=Sweatpants (dark brown); 3=Khakis (mustard); 4=Track Pants (cream); 5=Overalls (coral); 6=Corduroys (aqua); 7=Board Shorts (lime); 8=Carpenter Jeans (burnt orange); 9=Parachute Pants (raspberry); 10=Bike Shorts (hot pink); 11=Zip-off Pants (red); 12=Gym Shorts (orange); 13=Painter Pants (tan); 14=Stonewash Jeans (teal); 15=Flannel Pjs (brown); 16=Camo Pants (dark brown); 17=Ripped Jeans (mustard) [R]; 18=Phat Raver Pants (cream) [R]; 19=Glow Joggers (coral) [R]; 20=Patch Jeans (aqua) [R]; 21=Genie Pants (lime) [R]; 22=Zip-leg Jeans (burnt orange) [R]; 23=Snap Pants (raspberry) [R]; 24=Sweat-proof Shorts (hot pink) [R]; 25=Pants Of Holding (gold) [U]; 26=Meteor-washed Jeans (lime) [U]; 27=Legendary Overalls (purple) [U]; 28=Tour '94 Jeans (red) [S]; 29=Skate Crew Shorts (hot pink) [S]
+SHOES (sheets 16-20): 0=Sneakers (raspberry); 1=High-tops (hot pink); 2=Skate Shoes (red); 3=Combat Boots (orange); 4=Loafers (tan); 5=Sandals (teal); 6=Flip-flops (brown); 7=Hiking Boots (dark brown); 8=Jelly Shoes (mustard); 9=Slip-ons (cream); 10=Running Shoes (coral); 11=Moon Boots (aqua); 12=Work Boots (lime); 13=Canvas Low-tops (burnt orange); 14=Cowboy Boots (raspberry); 15=Platform Shoes (hot pink); 16=Bowling Shoes (red); 17=Light-up Sneakers (orange) [R]; 18=Pump-up Kicks (tan) [R]; 19=Inline Skates (teal) [R]; 20=Steel-toe Boots (brown) [R]; 21=Velcro Kicks (dark brown) [R]; 22=Turbo Runners (mustard) [R]; 23=Wheel Heels (cream) [R]; 24=Spring Shoes (coral) [R]; 25=Rocket Boots (gold) [U]; 26=Kicks Of The Meteor (lime) [U]; 27=Golden High-tops (purple) [U]; 28=Tour '94 Boots (red) [S]; 29=Skate Crew Kicks (hot pink) [S]
+```
+
+---
+
+## Chat C: Belts, bracelets and rings
+
+```
+You are producing game art for my 90s beat-'em-up "The Last Video Store". The 4 attached images are the heroes. Use them ONLY as the art-style reference: thick black ink outlines, grainy 90s comic-book print texture, warm saturated campy colours. Do NOT draw the heroes.
+
+TASK: draw the 90 wearable items listed at the bottom (BELT, BRACELET, RING) as 15 grid sheets, then slice them into 90 PNGs and give me one zip.
+
+SHEET RULES (follow exactly, every sheet):
+- One image per sheet, landscape 1536x1024, a 3-column x 2-row grid = 6 items per sheet.
+- Order: left to right, top row first. Sheet 1 = BELT 0-5, sheet 2 = BELT 6-11, ... 5 sheets per slot, slots in this order: BELT, BRACELET, RING.
+- Exactly one item per cell, centred, about 55% of the cell size. Leave wide empty margins: nothing may touch or cross into a neighbouring cell or the image edge. No grid lines, no labels, no text, no hands, no people, no shadows, no sparkles or effects outside the item.
+- Background: plain flat solid white (#FFFFFF) everywhere.
+- Every item: a clean product shot (clothing laid flat or on an invisible mannequin, shoes as a pair seen from the side facing right, belts curled or laid flat, jewellery large at a 3/4 angle).
+- The colour in brackets is the item's MAIN colour and must dominate it.
+- Plain item = everyday 90s thrift-store version. [R] = rare: one fun extra detail. [U] = ultra rare: legendary, over-the-top campy version. [S] = set piece: Night Shift (video-store clerk, teal, rewind symbols), Tour '94 (grunge tour merch, red and black, safety pins), Skate Crew (hot pink and black checkerboard, stickers) or Mall Security (mustard and navy, badges, rent-a-cop gear).
+- Before each sheet, write one line, for example: "Sheet 2 - BELT 6-11". Then draw it. Draw as many sheets per reply as you can, in order. When you must stop, say which sheet is next, and when I say "continue" pick up exactly there. Never skip or reorder items. If a sheet comes out wrong (wrong count, wrong order, items touching), redraw that same sheet.
+
+WHEN I SAY "make the zip" (use your Python tool):
+- Load every sheet in order. Cut each sheet into its 3x2 grid of equal cells.
+- In each cell, turn the white background transparent (near-white pixels connected to the edges become alpha 0). Keep only the item: drop any small separate scraps near the cell edges. Crop to the item with 24 px padding.
+- Save each as PNG named item_<slot>_<index>.png using the lowercase slot name and the item index from the list (e.g. item_belt_0.png). That gives 90 files.
+- Also save each original full sheet as sheets/sheet_01.png ... sheets/sheet_15.png.
+- Zip everything as items_c.zip and give me the download link. Also tell me any item you think came out wrong so I can ask for a redraw.
+
+ITEM LIST (index=name (main colour) [rarity]):
+BELT (sheets 1-5): 0=Leather Belt (coral); 1=Web Belt (aqua); 2=Braided Belt (lime); 3=Canvas Belt (burnt orange); 4=Studded Belt (raspberry); 5=Fanny Pack (hot pink); 6=Tool Belt (red); 7=Chain Belt (orange); 8=Rope Belt (tan); 9=Bike Chain Belt (teal); 10=Elastic Belt (brown); 11=Weight Belt (dark brown); 12=Wallet Chain (mustard); 13=Suspenders (cream); 14=Snap Belt (coral); 15=Rodeo Buckle (aqua); 16=Ribbon Belt (lime); 17=Pager Holster (burnt orange) [R]; 18=Glow Belt (raspberry) [R]; 19=Lucky Buckle (hot pink) [R]; 20=Champion Buckle (red) [R]; 21=Utility Belt (orange) [R]; 22=Bandolier Of Pogs (tan) [R]; 23=Walkman Clip (teal) [R]; 24=Arcade Coin Belt (brown) [R]; 25=Belt Of The Blob (gold) [U]; 26=Title Belt (lime) [U]; 27=Infinite Pocket Pack (purple) [U]; 28=Night Shift Keychain (teal) [S]; 29=Mall Cop Duty Belt (mustard) [S]
+BRACELET (sheets 6-10): 0=Slap Bracelet (cream); 1=Friendship Band (coral); 2=Wrist Sweatband (aqua); 3=Digital Watch (lime); 4=Rubber Band (burnt orange); 5=Hemp Bracelet (raspberry); 6=Bead Bracelet (hot pink); 7=Bangle (red); 8=Charm Bracelet (orange); 9=Wristband (tan); 10=Id Bracelet (teal); 11=Mood Band (brown); 12=Leather Cuff (dark brown); 13=Chain Bracelet (mustard); 14=Shell Bracelet (cream); 15=Hair Tie (coral); 16=Glow Stick Band (aqua); 17=Calculator Watch (lime) [R]; 18=Spiked Cuff (burnt orange) [R]; 19=Color-change Band (raspberry) [R]; 20=Lucky Charm Chain (hot pink) [R]; 21=Virtual Pet Strap (red) [R]; 22=Power Band (orange) [R]; 23=Pager Strap (tan) [R]; 24=Glow Cuff (teal) [R]; 25=Bangle Of Rewind (gold) [U]; 26=Meteor Charm (lime) [U]; 27=Gauntlet Of Pogs (purple) [U]; 28=Tour '94 Wristband (red) [S]; 29=Mall Cop Watch (mustard) [S]
+RING (sheets 11-15): 0=Mood Ring (tan); 1=Class Ring (teal); 2=Plastic Ring (brown); 3=Silver Band (dark brown); 4=Spoon Ring (mustard); 5=Toe Ring (cream); 6=Candy Ring (coral); 7=Puzzle Ring (aqua); 8=Skull Ring (lime); 9=Heart Ring (burnt orange); 10=Turquoise Ring (raspberry); 11=Pinky Ring (hot pink); 12=Signet Ring (red); 13=Washer Ring (orange); 14=Bubblegum Ring (tan); 15=Pop-tab Ring (teal); 16=Cereal Box Ring (brown); 17=Decoder Ring (dark brown) [R]; 18=Glow Ring (mustard) [R]; 19=Lucky Dice Ring (cream) [R]; 20=Championship Ring (coral) [R]; 21=Pizza Ring (aqua) [R]; 22=Spider Ring (lime) [R]; 23=Smiley Ring (burnt orange) [R]; 24=Opal Ring (raspberry) [R]; 25=Ring Of The Late Fee (gold) [U]; 26=Meteor Signet (lime) [U]; 27=Prom Queen Ring (purple) [U]; 28=Night Shift Ring (teal) [S]; 29=Mall Cop Badge Ring (mustard) [S]
+```
+
+---
+
+**If ChatGPT loses track partway through:** reply *"Redraw sheet N"* or *"Continue from sheet N"*. Every sheet is numbered, so it can always find its place. If a chat gets too long, start a new one with the same box plus *"Start at sheet N"*, and send me both zips; I'll merge them.
+
+**When the zips reach me:** I clean up the cut-outs, size them, and wire them in:
+- Hats and glasses sit on each hero's head in all 9 poses, and on all 16 set outfits.
+- Every item replaces its drawn icon in the bag, on the ground and in the gear details.
+- Items without art keep their current drawn icons, so partial batches are fine.
