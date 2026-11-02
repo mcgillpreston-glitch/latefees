@@ -287,6 +287,13 @@ addEventListener('keydown',e=>{
     if(e.code==='Escape'){cap=null;beep(220,.1);return;}
     if(e.code==='KeyM'||/^(Meta|OS|F\d)/.test(e.code)){toast(e.code==='KeyM'?'M IS THE MUTE KEY':'PICK ANOTHER KEY','#ff7a5a');return;}
     assignKey(cap.p,cap.act,e.code);cap=null;return;}}
+  if(scene==='devpw'&&!e.repeat){e.preventDefault();audioInit();
+    if(e.key==='Escape'){scene='sound';DEV.pw='';beep(220,.1);return;}
+    if(e.key==='Enter'){if(DEV.pw==='games4me'){DEV.pw='';DEV.stage=STG.cur;DEV.cur=0;scene='dev';toast('STAFF ONLY: WELCOME','#c8f05a');[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.1,'square',.05),i*70));}
+      else{DEV.err=50;DEV.pw='';beep(150,.2,'sawtooth',.06);}return;}
+    if(e.key==='Backspace'){DEV.pw=DEV.pw.slice(0,-1);return;}
+    if(e.key.length===1&&/[a-z0-9]/i.test(e.key)&&DEV.pw.length<16){DEV.pw+=e.key;beep(880,.03,'square',.03);}return;}
+  if(scene==='sound'&&SOUND.from==='title'&&e.code==='KeyQ'&&!e.repeat){e.preventDefault();if(++DEV.q>=5){DEV.q=0;DEV.pw='';DEV.err=0;scene='devpw';beep(660,.08);}return;}
   let used=false;const m=KEYMAP[e.code];
   if(m){for(const [d,a] of m)ks[d][a]=true;used=true;}
   if(MK[e.code]){ks.menu[MK[e.code]]=true;used=true;}
@@ -553,8 +560,10 @@ function updControls(){
     else closeControls();}
 }
 const SOUND={cur:0,from:'title'};
+// Staff only: on the title-screen SETTINGS, Q five times asks for the password; the dev menu picks any stage.
+const DEV={q:0,pw:'',stage:1,err:0,cur:0};
 const SOUND_ROWS=['music','sfx','dj','mute','skin','stick','back'];
-function openSound(from){SOUND.from=from;SOUND.cur=0;scene='sound';beep(660,.08);}
+function openSound(from){SOUND.from=from;SOUND.cur=0;DEV.q=0;scene='sound';beep(660,.08);}
 function closeSound(){scene=SOUND.from==='pause'&&G?'pause':'title';beep(330,.08);}
 function updSound(){
   const n=SOUND_ROWS.length;
@@ -591,6 +600,32 @@ function drawSound(){
   txt('NOW PLAYING',22,166,'#d9a87c','left',8,null);txt(now,22,177,MUS.now||MUS.jingle?'#3ad6c0':'#8a5a44','left',8,null);
   if(MUS.blocked||!MUS.started)txt('CLICK OR PRESS A KEY TO START MUSIC',22,188,'#ff7a5a','left',8,null);
   txt('< > ADJUST   ESC/B BACK   M MUTES',22,199,'#d9a87c','left',8,null);
+}
+function updDev(){const n=NSTAGES;
+  if(menuHit('up')){DEV.stage=(DEV.stage+n-2)%n+1;beep(440,.05);}if(menuHit('down')){DEV.stage=DEV.stage%n+1;beep(440,.05);}
+  if(menuHit('back')||hit('menu','back')){scene='sound';beep(330,.08);return;}
+  const d=devs().find(okHit)||(hit('menu','ok')?'kb1':null);
+  if(d){STG.cur=DEV.stage;unlockTo(DEV.stage);lobbyReset();lobbyJoin(d);rumble(d,.4,150);scene='select';toast('DEV: STAGE '+DEV.stage+' '+LEVELS[DEV.stage-1].name,'#c8f05a');}
+}
+function drawDevPw(){
+  rect(0,0,W,H,'rgba(20,8,6,.7)');scanlines(.12);
+  const w=220,h=84,x=W/2-w/2,y=62;vhs(x,y,w,h,'#ff5fa8','rgba(42,20,14,.97)');
+  txt('STAFF ONLY',W/2+2,y+8,'#ff5fa8','center',8,INK);txt('ENTER PASSWORD',W/2+2,y+21,'#ffe9c2','center',8,null);
+  rect(x+24,y+36,w-48,16,'#241008');rect(x+24,y+36,w-48,1,'#7a3f26');
+  const stars='*'.repeat(DEV.pw.length)+((T>>4)%2?'_':' ');txt(stars,x+30,y+40,'#c8f05a','left',8,null);
+  if(DEV.err>0&&(T>>2)%2)txt('ACCESS DENIED',W/2+2,y+58,'#e8453c','center',8,null);
+  else txt('ENTER OK   ESC CANCEL',W/2+2,y+58,'#d9a87c','center',8,null);
+  txt('NO TAPES PAST THIS POINT',W/2+2,y+70,'#8a5a44','center',6,null);
+}
+function drawDev(){
+  uiBg('DEV MENU','STAFF ONLY','#ff5fa8');panel(4,32,W-8,160,'#ff5fa8','rgba(42,20,14,.94)');
+  txt('PICK A STAGE',12,37,'#d9a87c','left',8,null);
+  LEVELS.forEach((lv,i)=>{const L=i+1,y=49+i*14,on=DEV.stage===L,locked=L>STG.max;
+    if(on){rect(8,y-3,W-16,13,'#5e2f22');rect(8,y-3,3,13,'#ff5fa8');tri(13,y,13,y+7,18,y+3,'#ff5fa8');}
+    txt(String(L).padStart(2,' '),22,y,on?'#ffc93c':'#d9a87c','left',8,null);txt(lv.name,46,y,on?'#ffe9c2':locked?'#8a5a44':'#d9a87c','left',8,null);
+    txt(locked?'LOCKED':L===STG.max?'NEWEST':'CLEARED',W-12,y,locked?'#8a5a44':on?'#c8f05a':'#7a5a44','right',6,null);});
+  txt('UP/DOWN PICK   ENTER/A START   ESC/B BACK',W/2,198,'#ffe9c2','center',8,INK);
+  txt('STARTING A LOCKED STAGE UNLOCKS IT IN THE LOBBY',W/2,208,'#8a5a44','center',6,null);
 }
 function closeControls(){cap=null;scene=SET.from==='pause'&&G?'pause':'title';beep(330,.08);}
 try{hi=+localStorage.getItem('lfotd-hi')||0;}catch(e){}
@@ -1128,6 +1163,8 @@ function update(){
     const d=anyOk()||(hit('menu','ok')?'kb1':null);
     if(d){if(tCur===0){lobbyReset();lobbyJoin(d);rumble(d,.4,150);scene='select';}else if(tCur===1){NET.dev=d;NET.cur=0;NET.err='';scene='online';}else if(tCur===2)openControls('title',0);else if(tCur===3)openSound('title');else openGuide('title');}}
   else if(scene==='sound'){updSound();if(NET.on&&G){netTick();updateFX();}}
+  else if(scene==='devpw'){if(DEV.err>0)DEV.err--;}
+  else if(scene==='dev')updDev();
   else if(scene==='guide'){updGuide();if(NET.on&&G){netTick();updateFX();}}
   else if(scene==='online')updOnline();
   else if(scene==='join')updJoin();
@@ -1767,6 +1804,8 @@ function renderScene(){
   if(scene==='select')return drawSelect();
   if(scene==='controls')return drawControls();
   if(scene==='sound')return drawSound();
+  if(scene==='devpw'){drawSound();return drawDevPw();}
+  if(scene==='dev')return drawDev();
   if(scene==='guide')return drawGuide();
   if(scene==='inv')return drawInv();
   if(scene==='online')return drawOnline();
