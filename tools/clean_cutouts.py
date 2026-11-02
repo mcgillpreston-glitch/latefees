@@ -24,6 +24,11 @@ def clean(path, out):
         cx, cy, cw, ch, ca = st[i]
         thin = min(cw, ch) <= 12 and max(cw, ch) > 6 * min(cw, ch)
         near = not (cx > box[2] or cx + cw < box[0] or cy > box[3] or cy + ch < box[1])
+        # a detached piece beside the figure with a straight vertical outer edge is a sliver of the next figure over, cut by the sheet
+        comp = lab == i
+        if cx + cw <= x or cx >= x + w:
+            col = comp[:, cx] if cx + cw <= x else comp[:, cx + cw - 1]
+            if col.sum() >= ch * .45: continue
         if ca >= A * .004 and not thin and near: keep[i] = True
     m = keep[lab]
     # stray cell-border lines that touch the figure: long thin vertical strokes at the left/right edge
