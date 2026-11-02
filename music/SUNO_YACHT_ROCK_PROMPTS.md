@@ -1,98 +1,241 @@
-# Suno prompts: "Smooth 96.9", the in-game yacht rock radio station
+# Suno v6 prompts: "Smooth Sail FM 96.9", the in-game yacht rock station
 
-Ten original yacht rock tracks for **The Last Video Store**: one per stage, all in the same smooth late-70s/early-80s soft-rock style, each with its own tempo, lead instrument and mood. The station is **WSMO 96.9 "Smooth Sail FM"**, broadcasting from Hollow Pines, Ohio, through the zombie apocalypse.
+Ten original yacht rock tracks for **The Last Video Store**, one per stage. They share one smooth late-70s/early-80s soft-rock sound, but each has its own tempo, lead instrument and mood.
 
-## How to use in Suno
+## How to fill in Suno (Advanced, v6)
 
-1. **Create → Custom.** Turn **Instrumental ON** for game music. For a vocal "radio single" version, leave it off and paste the chorus hook into Lyrics.
-2. Paste the **Style** line into *Style of Music*. Each one is under 200 characters, so it fits every Suno version.
-3. Paste the **Exclude** line into *Exclude styles* (under Advanced options, where available).
-4. For instrumentals, paste the **Structure** line into *Lyrics*. Suno reads the bracket tags as section cues, which gives each track a proper intro, solo and loopable ending.
-5. Use the **Title** as the song title. Generate 2 takes and keep the better one.
-6. Save each as `yacht-01-...mp3` to `yacht-10-...mp3` and send them to me. I'll add them as a radio station in the game, one song per stage.
+Each song below lists the fields in the order they appear on Suno's **Advanced** screen:
 
-**Shared Exclude line (use for all ten):**
+| Suno field | What to do |
+|---|---|
+| **Lyrics** | Leave it **empty** and keep **Instrumental ✓** checked. For a vocal "radio single" instead, uncheck Instrumental and paste the song's **Vocal version** text. |
+| **Styles** | Paste the song's **Styles** text. It's written as a plain description, which is what this box asks for. Clear any suggestion chips first, such as *groovy* or *male vocals*. |
+| **More Options → Vocal Gender** | Leave it unset for instrumentals. For vocal versions, use the gender listed for the song. |
+| **More Options → Exclude styles** | Paste the shared list below. |
+| **Weirdness / Style influence / Variety** | Use the song's settings. Low Weirdness keeps the genre faithful, and high Style influence makes Suno stick closely to the description, which keeps all ten sounding like one station. |
+| **Song Title** | Use the song's title. |
+
+**Exclude styles (same for all ten):**
 ```
-lo-fi, trap, EDM drops, distorted guitar, metal, auto-tune, modern pop vocals, heavy reverb wash
+lo-fi, trap, EDM, dubstep, distorted guitar, metal, auto-tune, modern pop, rap
 ```
 
-**Shared Structure line for instrumentals** (paste into Lyrics, then add that song's solo instrument where it says `[... Solo]`):
-```
-[Intro] [Verse] [Pre-Chorus] [Chorus] [Verse] [Chorus] [... Solo] [Bridge] [Chorus] [Outro: fade]
-```
-
-Suno doesn't accept real artist names. These prompts describe the sound instead.
+Hit **Create**. Suno makes two takes; keep the better one, download it as MP3, and name it `yacht-01-cul-de-sac-sunset.mp3` and so on. Send me the files and I'll put the station in the game. Suno doesn't accept real artist names, so the descriptions describe the sound instead.
 
 ---
 
-## 1. Maple Court: "Cul-de-Sac Sunset"
-**Mood:** the night it all starts. Easy, golden-hour, suspiciously calm.
-- **Style:** `yacht rock, smooth soft rock, 1979, mid-tempo 100 BPM, Fender Rhodes, clean chorus guitar, warm fretless bass, alto sax lead, breezy suburban sunset, polished studio`
-- **Solo:** `[Alto Sax Solo]`
-- **Optional chorus hook:** *"Sun's going down on Maple Court / porch lights glowing, neighbors walking slow / nothing's wrong on Maple Court / (just don't look out the window)"*
+## 1. Cul-de-Sac Sunset (Maple Court)
 
-## 2. Hollow Pines High: "Hall Pass Breeze"
-**Mood:** cool-kid swagger down a haunted hallway.
-- **Style:** `yacht rock, funky soft rock, 1980, upbeat 112 BPM, clavinet groove, tight muted guitar, punchy horn section stabs, smooth bass, handclaps, bright and confident`
-- **Solo:** `[Horn Section Solo]`
-- **Optional chorus hook:** *"I got a hall pass, baby / good for all night long / the bell won't ring no more / so let's keep moving on"*
+**Lyrics:** empty, Instrumental ✓
 
-## 3. Camp Tall Pines: "Lake Effect"
-**Mood:** campfire twilight with something big in the trees.
-- **Style:** `yacht rock, mellow soft rock, 1978, laid-back 88 BPM, acoustic guitar, flute melody, Rhodes, brushed drums, lush minor 7th chords, misty lake at dusk, slightly eerie`
-- **Solo:** `[Flute Solo]`
-- **Optional chorus hook:** *"Out on the lake where the fog rolls in / the canoes drift and the pines lean in / meet me at the dock when the moon is high / something's out there, but so am I"*
+**Styles:**
+```
+Smooth 1979 yacht rock instrumental at a relaxed 100 BPM. Fender Rhodes and clean chorus guitar over warm fretless bass and a soft steady groove. A breezy alto sax plays the main melody and takes a solo in the middle. Golden-hour suburban sunset, calm and polished studio sound, gentle fade-out ending.
+```
 
-## 4. Skate Galaxy: "Couples Skate (Forever)"
-**Mood:** mirror ball, slow circles, nobody leaves.
-- **Style:** `yacht rock meets disco, 1980, 118 BPM four-on-the-floor, glossy string pads, synth brass, sparkling electric piano, roller rink mirror ball, romantic and dreamy`
-- **Solo:** `[Synth Brass Solo]`
-- **Optional chorus hook:** *"Couples skate, take my hand / round and round under neon light / couples skate forever / the song never ends tonight"*
+**Weirdness** 30% · **Style influence** 75% · **Variety** Normal
 
-## 5. Starlight Drive-In: "Double Feature Drift"
-**Mood:** night drive, film flicker, a saucer on the big screen.
-- **Style:** `yacht rock, moody soft rock, 1981, slow groove 92 BPM, vibraphone, muted trumpet, Rhodes, fretless bass, late night drive-in under the stars, cinematic and smoky`
-- **Solo:** `[Muted Trumpet Solo]`
-- **Optional chorus hook:** *"Tune it to the radio, eighty-eight point one / second feature's starting, the first one's never done / pull your seat back, baby, keep the engine low / the stars are moving closer, and they're not part of the show"*
+**Vocal version** (uncheck Instrumental, Vocal Gender: Male):
+```
+A smooth yacht rock song about a perfect summer evening on a quiet suburban street, where everything looks calm but something strange is coming. Chorus:
+Sun's going down on Maple Court
+Porch lights glowing, neighbors walking slow
+Nothing's wrong on Maple Court
+Just don't look out the window
+```
 
-## 6. Strike Zone Lanes: "Last Call at Lane Nine"
-**Mood:** bowling-alley lounge cool, a little tipsy, all strut.
-- **Style:** `yacht rock, bar-room soft rock, 1979, swaggering shuffle 100 BPM, honky-tonk piano and Rhodes, tenor sax lead, smooth backing vocals oohs, neon lounge, playful`
-- **Solo:** `[Tenor Sax Solo]`
-- **Optional chorus hook:** *"It's last call at lane nine / the pins are falling, so am I / one more frame before the lights go out / I'm rolling strikes for you tonight"*
+## 2. Hall Pass Breeze (Hollow Pines High)
 
-## 7. Rewind Video Warehouse: "Be Kind, Rewind"
-**Mood:** the heart of the game. Sophisticated, jazzy, wistful about a dying store.
-- **Style:** `yacht rock, jazz-rock, 1980, mid-tempo 96 BPM, complex jazz chords, crisp tight drums, glassy electric piano, precise lead guitar, sleek horns, wistful and sophisticated`
-- **Solo:** `[Clean Lead Guitar Solo]`
-- **Optional chorus hook:** *"Be kind, rewind / take it back to the start / every tape's a memory / every late fee breaks my heart"*
+**Lyrics:** empty, Instrumental ✓
 
-## 8. Splash Kingdom: "Closed for the Season"
-**Mood:** sunny but faded. Empty pools, last summer's tan.
-- **Style:** `yacht rock, tropical soft rock, 1981, breezy 108 BPM, steel drums, marimba, nylon guitar, light congas, warm bass, sunny but bittersweet, abandoned water park`
-- **Solo:** `[Steel Drum Solo]`
-- **Optional chorus hook:** *"Closed for the season / the slides are dry, the gate's chained shut / we came anyway, baby / summer's never really done"*
+**Styles:**
+```
+Upbeat funky 1980 yacht rock instrumental at 112 BPM. Bouncy clavinet riff, tight muted rhythm guitar, punchy horn section stabs, smooth bass and handclaps. Confident and cool, a strutting groove with a bright horn solo, tight ending.
+```
 
-## 9. Channel 9 Studios: "We Interrupt This Broadcast"
-**Mood:** urgent, driving, the station fighting to stay on air.
-- **Style:** `yacht rock, driving soft rock, 1982, energetic 124 BPM, synth brass hits, pulsing bass, bright electric piano, big snare, urgent news-at-eleven energy, triumphant chorus`
-- **Solo:** `[Synth Solo]`
-- **Optional chorus hook:** *"We interrupt this broadcast / with a message for you / stay inside, stay tuned / the smooth sounds will see you through"*
+**Weirdness** 30% · **Style influence** 75% · **Variety** Normal
 
-## 10. The Crater: "Return All Tapes"
-**Mood:** the finale. Epic yacht rock, key change, everyone singing.
-- **Style:** `yacht rock anthem, 1980, soaring 128 BPM, grand piano, layered harmonies, gospel choir lift, big lead guitar, horn section, key change before final chorus, epic finale`
-- **Solo:** `[Soaring Guitar Solo]`
-- **Optional chorus hook:** *"Return all tapes / before the night is through / the last video store / is waiting up for you"*
+**Vocal version** (Vocal Gender: Male):
+```
+A cool, funky yacht rock song about sneaking through an empty high school at night with a hall pass that never expires. Chorus:
+I got a hall pass, baby
+Good for all night long
+The bell won't ring no more
+So let's keep moving on
+```
+
+## 3. Lake Effect (Camp Tall Pines)
+
+**Lyrics:** empty, Instrumental ✓
+
+**Styles:**
+```
+Mellow 1978 soft rock instrumental at a laid-back 88 BPM. Acoustic guitar, airy flute melody, Rhodes and brushed drums, lush minor seventh chords. Misty summer-camp lake at dusk, peaceful but slightly eerie, a gentle flute solo, slow fade-out.
+```
+
+**Weirdness** 35% · **Style influence** 70% · **Variety** Normal
+
+**Vocal version** (Vocal Gender: Female):
+```
+A dreamy, slightly spooky soft rock song about a foggy summer-camp lake at night and something big moving in the pines. Chorus:
+Out on the lake where the fog rolls in
+The canoes drift and the pines lean in
+Meet me at the dock when the moon is high
+Something's out there, but so am I
+```
+
+## 4. Couples Skate (Forever) (Skate Galaxy)
+
+**Lyrics:** empty, Instrumental ✓
+
+**Styles:**
+```
+1980 yacht rock with a disco feel, 118 BPM four-on-the-floor beat. Glossy string pads, synth brass, sparkling electric piano and a smooth bass line. Roller rink under a mirror ball, romantic and dreamy, a shimmering synth solo, ends on a lush held chord.
+```
+
+**Weirdness** 30% · **Style influence** 75% · **Variety** Normal
+
+**Vocal version** (Vocal Gender: Female):
+```
+A romantic disco-tinged yacht rock song about a couples skate at a roller rink that never, ever ends. Chorus:
+Couples skate, take my hand
+Round and round under neon light
+Couples skate forever
+The song never ends tonight
+```
+
+## 5. Double Feature Drift (Starlight Drive-In)
+
+**Lyrics:** empty, Instrumental ✓
+
+**Styles:**
+```
+Moody 1981 soft rock instrumental, slow smoky groove at 92 BPM. Vibraphone, muted trumpet melody, Rhodes and fretless bass. Late night at a drive-in movie under the stars, cinematic and mysterious, a muted trumpet solo, slow fade-out.
+```
+
+**Weirdness** 35% · **Style influence** 70% · **Variety** Normal
+
+**Vocal version** (Vocal Gender: Male):
+```
+A smoky late-night yacht rock song about a drive-in double feature where the flying saucer on screen starts getting closer for real. Chorus:
+Tune it to the radio, eighty-eight point one
+Second feature's starting, the first one's never done
+Pull your seat back, baby, keep the engine low
+The stars are moving closer, and they're not part of the show
+```
+
+## 6. Last Call at Lane Nine (Strike Zone Lanes)
+
+**Lyrics:** empty, Instrumental ✓
+
+**Styles:**
+```
+Swaggering 1979 bar-room yacht rock instrumental, shuffle groove at 100 BPM. Honky-tonk piano with Rhodes, a tenor sax lead, smooth "ooh" backing harmonies. A neon bowling-alley lounge at last call, playful and loose, a big tenor sax solo, ends with a piano flourish.
+```
+
+**Weirdness** 30% · **Style influence** 75% · **Variety** Normal
+
+**Vocal version** (Vocal Gender: Male):
+```
+A playful bar-room yacht rock song about one more frame at a bowling alley lounge before the lights go out. Chorus:
+It's last call at lane nine
+The pins are falling, so am I
+One more frame before the lights go out
+I'm rolling strikes for you tonight
+```
+
+## 7. Be Kind, Rewind (Rewind Video Warehouse)
+
+**Lyrics:** empty, Instrumental ✓
+
+**Styles:**
+```
+Sophisticated 1980 jazz-rock yacht rock instrumental at 96 BPM. Complex jazz chords, crisp tight drums, glassy electric piano, sleek horn section, and a precise clean lead guitar solo. Wistful and nostalgic, the feeling of the last video store closing down, polished ending.
+```
+
+**Weirdness** 35% · **Style influence** 75% · **Variety** Normal
+
+**Vocal version** (Vocal Gender: Male):
+```
+A wistful, sophisticated yacht rock song about the last video store, where every tape is a memory and nothing gets returned on time. Chorus:
+Be kind, rewind
+Take it back to the start
+Every tape's a memory
+Every late fee breaks my heart
+```
+
+## 8. Closed for the Season (Splash Kingdom)
+
+**Lyrics:** empty, Instrumental ✓
+
+**Styles:**
+```
+Breezy tropical 1981 soft rock instrumental at 108 BPM. Steel drums, marimba, nylon-string guitar, light congas and warm bass. Sunny but bittersweet, an abandoned water park at the end of summer, a bright steel drum solo, gentle fade-out.
+```
+
+**Weirdness** 35% · **Style influence** 70% · **Variety** Normal
+
+**Vocal version** (Vocal Gender: Female):
+```
+A sunny but bittersweet tropical soft rock song about sneaking into a water park that's closed for the season. Chorus:
+Closed for the season
+The slides are dry, the gate's chained shut
+We came anyway, baby
+Summer's never really done
+```
+
+## 9. We Interrupt This Broadcast (Channel 9 Studios)
+
+**Lyrics:** empty, Instrumental ✓
+
+**Styles:**
+```
+Driving energetic 1982 yacht rock instrumental at 124 BPM. Synth brass hits, pulsing bass, bright electric piano, a big punchy snare. Urgent breaking-news energy with a triumphant chorus melody and a soaring synth solo, strong ending.
+```
+
+**Weirdness** 35% · **Style influence** 75% · **Variety** Normal
+
+**Vocal version** (Vocal Gender: Male):
+```
+An urgent, upbeat yacht rock song about a smooth radio DJ staying on the air through the end of the world. Chorus:
+We interrupt this broadcast
+With a message for you
+Stay inside, stay tuned
+The smooth sounds will see you through
+```
+
+## 10. Return All Tapes (The Crater)
+
+**Lyrics:** empty, Instrumental ✓
+
+**Styles:**
+```
+Epic 1980 yacht rock anthem instrumental at 128 BPM. Grand piano, layered harmonies, gospel choir lift, a big soaring lead guitar solo and a full horn section. Triumphant final-battle energy with a key change before the last chorus, big ending.
+```
+
+**Weirdness** 40% · **Style influence** 70% · **Variety** Normal
+
+**Vocal version** (Vocal Gender: Male):
+```
+A triumphant, epic yacht rock anthem about the final showdown to save the last video store. Chorus:
+Return all tapes
+Before the night is through
+The last video store
+Is waiting up for you
+```
 
 ---
 
-## Optional: station IDs (short jingles)
+## Optional: station jingles
 
-Make these in Suno too, with **Instrumental OFF**. Set *Style* to `70s radio station jingle, smooth vocal harmony group, short, bright, a cappella with Rhodes, under 10 seconds`, and put one line in Lyrics:
+Short IDs the game can play between songs. Uncheck Instrumental, leave Vocal Gender unset, Weirdness 25%, Style influence 80%.
 
-- *"W-S-M-O... ninety-six point nine... Smooth Sail F-M!"*
-- *"Hollow Pines' home for smooth music... and survival tips."*
-- *"Stay inside. Stay smooth. Ninety-six nine."*
+**Styles:**
+```
+A very short 1970s radio station jingle sung by a smooth vocal harmony group, bright and cheesy, Rhodes accompaniment, under ten seconds.
+```
 
-The game can play one between songs, like a real station.
+**Lyrics** (one per take):
+- `W-S-M-O... ninety-six point nine... Smooth Sail F-M!`
+- `Hollow Pines' home for smooth music... and survival tips!`
+- `Stay inside. Stay smooth. Ninety-six nine!`
