@@ -4,6 +4,8 @@ When a hero wears **3 or more pieces of one set**, the game swaps their whole lo
 
 There are 4 sets × 4 heroes = 16 outfits. Do **one ChatGPT chat per hero**; each chat returns one zip with all 4 of that hero's outfits (36 images).
 
+> **Dex update:** Dex now fights with a **portable CD player on a cord** instead of the tube sock. His 4 existing outfits still show the sock, so redo Dex's chat using his **new** frames (the 9 images from the CD-player set). The prompt copies the weapon from whatever frames you upload, so nothing else changes.
+
 ## Steps (per hero)
 
 1. Start a new ChatGPT chat. Upload that hero's **9 animation frames**, the same PNGs you sent me (for example `dex_walk1.png`, `dex_walk2.png`, `dex_attack1.png`, `dex_attack2.png`, `dex_jump.png`, `dex_kick.png`, `dex_hurt.png`, `dex_down.png`, `dex_special.png`).

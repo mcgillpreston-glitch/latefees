@@ -121,7 +121,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   </div>
 </div>
 
-<script src="art/manifest.js?v=2026.11.02-2"></script>
+<script src="art/manifest.js?v=2026.11.02-3"></script>
 <script src="game-core.js?v=2026.11.02-2"></script>
 <script>
 (()=>{
@@ -925,8 +925,10 @@ function update(){
 // (walk1, walk2, attack1, attack2, jump, kick, hurt, down, special) can be listed per sprite in art/manifest.js.
 const ART=globalThis.LF_ART||{};
 const SPR={};
-for(const k in ART){const m=ART[k],img=new Image();img.onload=()=>{SPR[k]={img,m,white:null};};img.src=m.src;
-  if(m.frames)for(const f in m.frames){const fm=m.frames[f],fi=new Image();fi.onload=()=>{SPR[k+':'+f]={img:fi,m:fm,white:null};};fi.src=fm.src;}}
+// Bump ART_V whenever art files are replaced under the same names, so browsers fetch the new pictures.
+const ART_V='2026.11.02-3',AV=u=>u+'?v='+ART_V;
+for(const k in ART){const m=ART[k],img=new Image();img.onload=()=>{SPR[k]={img,m,white:null};};img.src=AV(m.src);
+  if(m.frames)for(const f in m.frames){const fm=m.frames[f],fi=new Image();fi.onload=()=>{SPR[k+':'+f]={img:fi,m:fm,white:null};};fi.src=AV(fm.src);}}
 const SPR_H={dex:50,rae:50,benny:50,julia:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
 const sprH0=k=>SPR_H[k]||Math.round((EN[k]&&EN[k].boss?46:50)*((EN[k]&&EN[k].look&&EN[k].look.k)||1));
 const sprH=k=>SPR[k]?sprH0(k):(EN[k]&&EN[k].look?sprH0(k)*.8:31);
@@ -935,7 +937,7 @@ function whiteOf(s){if(s.white)return s.white;const c=document.createElement('ca
 /* Gear recolour: art/mask/<sprite>[_<frame>].webp holds 4 alpha masks side by side (top, inner, pants, shoes).
    Equipped items tint those regions with the 'color' blend, which keeps the painted shading and ink. */
 const MASK={},MASKTRY={},TINT=new Map();
-function maskFor(name){if(!MASKTRY[name]){MASKTRY[name]=1;const i=new Image();i.onload=()=>{MASK[name]=i;};i.src='art/mask/'+name+'.webp';}return MASK[name]||null;}
+function maskFor(name){if(!MASKTRY[name]){MASKTRY[name]=1;const i=new Image();i.onload=()=>{MASK[name]=i;};i.src=AV('art/mask/'+name+'.webp');}return MASK[name]||null;}
 function tintRegions(lk){if(!lk)return null;const r=[lk.jacket||lk.shirt||null,lk.jacket?lk.shirt||null:null,lk.pants||null,lk.shoes||null];return r.some(Boolean)?r:null;}
 function tinted(s,name,regs){
   const mk=maskFor(name);if(!mk)return s.img;
@@ -1001,7 +1003,7 @@ function enemySprite(e){
 }
 
 function weapon(id){
-  if(id==='dex'){rect(0,-1,7,2,'#e8e8e8');rect(6,-3,6,5,'#1a1a1a');rect(7,-2,3,1,'#ff9a3c');}
+  if(id==='dex'){rect(0,0,7,1,'#1a1a1a');ell(10,0,4,4,'#c8ccd4');ell(10,0,2,2,'#3ad6c0');}
   else if(id==='rae'){rect(-2,-1,18,2,'#6a3e1c');rect(15,-4,9,8,'#d23a4a');rect(17,-2,4,4,'#1a1a1a');rect(-5,-2,3,4,'#1a1a1a');}
   else if(id==='benny'){rect(0,-1,3,2,'#1a1a1a');rect(3,-4,12,8,'#c62828');rect(3,-1,12,2,'#ffc93c');}
   else{rect(-2,-1,18,2,'#d9b26b');rect(15,-1,6,3,'#1a1a1a');rect(5,-1,2,2,'#1a1a1a');}
@@ -1229,7 +1231,7 @@ function clipX(a,b,cam,fn){const x0=Math.max(a,cam)-cam,x1=Math.min(b,cam+W)-cam
 /* Painted backdrops: one panorama per area, scaled to the view height and tiled along the level. */
 const BGIMG={},BGTRY={};
 // Backdrops load on demand from art/bg-<zone>.webp; zones without a painting use a drawn fallback in that zone's colours.
-function bgImg(k){if(!BGTRY[k]){BGTRY[k]=1;const i=new Image();i.onload=()=>{BGIMG[k]=i;};i.onerror=()=>{BGTRY[k]=2;};i.src='art/bg-'+k+'.webp';}return BGIMG[k]||null;}
+function bgImg(k){if(!BGTRY[k]){BGTRY[k]=1;const i=new Image();i.onload=()=>{BGIMG[k]=i;};i.onerror=()=>{BGTRY[k]=2;};i.src=AV('art/bg-'+k+'.webp');}return BGIMG[k]||null;}
 ['suburb','mall','lot'].forEach(bgImg);
 const ZONES=LFCore.levelZones(1);
 function drawZoneImg(k,a,b,cam,x0,x1){
@@ -1614,7 +1616,7 @@ function guidePages(){
   const padRows=Object.keys(pads).map(d=>padLabel(d)+': '+pads[d].name+(pads[d].std?'':' (no standard layout, Select = gear)'));
   return [
   {t:'THE NIGHT SHIFT',c:'#ffc93c',items:[
-    ['DEX MORENO, 24','Video store clerk. Swings a tube sock full of overdue VHS tapes. Balanced. Special: Rewind Spin.'],
+    ['DEX MORENO, 24','Video store clerk. Whips a portable CD player around on its cord. Balanced. Special: Rewind Spin.'],
     ['RAE KOWALSKI, 22','Bassist in a band with no drummer. Slow, hits hardest, longest reach. Special: Power Chord.'],
     ['BENNY TRAN, 21','Pizza driver. Quick, light hits with a delivery bag. Special: Hot Delivery.'],
     ['JULIA OKAFOR, 23','Mall rollerblader with a hockey stick. Fastest mover. Special: Blade Rush.']]},

@@ -21,15 +21,15 @@ Frames the game uses, in order of how much they add: `attack2` (strike), `attack
 
 Reference: `art/dex.webp` (the image you sent).
 
-- **`dex_walk1.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: mid-stride walking, left foot forward, sock weapon hanging at his side."
-- **`dex_walk2.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: mid-stride walking, right foot forward, sock weapon hanging at his side."
-- **`dex_attack1.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: winding up, sock full of VHS tapes swung far back over his shoulder."
-- **`dex_attack2.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: follow-through of a big swing, arm fully extended forward, sock weapon whipping out in front of him."
-- **`dex_jump.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: in the air, knees tucked, sock held up."
-- **`dex_kick.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: flying jump kick, front leg extended forward."
-- **`dex_hurt.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: recoiling from a hit, head snapped back, eyes squeezed shut."
-- **`dex_down.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: knocked flat on his back on the ground, lying horizontally, dazed."
-- **`dex_special.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, tube sock stuffed with VHS tapes). Pose: spinning in place with the VHS sock whirling around him in a circle (Rewind Spin)."
+- **`dex_walk1.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: mid-stride walking, left foot forward, CD player hanging from its cord at his side."
+- **`dex_walk2.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: mid-stride walking, right foot forward, CD player hanging from its cord at his side."
+- **`dex_attack1.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: winding up, CD player swung far back over his shoulder on its cord."
+- **`dex_attack2.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: follow-through of a big swing, arm fully extended forward, CD player whipping out in front of him on its cord."
+- **`dex_jump.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: in the air, knees tucked, CD player swinging on its cord."
+- **`dex_kick.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: flying jump kick, front leg extended forward."
+- **`dex_hurt.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: recoiling from a hit, head snapped back, eyes squeezed shut."
+- **`dex_down.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: knocked flat on his back on the ground, lying horizontally, dazed."
+- **`dex_special.png`**: "Same character: Dex, the video store clerk (white bowling shirt with teal panel, purple pants, white high-tops, a silver portable CD player on a long black cord). Pose: spinning in place with the CD player whirling around him on its cord (Rewind Spin)."
 
 ### Rae
 
