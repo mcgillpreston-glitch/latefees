@@ -633,10 +633,10 @@ function tag(s,x,y,bg='#ffc93c',fg=INK,al='left'){
   rect(x0+1,y+1,w,12,'rgba(0,0,0,.45)');rrect(x0-1,y-1,w+2,14,3,INK);rrect(x0,y,w,12,2,bg);txt(s,x0+4,y+2,fg,'left',8,null);return w;
 }
 // round rental sticker (for "BE KIND REWIND" style badges)
-function badge(x,y,r,col,lines,rot=-.2){
+function badge(x,y,r,col,lines,rot=-.2,fs=8){
   ctx.save();ctx.translate(x,y);ctx.rotate(rot);ell(1,2,r,r,'rgba(0,0,0,.45)');ell(0,0,r+1,r+1,INK);ell(0,0,r,r,col);
   ctx.strokeStyle=INK;ctx.setLineDash([2,2]);ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,r-3,0,7);ctx.stroke();ctx.setLineDash([]);
-  lines.forEach((l,i)=>txt(l,0,-lines.length*4+i*9+1,INK,'center',8,null));ctx.restore();
+  const lh=fs+2;lines.forEach((l,i)=>txt(l,0,-lines.length*lh/2+i*lh+1,INK,'center',fs,null));ctx.restore();
 }
 // rubber stamp (RENTED, OVERDUE, PAID IN FULL)
 function stamp(s,x,y,col='#e8453c',rot=-.18,size=16){
@@ -869,7 +869,7 @@ function drawNLobby(){
     ctx.save();ctx.translate(x+46,y+84);ctx.scale(2,2);drawHero(h.id,{h:38,walk:hov.length?T:0,atkP:lock&&(T%120)<20?(T%120)/20:-1,n:1,gear:hov.some(p=>p.s===NET.slot)?gearLook(h.id):(lock&&lock.lk?lock.look:{})||{}});ctx.restore();
     rect(x+4,y+86,84,12,INK);rect(x+5,y+87,82,10,hov.length?PAPER:'#c9b48e');txt(h.first,x+46,y+88,INK,'center',8,null);
     hov.forEach((s,j)=>{const ty=y+6+j*12,col=PCOL[s.s],tg='P'+(s.s+1)+(s.s===NET.slot?' YOU':'');if(s.lk){rect(x+7,ty-1,tg.length*8+4,11,col);txt(tg,x+9,ty+1,INK,'left',8,null);}else txt(tg,x+9,ty+1,col,'left',8,INK);});
-    txt(h.job,x+46,y+99,'#d9a87c','center',8,null);
+    txt(h.job,x+46,y+100,'#d9a87c','center',6,null);
     if(lock)stamp('RENTED',x+46,y+46,'#e8453c',-.3,8);
   });
   const me=lb.players.find(p=>p.s===NET.slot),h=HEROES[me?me.h:0];panel(4,141,W-8,H-145,'#ff5fa8','rgba(42,20,14,.94)');
@@ -1392,10 +1392,11 @@ function drawPanel(i){
   const label=(a,b,bc)=>{rect(x+21,y+3,68,10,col);rect(x+21,y+3,68,1,'rgba(255,255,255,.45)');txt(a,x+23,y+4,INK,'left',8,null);if(b)txt(b,x+87,y+4,bc||INK,'right',8,null);};
   if(!p||p.out){
     rect(x+3,y+4,16,16,'#0c0908');txt('P'+(i+1),x+11,y+8,col,'center',8,null);
-    if(!p&&NET.on){label('OPEN');txt('CODE '+NET.code,x+23,y+17,'#d9a87c','left',8,null);return;}
-    if(p&&!(p.conts>0)){label('OUT');txt('NO CONTINUES',x+3,y+22,'#ff7a5a','left',8,null);return;}
-    label(p?'CONTINUE?':'INSERT',p&&g.ps.every(q=>q.out)?String(Math.ceil((600-g.ctT)/60)):'');
-    if((T>>5)%2||!p)txt(p?(p.conts===Infinity?'PRESS START':'START: '+p.conts+' LEFT'):'PRESS START',x+(p?3:23),y+(p?22:17),'#ffe9c2','left',8,null);
+    if(!p&&NET.on){label('OPEN');txt('CODE '+NET.code,x+3,y+22,'#d9a87c','left',8,null);return;}
+    if(p&&!(p.conts>0)){label('OUT');txt('GAME OVER',x+3,y+22,'#ff7a5a','left',8,null);return;}
+    label(p?'CONTINUE':'INSERT',p&&g.ps.every(q=>q.out)?String(Math.ceil((600-g.ctT)/60)):'');
+    const l2=!p||(T>>5)%2||p.conts===Infinity?'PRESS START':p.conts+' LEFT';
+    txt(l2,x+3,y+22,'#ffe9c2','left',8,null);
     return;}
   // portrait in a framed window
   rect(x+2,y+3,18,18,INK);ctx.save();ctx.beginPath();ctx.rect(x+3,y+4,16,16);ctx.clip();rect(x+3,y+4,16,16,'#5e2f22');
@@ -1408,7 +1409,7 @@ function drawPanel(i){
   // score on a VCR tape counter
   rect(x+21,y+23,68,8,'#0b130b');txt(String(p.score).padStart(7,'0'),x+87,y+24,'#c8f05a','right',8,null);
   if(p.pow){const P=POW[p.pow.k];rect(x+3,y+23,16,6,INK);rect(x+4,y+24,Math.round(14*p.pow.t/P.dur),4,P.col);}
-  if(p.lostPad||p.away){rrect(x,y,92,31,3,'rgba(26,20,18,.96)');label('P'+(i+1)+(p.away?' AWAY':' NO PAD'));if((T>>4)%2)txt(p.away?'RECONNECTING':'RECONNECT',x+4,y+19,'#ff7a5a','left',8,null);}
+  if(p.lostPad||p.away){rrect(x,y,92,31,3,'rgba(26,20,18,.96)');label(p.away?'AWAY':'NO PAD');if((T>>4)%2)txt(p.away?'RECONNECTING':'RECONNECT',x+4,y+19,'#ff7a5a','left',8,null);}
 }
 function drawHUD(){
   const g=G;for(let i=0;i<4;i++)drawPanel(i);
@@ -1429,7 +1430,7 @@ function drawHUD(){
     if(can){txt('CONTINUE?',W/2,89,'#ffc93c','center',16,INK);txt('PRESS START  '+Math.ceil((600-g.ctT)/60),W/2,111,'#ffe9c2','center');}
     else{txt('OUT OF CONTINUES',W/2,89,'#ff5a4a','center',16,INK);txt('THE DEAD WIN THIS ONE',W/2,111,'#ffe9c2','center');}}
   if(NET.on){tag('ROOM '+NET.code,W-3,52,'#ff5fa8',INK,'right');if(!NET.ws)txt((T>>3)%2?'RECONNECTING...':'RECONNECTING',W/2,H-12,'#ff7a5a','center');}
-  else if(g.time<360&&g.level===STG.cur&&!touchMode&&!g.boss&&g.ps.length<4)txt('MORE PLAYERS: PRESS START TO JOIN',W/2,H-12,'#ffe9c2','center',8,INK);
+  else if(scene==='play'&&g.time<360&&g.level===STG.cur&&!touchMode&&!g.boss&&g.ps.length<4)txt('MORE PLAYERS: PRESS START TO JOIN',W/2,H-12,'#ffe9c2','center',8,INK);
 }
 function logo(y){
   ctx.textAlign='center';ctx.textBaseline='top';
@@ -1444,18 +1445,18 @@ function drawTitle(){
   drawBG((T*.4)%850,1);rect(0,0,W,H,'rgba(40,16,10,.45)');
   for(let i=0;i<4;i++){const x=((T*.35+i*110)%(W+60))-30;ctx.save();ctx.translate(Math.round(x),TOP+60+(i%2)*14);if(!enemySprite({type:i===2?'mummy':i===3?'gremlin':'sh',state:'walk',walk:T+i*20,id:i,flash:0}))DRAW.sh({state:'walk'},T+i*20);ctx.restore();}
   logo(26);
-  badge(40,52,24,'#ffc93c',['BE KIND','REWIND'],-.22);
+  badge(31,31,28,'#ffc93c',['BE KIND','REWIND'],-.22,6);
   txt('HOLLOW PINES, OHIO   JULY 1996',W/2,99,'#ffe9c2','center',8,INK);
   vhs(W/2-66,110,132,68,'#ffc93c','rgba(42,20,14,.94)');
   ['START GAME','ONLINE','CONTROLS','SOUND','GUIDE'].forEach((it,i)=>menuRow(it,W/2+2,116+i*12,tCur===i,116));
   {const dn=LFCore.DIFF[DIFFSEL].name,dc={easy:'#c8f05a',normal:'#ffc93c',hard:'#ff5a4a'}[DIFFSEL],on=tCur<=1;
-    panel(W/2+72,110,70,46,dc,'rgba(42,20,14,.94)');txt('DIFFICULTY',W/2+107,113,'#d9a87c','center',8,null);
-    txt((on&&(T>>4)%2?'<':' ')+' '+dn+' '+(on&&(T>>4)%2?'>':' '),W/2+107,124,dc,'center',8,INK);
-    txt(LFCore.DIFF[DIFFSEL].conts===Infinity?'FREE CONTINUES':LFCore.DIFF[DIFFSEL].conts+' CONTINUES',W/2+107,140,'#ffe9c2','center',8,INK);}
+    panel(W/2+70,110,96,46,dc,'rgba(42,20,14,.94)');txt('DIFFICULTY',W/2+118,114,'#d9a87c','center',8,null);
+    txt((on&&(T>>4)%2?'<':' ')+' '+dn+' '+(on&&(T>>4)%2?'>':' '),W/2+118,127,dc,'center',8,INK);
+    txt(LFCore.DIFF[DIFFSEL].conts===Infinity?'FREE PLAY':LFCore.DIFF[DIFFSEL].conts+' CONTINUES',W/2+118,142,'#ffe9c2','center',8,INK);}
   const np=Object.keys(pads).length;tag(np?np+' CONTROLLER'+(np>1?'S':'')+' READY':'1-4 PLAYERS  KEYS OR PADS',W/2,184,np?'#3ad6c0':'#d9a87c',INK,'center');
   if(!MUS.started||MUS.blocked)txt((T>>5)%2?'PRESS ANY KEY FOR MUSIC':'',W/2,200,'#ff9a3c','center',8,INK);
   if(hi)tag('HI '+String(hi).padStart(7,'0'),W-4,H-15,'#ff5fa8',INK,'right');
-  txt('V'+C.CORE_VERSION,4,H-11,'rgba(255,233,194,.55)','left',8,null);
+  txt('V'+C.CORE_VERSION,W-4,4,'rgba(255,233,194,.6)','right',6,null);
 }
 const HERO_COVER={dex:'#3ad6c0',rae:'#ff5fa8',benny:'#ffc93c',julia:'#c8f05a'};
 function drawSelect(){
@@ -1540,7 +1541,7 @@ function renderScene(){
   drawBG(g.cam);drawWorld();ctx.restore();drawHUD();
   if(scene==='pause'){rect(0,0,W,H,'rgba(20,8,6,.62)');scanlines(.16);const lost=g.ps.find(p=>p.lostPad);
     // VCR pause on-screen display
-    if((T>>5)%2||lost){rect(14,46,4,12,'#ffffff');rect(21,46,4,12,'#ffffff');osd(NET.on?'MENU':'PAUSE',32,48,'left',8);}
+    if((T>>5)%2||lost){rect(10,H-20,4,12,'#ffffff');rect(17,H-20,4,12,'#ffffff');osd(NET.on?'MENU':'PAUSE',26,H-18,'left',8);}
     if(lost){panel(W/2-130,40,260,40,PCOL[lost.slot],'rgba(26,12,8,.95)');txt('P'+(lost.slot+1)+' CONTROLLER LOST',W/2,45,PCOL[lost.slot],'center',8,INK);txt('TURN IT BACK ON, OR PRESS A',W/2,58,'#ffe9c2','center',8,null);txt('ON ANY FREE CONTROLLER',W/2,69,'#ffe9c2','center',8,null);}
     vhs(W/2-84,84,168,94,'#ffc93c','rgba(42,20,14,.95)');
     if(NET.on)txt('THE GAME KEEPS GOING ONLINE',W/2,183,'#d9a87c','center',8,INK);
