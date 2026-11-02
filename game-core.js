@@ -533,7 +533,13 @@ function updBoss(g,e){
 
 /* ---------- one tick ---------- */
 function step(g){
-  if(g.status==='clear'){g.time++;if(++g.clearT>=300)loadLevel(g,g.level+1);endTick(g);return;}
+  if(g.status==='clear'){g.time++;g.clearT++;
+    // Free grabs: the stage is won, monsters are gone, and whatever is still on the ground is up for grabs, first come first served.
+    for(const p of g.ps){if(p.out){if(hit(p,'start')||hit(p,'atk'))revive(g,p);continue;}updPlayer(g,p);}
+    pickTick(g,active(g));
+    const left=g.pick.some(k=>!k.got);if(!left&&g.clearT<g.grabLen-90)g.clearT=g.grabLen-90;
+    if(g.clearT>=g.grabLen){if(g.final)g.status='win';else loadLevel(g,g.level+1);}
+    endTick(g);return;}
   if(g.status!=='play')return;
   g.time++;
   if(g.stop>0){g.stop--;endTick(g);return;}
@@ -560,10 +566,32 @@ function step(g){
       q.hits.add(e);dmgEnemy(g,e,q.dmg,q.kind==='pizza',Math.sign(q.vx),g.ps.includes(q.owner)?q.owner:null);if(!q.pierce)q.life=0;}}
     if(q.x<g.cam-30||q.x>g.cam+W+30||q.y<TOP-6||q.y>BOT+6)q.life=0;}
   g.proj=g.proj.filter(q=>q.life>0);
+  pickTick(g,act);
+  for(const s of g.surv){s.t++;if(s.saved){if(s.fade>0)s.fade--;continue;}
+    const p=act.find(p=>Math.abs(s.x-p.x)<15&&Math.abs(s.y-p.y)<10&&p.z<14);
+    if(p){s.saved=true;g.saved++;p.saved++;p.lvSaved=(p.lvSaved||0)+1;addScore(g,p,500);dropGear(g,s.x,s.y,p.st?p.st.LUCK:0,'r');floatText(g,s.x,s.y,s.name+' SAVED!','#3ad6c0',46);
+      sparks(g,s.x,s.y,20,10,['#3ad6c0','#ffffff','#ffc93c']);[523,659,784,1046].forEach((f,i)=>beep(g,f,.1,'square',.04,0,i*70));}}
+  if(g.go>0)g.go--;if(g.banner&&g.banner.t>0)g.banner.t--;
+  if(g.winT>0&&++g.winT>100){g.bonus=g.saved*1000;for(const p of g.ps){addScore(g,p,(p.lvSaved||0)*1000);p.lvSaved=0;}
+    if(g.rs)g.rs.cleared++;startClear(g);
+    [392,523,659,784,1046].forEach((f,i)=>beep(g,f,.18,'square',.05,0,i*120));}
+  endTick(g);
+}
+// Stage won. Gather what's still lying around into a tidy grid on the street for the free-grab phase; the last stage goes to the win screen after it.
+function startClear(g){
+  g.status='clear';g.clearT=0;g.final=g.level>=NSTAGES;
+  const items=g.pick.filter(k=>!k.got),ord={gear:0,tape:1,pizza:2};items.sort((a,b)=>(ord[a.kind]??3)-(ord[b.kind]??3)||a.id-b.id);
+  const cols=6,x0=g.cam+34,y0=TOP+18;items.forEach((k,i)=>{k.tx=x0+(i%cols)*34;k.ty=Math.min(BOT-2,y0+Math.floor(i/cols)*24);k.skip=null;});
+  g.grabLen=items.length?600:300;
+}
+// Pickups: slide stragglers into view (or onto the grab grid when the stage is clear), then let players scoop them up.
+function pickTick(g,act){
   for(const k of g.pick){k.t++;if(k.got)continue;
-    // Loot never gets left behind: anything that falls off the left edge slides along with the screen.
-    // carried items fan out over a band near the left side instead of piling onto one spot
-    const minX=g.cam+40+(k.id*37%6)*18,maxX=g.cam+W-24;if(k.x<minX)k.x=Math.min(minX,k.x+Math.max(1.5,(minX-k.x)*.25));else if(k.x>maxX)k.x=maxX;
+    if(g.status==='clear'&&k.tx!=null){k.x+=(k.tx-k.x)*.18;k.y+=(k.ty-k.y)*.18;}
+    else{
+      // Loot never gets left behind: anything that falls off the left edge slides along with the screen.
+      // carried items fan out over a band near the left side instead of piling onto one spot
+      const minX=g.cam+40+(k.id*37%6)*18,maxX=g.cam+W-24;if(k.x<minX)k.x=Math.min(minX,k.x+Math.max(1.5,(minX-k.x)*.25));else if(k.x>maxX)k.x=maxX;}
     for(const p of act){if(Math.abs(k.x-p.x)<12&&Math.abs(k.y-p.y)<9&&p.z<12&&p.state!=='down'){
       if(k.kind==='gear'){if(k.skip===p.slot&&k.t<90)continue;
         if(!gearFits(p,k.item)){if(!(g.time-(p.fullT??-999)<120)){p.fullT=g.time;floatText(g,k.x,k.y,'BAG FULL','#ff7a5a',40);}continue;}
@@ -575,28 +603,19 @@ function step(g){
         [392,523,659].forEach((f,i)=>beep(g,f,.08,'square',.05,0,i*60));}
       beep(g,660,.08,'square',.04);beep(g,990,.1,'square',.04,0,70);break;}}}
   g.pick=g.pick.filter(k=>!k.got);
-  for(const s of g.surv){s.t++;if(s.saved){if(s.fade>0)s.fade--;continue;}
-    const p=act.find(p=>Math.abs(s.x-p.x)<15&&Math.abs(s.y-p.y)<10&&p.z<14);
-    if(p){s.saved=true;g.saved++;p.saved++;p.lvSaved=(p.lvSaved||0)+1;addScore(g,p,500);dropGear(g,s.x,s.y,p.st?p.st.LUCK:0,'r');floatText(g,s.x,s.y,s.name+' SAVED!','#3ad6c0',46);
-      sparks(g,s.x,s.y,20,10,['#3ad6c0','#ffffff','#ffc93c']);[523,659,784,1046].forEach((f,i)=>beep(g,f,.1,'square',.04,0,i*70));}}
-  if(g.go>0)g.go--;if(g.banner&&g.banner.t>0)g.banner.t--;
-  if(g.winT>0&&++g.winT>100){g.bonus=g.saved*1000;for(const p of g.ps){addScore(g,p,(p.lvSaved||0)*1000);p.lvSaved=0;}
-    if(g.rs)g.rs.cleared++;g.status=g.level>=NSTAGES?'win':'clear';g.clearT=0;
-    [392,523,659,784,1046].forEach((f,i)=>beep(g,f,.18,'square',.05,0,i*120));}
-  endTick(g);
 }
 function endTick(g){for(const p of g.ps)p.pin={...p.in};}
 
 /* ---------- snapshots: what a client needs to draw the world ---------- */
 function snapshot(g){
-  return {rs:g.status==='over'||g.status==='win'?g.rs:undefined,df:g.diff,lv:g.level,cl:g.clearT,tm:g.time,cam:r1(g.cam),lock:g.lock,wi:g.waveI,sc:g.score,sv:g.saved,go:g.go,ban:g.banner&&g.banner.t>0?[g.banner.txt,g.banner.t]:0,st:g.status,ct:g.ctT,bn:g.bonus,
+  return {rs:g.status==='over'||g.status==='win'?g.rs:undefined,df:g.diff,lv:g.level,cl:g.clearT,gl:g.grabLen||300,fin:g.final?1:0,tm:g.time,cam:r1(g.cam),lock:g.lock,wi:g.waveI,sc:g.score,sv:g.saved,go:g.go,ban:g.banner&&g.banner.t>0?[g.banner.txt,g.banner.t]:0,st:g.status,ct:g.ctT,bn:g.bonus,
     boss:g.boss&&!g.boss.gone?g.boss.id:-1,
     ps:g.ps.map(p=>({s:p.slot,h:HEROES.indexOf(p.ch),x:r1(p.x),y:r1(p.y),z:r1(p.z),f:p.face,hp:Math.round(p.hp),mh:p.maxhp,lv:p.lives,st:p.state,inv:p.inv,
       atk:p.atk?[p.atk.n,p.atk.t,p.atk.len,p.atk.air?1:0]:0,sp:p.sp?[p.sp.t,r1(p.sp.r)]:0,w:Math.round(p.walk),mv:p.moving?1:0,cb:p.combo,pw:p.pow?[p.pow.k,p.pow.t]:0,
       out:p.out?1:0,cn:p.conts===Infinity?-1:p.conts,aw:p.away?1:0,sc:p.score,sav:p.saved,lk:p.look,rs:g.status==='over'||g.status==='win'?p.rs:undefined})),
     en:g.enemies.map(e=>({t:e.type,id:e.id,x:r1(e.x),y:r1(e.y),z:r1(e.z),f:e.face,hp:Math.round(e.hp),mx:e.max,st:e.state,tm:e.timer,w:Math.round(e.walk),fl:e.flash,dy:e.dying?1:0,tg:e.tgt?e.tgt.slot:-1})),
     pj:g.proj.map(q=>({id:q.id,k:q.kind,c:q.c||0,x:r1(q.x),y:r1(q.y),z:r1(q.z),vx:r1(q.vx)})),
-    pk:g.pick.map(k=>({id:k.id,k:k.kind,x:r1(k.x),y:r1(k.y),t:k.t,it:k.item||0})),
+    pk:g.pick.map(k=>({id:k.id,k:k.kind,x:r1(k.x),y:r1(k.y),t:k.t,it:k.item||0,tx:k.tx!=null?r1(k.tx):undefined,ty:k.ty!=null?r1(k.ty):undefined})),
     su:g.surv.map(s=>[s.saved?1:0,s.fade,s.t])};
 }
 // Rebuilds g from a snapshot, keeping existing objects so client-side fields (dev, lostPad, interpolation) survive.
@@ -604,7 +623,7 @@ function applySnapshot(g,s){
   if(!g)g={ps:[],enemies:[],proj:[],pick:[],surv:[],waves:[],ev:[],net:true};
   const L=s.lv||1;if(g.level!==L||!g.surv.length){g.level=L;g.len=levelLen(L);g.surv=survFor(L).map(q=>({...q,saved:false,fade:40,t:0}));}
   if(s.rs)g.rs=s.rs;
-  g.clearT=s.cl||0;g.diff=s.df||g.diff||'normal';
+  g.clearT=s.cl||0;g.grabLen=s.gl||300;g.final=!!s.fin;g.diff=s.df||g.diff||'normal';
   Object.assign(g,{time:s.tm,cam:s.cam,lock:s.lock,waveI:s.wi,score:s.sc,saved:s.sv,go:s.go,banner:s.ban?{txt:s.ban[0],t:s.ban[1]}:null,status:s.st,ctT:s.ct,bonus:s.bn});
   const keep=(list,key,rows,make,upd)=>{const out=[];for(const r of rows){let o=list.find(q=>q[key]===r[key==='slot'?'s':'id']);if(!o)o=make(r);upd(o,r);out.push(o);}return out;};
   const tgt=(o,x,y,z)=>{if(o._nx===undefined){o.x=x;o.y=y;o.z=z;}else{o._fx=o.x;o._fy=o.y;o._fz=o.z;}o._nx=x;o._ny=y;o._nz=z;o._t0=g.now||0;};
@@ -614,7 +633,7 @@ function applySnapshot(g,s){
   g.enemies=keep(g.enemies,'id',s.en,r=>({id:r.id,x:r.x,y:r.y,z:r.z}),(e,r)=>{e.type=r.t;tgt(e,r.x,r.y,r.z);e.face=r.f;e.hp=r.hp;e.max=r.mx;e.state=r.st;e.timer=r.tm;e.walk=r.w;e.flash=r.fl;e.dying=!!r.dy;e.r=(EN[r.t]&&EN[r.t].r)||0;
     e.tgt=r.tg>=0?g.ps.find(p=>p.slot===r.tg)||null:null;});
   g.proj=keep(g.proj,'id',s.pj,r=>({id:r.id,x:r.x,y:r.y,z:r.z}),(q,r)=>{q.kind=r.k;q.c=r.c||null;tgt(q,r.x,r.y,r.z);q.vx=r.vx;});
-  g.pick=keep(g.pick,'id',s.pk,r=>({id:r.id}),(k,r)=>{k.kind=r.k;k.x=r.x;k.y=r.y;k.t=r.t;k.item=r.it||null;});
+  g.pick=keep(g.pick,'id',s.pk,r=>({id:r.id}),(k,r)=>{k.kind=r.k;k.x=r.x;k.y=r.y;k.t=r.t;k.item=r.it||null;k.tx=r.tx;k.ty=r.ty;});
   s.su.forEach((r,i)=>{const o=g.surv[i];if(o){o.saved=!!r[0];o.fade=r[1];o.t=r[2];}});
   g.boss=s.boss>=0?g.enemies.find(e=>e.id===s.boss)||null:null;
   return g;
@@ -627,7 +646,7 @@ function interpolate(g,now,ms){
 }
 
 // Bump on every change to the rules so the website can tell when a room server is out of date.
-const CORE_VERSION='2026.11.02-3';
+const CORE_VERSION='2026.11.02-4';
 const LFCore={CORE_VERSION,W,H,TOP,BOT,LEVEL_END,PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,DIFF,DIFFS,LEVELS,NSTAGES,levelZones,levelLen,genWaves,loadLevel,survFor,
   CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,calcStatsFor,gearLookFor,cleanStats,cleanLook,bonusTxt,
   clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,dropBack,step,snapshot,applySnapshot,interpolate,hasPow,active};
