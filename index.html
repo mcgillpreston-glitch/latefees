@@ -116,20 +116,24 @@ canvas:focus-visible{box-shadow:0 0 0 3px var(--orange)}
   .lcd{display:flex;flex:1;align-self:stretch;align-items:center;justify-content:center;min-width:0;padding:0 7px}
   .lcd canvas{display:block;width:100%;max-width:66px;aspect-ratio:40/84;height:auto;border-radius:4px;background:#161a16;box-shadow:inset 0 2px 6px rgba(0,0,0,.8),0 0 0 2px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.1)}
 }
-/* phones held sideways: the game takes the full height and the controls float over its bottom corners */
+/* phones held sideways: a wide pocket TV. Screen in the middle, d-pad with GEAR/START under it on the left,
+   the gear LCD over the JUMP/HIT/SPEC triangle on the right. Nothing sits over the picture. */
 @media (hover:none) and (pointer:coarse) and (orientation:landscape){
-  .shell{width:min(100%,calc((100vh - 24px) * 16 / 9));width:min(100%,calc((100dvh - 24px) * 16 / 9));padding:0;background:none;box-shadow:none;border-radius:0;overflow:visible}
-  .board,.bz-top,.bz-bot,.brand,.lcd,.ticker,.ant,.model{display:none}
+  body{padding-block:4px}
+  .shell{width:100%;padding:6px 8px;border-radius:18px;display:grid;column-gap:6px;row-gap:4px;align-items:center;justify-items:center;
+    grid-template-columns:minmax(104px,1fr) auto minmax(104px,1fr);grid-template-rows:auto auto auto auto;
+    grid-template-areas:"dpad bezel lcd" "dpad bezel btns" "gear bezel btns" "start bezel btns"}
   .shell::before,.shell::after{display:none}
-  .pad{background:none;box-shadow:none;padding:0}
-  .bezel{padding:5px;border-radius:8px;box-shadow:0 0 0 3px var(--sk-lo),0 0 0 6px var(--sk-shell),0 14px 30px rgba(0,0,0,.6)}
-  .pad{margin:0}
-  .row,.pills{display:contents}
-  .dpad{--dp:118px;position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:12px;opacity:.85}
-  .btns{--bt:56px;position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:12px;opacity:.85;margin:0}
-  .pill{position:fixed;bottom:150px;opacity:.85}
-  .pill[data-act="inv"]{left:max(16px,env(safe-area-inset-left,0px))}
-  .pill[data-act="start"]{left:calc(max(16px,env(safe-area-inset-left,0px)) + 74px)}
+  .bz-top,.bz-bot,.brand,.ticker,.ant,.model{display:none}
+  .bezel{grid-area:bezel;width:min(calc((100vh - 36px) * 16 / 9),calc(100vw - 268px));width:min(calc((100dvh - 36px) * 16 / 9),calc(100vw - 268px));padding:6px;border-radius:12px}
+  .screen{border-radius:7px}
+  .pad,.row,.pills{display:contents}
+  .dpad{grid-area:dpad;--dp:104px;align-self:end;margin-bottom:2px}
+  .pill[data-act="inv"]{grid-area:gear}.pill[data-act="start"]{grid-area:start}
+  .pill{width:52px;height:15px;margin:3px 0}
+  .lcd{grid-area:lcd;flex:none;align-self:end;padding:0;margin-bottom:4px}
+  .lcd canvas{width:44px;height:92.4px;max-width:none}
+  .btns{grid-area:btns;--bt:46px;align-self:start;margin:0}
 }
 .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px}
 .ctl{background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:10px 14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;min-width:0}
@@ -431,7 +435,7 @@ let SKIN='grey';try{const k=localStorage.getItem('lfotd-skin');if(SKINS.some(s=>
 function applySkin(id){const k=SKINS.find(s=>s.id===id)||SKINS[0];SKIN=k.id;const st=document.documentElement.style;
   const m={shell:k.shell,hi:k.hi,lo:k.lo,edge:k.edge,btn:k.btn,'btn-hi':k.btnHi,'btn-lo':k.btnLo,dpad:k.dpad,'dpad-hi':k.dpadHi,pill:k.pill,'pill-hi':k.pillHi,'pill-lo':k.pillLo,print:k.print,'btn-txt':k.btnTxt||'#f1e6ff','pill-txt':k.pillTxt||'#f1e6f4',led:k.led,acc1:k.acc[0],acc2:k.acc[1]};
   for(const n in m)st.setProperty('--sk-'+n,m[n]);document.documentElement.dataset.skin=k.id;
-  const board=document.querySelector('.board');if(board)board.style.display=k.clear&&touchMode&&!matchMedia('(orientation:landscape)').matches?'block':'';
+  const board=document.querySelector('.board');if(board)board.style.display=k.clear&&touchMode?'block':'';
   try{localStorage.setItem('lfotd-skin',k.id);}catch(e){}}
 applySkin(SKIN);addEventListener('resize',()=>applySkin(SKIN));if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(typeof chTxt!=='undefined')chTxt='';});
 const skinIdx=()=>Math.max(0,SKINS.findIndex(s=>s.id===SKIN));
@@ -701,7 +705,7 @@ let shellInit=false;const chEl=document.getElementById('ch');let chTxt='';
 // the tuner readout: the stage is the channel
 function drawCh(){if(T%20)return;const t='CH '+(G&&(GAME_SCENES.has(scene)||scene==='intro')?String(G.level||1).padStart(2,'0'):'--');if(t===chTxt)return;chTxt=t;
   const c=chEl.getContext('2d');c.setTransform(3,0,0,3,0,0);c.clearRect(0,0,40,12);c.font='7px "Press Start 2P", monospace';c.textBaseline='middle';c.textAlign='center';c.fillStyle='#ffb347';c.fillText(t,20,7);}
-function shellTick(){padLabels();if(!shellInit){shellInit=true;tickerRoom();}if(matchMedia('(orientation:landscape)').matches)return;drawCh();drawLcd();drawTicker();}
+function shellTick(){padLabels();if(!shellInit){shellInit=true;tickerRoom();}const land=matchMedia('(orientation:landscape)').matches;if(!land){drawCh();drawTicker();}drawLcd();}
 function saveHi(){if(G&&G.score>hi){hi=G.score;try{localStorage.setItem('lfotd-hi',hi);}catch(e){}}}
 
 /* ---------- gear: 9 slots x 30 items, four rarities, four sets, one saved inventory per hero ---------- */
@@ -1974,7 +1978,7 @@ function guidePages(){
     ['BOSSES','Mini-bosses cut to the Eerie Dance Loop; the final boss gets the anthem.'],
     ['VOLUME','SETTINGS on the title screen or pause menu. M mutes.']]},
   {t:'POCKET CONSOLE',c:'#ffc93c',items:[
-    ['ON A PHONE','Hold it upright and the game plays on a REWIND pocket TV: d-pad on the left, your hero and gear on the little LCD, SPEC over JUMP and HIT on the right, GEAR and START below. The channel is the stage. Sideways, the controls float over the picture.'],
+    ['ON A PHONE','Hold it upright and the game plays on a REWIND pocket TV: d-pad on the left, your hero and gear on the little LCD, SPEC over JUMP and HIT on the right, GEAR and START below. The channel is the stage. Sideways it becomes a wide set: d-pad and GEAR/START on the left, your LCD over the buttons on the right, nothing over the picture.'],
     ['STICK','The d-pad reads 8 directions, so diagonals work. SETTINGS > STICK swaps it for a joystick with a knob that follows your thumb.'],
     ['SKINS','SETTINGS > SKIN picks the case: Static Grey, VHS Black, Rental Red, Grape Soda, Slime Green, Mustard, Pool Teal, Late Night or a see-through Clear Case. It also colours the screen frame on a computer.']]},
   {t:'VERSION',c:'#d9a87c',items:[['THIS GAME',C.CORE_VERSION],['ROOM SERVER',NET.serverCore?(NET.serverCore===C.CORE_VERSION?NET.serverCore+' (matches)':NET.serverCore+' - out of date: redeploy the server'):'Join a room to check it.']]},
