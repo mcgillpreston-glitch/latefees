@@ -246,10 +246,12 @@ const hit=(p,a)=>!!p.in[a]&&!p.pin[a];
 const hasPow=(p,k)=>!!(p.pow&&p.pow.k===k);
 
 /* ---------- game setup ---------- */
+// Run stats per player, shown on the end screen.
+const newRS=()=>({k:0,bk:0,dd:0,dt:0,ld:0,cu:0,mc:0,lt:{c:0,r:0,u:0,s:0}});
 function mkPlayer(g,spec){
   const hero=HEROES[spec.hero]||HEROES[0];
   const p={slot:spec.slot,ch:hero,x:spec.x??g.cam+30,y:spec.y??(TOP+BOT)/2,z:0,vz:0,vx:0,face:1,hp:100,maxhp:100,lives:2,inv:120,state:'idle',timer:0,atk:null,comboN:0,comboW:0,
-    buffer:false,walk:0,moving:false,combo:0,comboT:0,sp:null,score:0,saved:0,pow:null,out:false,away:false,in:{},pin:{},st:null,look:{},gearHint:false};
+    buffer:false,walk:0,moving:false,combo:0,comboT:0,sp:null,score:0,saved:0,pow:null,out:false,away:false,in:{},pin:{},st:null,look:{},gearHint:false,rs:newRS()};
   setStats(p,spec.st,spec.look,true);return p;
 }
 function setStats(p,st,look,quiet){
@@ -268,7 +270,7 @@ const dif=g=>DIFF[g.diff]||DIFF.normal;
 const tempo=g=>{const t=dif(g).tempo;return t[0]+(t[1]-t[0])*((g.level||1)-1)/9;};
 function newGame(specs,stage,diff){
   const g={cam:0,lock:null,waveI:0,waves:[],queue:[],spawnT:0,maxAlive:3,enemies:[],proj:[],pid:0,pick:[],surv:[],
-    ps:[],score:0,saved:0,stop:0,go:0,banner:null,boss:null,winT:0,time:0,eid:0,att:0,bonus:0,ctT:0,status:'play',ev:[],kid:0,level:1,len:LEVEL_END,clearT:0,hmul:1,dmul:1,diff:DIFF[diff]?diff:'normal'};
+    ps:[],score:0,saved:0,stop:0,go:0,banner:null,boss:null,winT:0,time:0,eid:0,att:0,bonus:0,ctT:0,status:'play',ev:[],kid:0,level:1,len:LEVEL_END,clearT:0,hmul:1,dmul:1,diff:DIFF[diff]?diff:'normal',rs:{L0:clamp((stage|0)||1,1,NSTAGES),cleared:0,bosses:0}};
   (specs||[]).forEach((s,i)=>g.ps.push(mkPlayer(g,{...s,x:40+i*14,y:150+i*16})));
   g.ps.forEach(p=>{p.lives=dif(g).lives;p.conts=dif(g).conts;});
   loadLevel(g,clamp((stage|0)||1,1,NSTAGES),true);
@@ -313,7 +315,7 @@ function dropGear(g,x,y,luck,min,il){
 }
 function pickGear(g,p,k){
   const b=BASES[k.item.k],R=RAR[b.rar];
-  k.got=true;ev(g,{t:'loot',slot:p.slot,item:k.item,x:r1(k.x),y:r1(k.y)});
+  k.got=true;if(p.rs)p.rs.lt[b.rar]=(p.rs.lt[b.rar]||0)+1;ev(g,{t:'loot',slot:p.slot,item:k.item,x:r1(k.x),y:r1(k.y)});
   floatText(g,k.x,k.y,b.name,R.col,46);beep(g,b.rar==='c'?660:990,.08,'square',.04);
   if(!p.gearHint){p.gearHint=true;ev(g,{t:'gearhint',slot:p.slot});}
 }
@@ -344,15 +346,16 @@ function dmgEnemy(g,e,dmg,knock,dir,p){
     if(p.st.LEECH&&p.hp>0)p.hp=Math.min(p.maxhp,p.hp+dmg*p.st.LEECH/100);}
   if(EN[e.type].block&&!knock&&e.face===-dir&&(e.state==='walk'||e.state==='recover')){dmg*=.35;floatText(g,e.x,e.y,'BLOCKED','#3ad6c0',36);beep(g,900,.05,'square',.04);}
   dmg=Math.round(dmg);
-  e.hp-=dmg;e.flash=8;addScore(g,p,10);if(p){p.combo++;p.comboT=100;rumble(g,p.slot,EN[e.type].boss?.35:.2,45);}g.stop=3;
+  e.hp-=dmg;e.flash=8;addScore(g,p,10);if(p){p.combo++;p.comboT=100;if(p.rs){p.rs.dd+=dmg;if(p.combo>p.rs.mc)p.rs.mc=p.combo;}rumble(g,p.slot,EN[e.type].boss?.35:.2,45);}g.stop=3;
   sparks(g,e.x-dir*4,e.y,18+(EN[e.type].boss?12:0));beep(g,170+Math.random()*80,.08,'square',.06,.45);
   if(EN[e.type].boss){if(e.hp<=0&&e.state!=='dead')killBoss(g,e,p);return;}
   if(EN[e.type].armor&&e.state==='attack'&&e.hp>0&&!(p&&hasPow(p,'boombox')))return;
-  if(e.hp<=0||knock){e.state='down';e.vx=dir*2.8;e.vz=3.2;e.z=Math.max(e.z,.01);e.dying=e.hp<=0;if(e.dying)e.killer=p;e.timer=e.dying?70:46;e.face=-dir;
+  if(e.hp<=0||knock){e.state='down';e.vx=dir*2.8;e.vz=3.2;e.z=Math.max(e.z,.01);e.dying=e.hp<=0;if(e.dying){e.killer=p;if(p&&p.rs)p.rs.k++;}e.timer=e.dying?70:46;e.face=-dir;
     if(e.dying){const s=EN[e.type].score;addScore(g,p,s);floatText(g,e.x,e.y,'+'+s,p?PCOL[p.slot]:'#ffc93c');goo(g,e.x,e.y,16);}}
   else{e.state='hurt';e.timer=16;e.vx=dir*1.3;e.face=-dir;}
 }
 function killBoss(g,e,p){
+  if(g.rs)g.rs.bosses++;if(p&&p.rs){p.rs.bk++;p.rs.k++;}
   e.state='dead';e.timer=150;e.hp=0;
   {const luck=p&&p.st?p.st.LUCK:0,il=Math.min(10,(g.level||1)+3);dropGear(g,e.x-24,e.y,luck,'r',il);dropGear(g,e.x,e.y+6,luck,'u',il);dropGear(g,e.x+24,e.y,luck,'r',il);if(g.ps.length>2)dropGear(g,e.x,e.y-8,luck,'r',il);if(EN[e.type].final)dropGear(g,e.x,e.y-14,luck,'u',10);}
   addScore(g,p,EN[e.type].score);floatText(g,e.x,e.y,'+'+EN[e.type].score,'#ffc93c',70);g.queue=[];
@@ -361,7 +364,7 @@ function killBoss(g,e,p){
 }
 function hurtPlayer(g,p,dmg,dir,knock){
   if(p.out||p.inv>0||p.state==='down'||p.state==='special'||hasPow(p,'troll'))return false;
-  dmg=Math.max(1,Math.round(dmg*(1-(p.st?p.st.DEF:0)/100)));p.hp=Math.max(0,p.hp-dmg);shake(g,4);rumble(g,p.slot,knock||p.hp<=0?1:.7,knock?260:140);beep(g,110,.18,'sawtooth',.06,.5);p.atk=null;p.buffer=false;p.combo=0;
+  dmg=Math.max(1,Math.round(dmg*(1-(p.st?p.st.DEF:0)/100)));p.hp=Math.max(0,p.hp-dmg);if(p.rs)p.rs.dt+=dmg;shake(g,4);rumble(g,p.slot,knock||p.hp<=0?1:.7,knock?260:140);beep(g,110,.18,'sawtooth',.06,.5);p.atk=null;p.buffer=false;p.combo=0;
   sparks(g,p.x,p.y,18,6,['#ffffff','#ff7a5a']);
   if(p.hp<=0||knock){p.state='down';p.vx=dir*2.4;p.vz=3;p.z=Math.max(p.z,.01);p.timer=p.hp<=0?90:50;}
   else{p.state='hurt';p.timer=16;p.vx=dir*1.6;p.inv=24;}
@@ -369,12 +372,12 @@ function hurtPlayer(g,p,dmg,dir,knock){
 }
 function hurtAny(g,test,dmg,dir,knock){let any=false;for(const p of g.ps)if(!p.out&&test(p)&&hurtPlayer(g,p,dmg,typeof dir==='function'?dir(p):dir,knock))any=true;return any;}
 function loseLife(g,p){
-  p.z=0;p.vz=0;p.pow=null;
+  if(p.rs)p.rs.ld++;p.z=0;p.vz=0;p.pow=null;
   if(p.lives>0){p.lives--;p.hp=p.maxhp;p.state='idle';p.inv=150;floatText(g,p.x,p.y,'BACK FROM THE DEAD!',PCOL[p.slot],50);beep(g,330,.4,'triangle',.06,2);
     for(const e of g.enemies)if(!EN[e.type].boss&&!e.gone&&e.state!=='down'&&Math.abs(e.x-p.x)<130&&Math.abs(e.y-p.y)<40){e.state='down';e.vx=Math.sign(e.x-p.x||1)*3;e.vz=3;e.z=.01;e.timer=40;e.dying=false;}}
   else{p.out=true;p.state='idle';beep(g,200,.8,'sawtooth',.05,.3);}
 }
-function revive(g,p){if(!(p.conts>0))return;if(p.conts!==Infinity)p.conts--;p.out=false;p.lives=dif(g).lives;p.hp=p.maxhp;p.inv=150;p.state='idle';p.atk=null;p.x=g.cam+30;p.y=(TOP+BOT)/2;p.z=0;p.vz=0;
+function revive(g,p){if(!(p.conts>0))return;if(p.rs)p.rs.cu++;if(p.conts!==Infinity)p.conts--;p.out=false;p.lives=dif(g).lives;p.hp=p.maxhp;p.inv=150;p.state='idle';p.atk=null;p.x=g.cam+30;p.y=(TOP+BOT)/2;p.z=0;p.vz=0;
   floatText(g,p.x,p.y,'P'+(p.slot+1)+' IS BACK!',PCOL[p.slot],46);beep(g,523,.1);beep(g,784,.15,'square',.05,0,90);}
 function clampP(g,p){p.x=clamp(p.x,g.cam+10,g.cam+W-10);p.y=clamp(p.y,TOP,BOT);}
 function grav(o,gv=.26){if(o.z>0||o.vz>0){o.vz-=gv;o.z+=o.vz;if(o.z<=0){o.z=0;o.vz=0;return true;}}return false;}
@@ -531,7 +534,8 @@ function step(g){
     g.spawnT=0;g.maxAlive=(w.max||3)+n-1;g.go=0;if(w.finale)g.banner={txt:'FINAL WAVE',t:100};}
   if(w&&w.on){g.spawnT--;const alive=g.enemies.filter(e=>!e.gone).length;
     if(g.queue.length&&g.spawnT<=0&&alive<g.maxAlive){spawn(g,g.queue.shift());g.spawnT=Math.max(16,45-n*6-(g.level||1)*2);}
-    if(!g.queue.length&&alive===0){g.waveI++;g.lock=null;if(w.end)g.winT=Math.max(g.winT,1);else{g.go=180;beep(g,880,.08,'square',.04);}}}
+    // count again after spawning: the last monster of a wave (or a lone boss) may have just arrived
+    if(!g.queue.length&&!g.enemies.some(e=>!e.gone)){g.waveI++;g.lock=null;if(w.end)g.winT=Math.max(g.winT,1);else{g.go=180;beep(g,880,.08,'square',.04);}}}
   g.att=g.enemies.filter(e=>!e.gone&&(e.state==='windup'||e.state==='attack')).length;
   for(const e of g.enemies)if(!e.gone)updEnemy(g,e);
   g.enemies=g.enemies.filter(e=>!e.gone);
@@ -557,7 +561,7 @@ function step(g){
       sparks(g,s.x,s.y,20,10,['#3ad6c0','#ffffff','#ffc93c']);[523,659,784,1046].forEach((f,i)=>beep(g,f,.1,'square',.04,0,i*70));}}
   if(g.go>0)g.go--;if(g.banner&&g.banner.t>0)g.banner.t--;
   if(g.winT>0&&++g.winT>100){g.bonus=g.saved*1000;for(const p of g.ps){addScore(g,p,(p.lvSaved||0)*1000);p.lvSaved=0;}
-    g.status=g.level>=NSTAGES?'win':'clear';g.clearT=0;
+    if(g.rs)g.rs.cleared++;g.status=g.level>=NSTAGES?'win':'clear';g.clearT=0;
     [392,523,659,784,1046].forEach((f,i)=>beep(g,f,.18,'square',.05,0,i*120));}
   endTick(g);
 }
@@ -565,11 +569,11 @@ function endTick(g){for(const p of g.ps)p.pin={...p.in};}
 
 /* ---------- snapshots: what a client needs to draw the world ---------- */
 function snapshot(g){
-  return {df:g.diff,lv:g.level,cl:g.clearT,tm:g.time,cam:r1(g.cam),lock:g.lock,wi:g.waveI,sc:g.score,sv:g.saved,go:g.go,ban:g.banner&&g.banner.t>0?[g.banner.txt,g.banner.t]:0,st:g.status,ct:g.ctT,bn:g.bonus,
+  return {rs:g.status==='over'||g.status==='win'?g.rs:undefined,df:g.diff,lv:g.level,cl:g.clearT,tm:g.time,cam:r1(g.cam),lock:g.lock,wi:g.waveI,sc:g.score,sv:g.saved,go:g.go,ban:g.banner&&g.banner.t>0?[g.banner.txt,g.banner.t]:0,st:g.status,ct:g.ctT,bn:g.bonus,
     boss:g.boss&&!g.boss.gone?g.boss.id:-1,
     ps:g.ps.map(p=>({s:p.slot,h:HEROES.indexOf(p.ch),x:r1(p.x),y:r1(p.y),z:r1(p.z),f:p.face,hp:Math.round(p.hp),mh:p.maxhp,lv:p.lives,st:p.state,inv:p.inv,
       atk:p.atk?[p.atk.n,p.atk.t,p.atk.len,p.atk.air?1:0]:0,sp:p.sp?[p.sp.t,r1(p.sp.r)]:0,w:Math.round(p.walk),mv:p.moving?1:0,cb:p.combo,pw:p.pow?[p.pow.k,p.pow.t]:0,
-      out:p.out?1:0,cn:p.conts===Infinity?-1:p.conts,aw:p.away?1:0,sc:p.score,sav:p.saved,lk:p.look})),
+      out:p.out?1:0,cn:p.conts===Infinity?-1:p.conts,aw:p.away?1:0,sc:p.score,sav:p.saved,lk:p.look,rs:g.status==='over'||g.status==='win'?p.rs:undefined})),
     en:g.enemies.map(e=>({t:e.type,id:e.id,x:r1(e.x),y:r1(e.y),z:r1(e.z),f:e.face,hp:Math.round(e.hp),mx:e.max,st:e.state,tm:e.timer,w:Math.round(e.walk),fl:e.flash,dy:e.dying?1:0,tg:e.tgt?e.tgt.slot:-1})),
     pj:g.proj.map(q=>({id:q.id,k:q.kind,c:q.c||0,x:r1(q.x),y:r1(q.y),z:r1(q.z),vx:r1(q.vx)})),
     pk:g.pick.map(k=>({id:k.id,k:k.kind,x:r1(k.x),y:r1(k.y),t:k.t,it:k.item||0})),
@@ -579,13 +583,14 @@ function snapshot(g){
 function applySnapshot(g,s){
   if(!g)g={ps:[],enemies:[],proj:[],pick:[],surv:[],waves:[],ev:[],net:true};
   const L=s.lv||1;if(g.level!==L||!g.surv.length){g.level=L;g.len=levelLen(L);g.surv=survFor(L).map(q=>({...q,saved:false,fade:40,t:0}));}
+  if(s.rs)g.rs=s.rs;
   g.clearT=s.cl||0;g.diff=s.df||g.diff||'normal';
   Object.assign(g,{time:s.tm,cam:s.cam,lock:s.lock,waveI:s.wi,score:s.sc,saved:s.sv,go:s.go,banner:s.ban?{txt:s.ban[0],t:s.ban[1]}:null,status:s.st,ctT:s.ct,bonus:s.bn});
   const keep=(list,key,rows,make,upd)=>{const out=[];for(const r of rows){let o=list.find(q=>q[key]===r[key==='slot'?'s':'id']);if(!o)o=make(r);upd(o,r);out.push(o);}return out;};
   const tgt=(o,x,y,z)=>{if(o._nx===undefined){o.x=x;o.y=y;o.z=z;}else{o._fx=o.x;o._fy=o.y;o._fz=o.z;}o._nx=x;o._ny=y;o._nz=z;o._t0=g.now||0;};
   g.ps=keep(g.ps,'slot',s.ps,r=>({slot:r.s,in:{},pin:{},look:{},x:r.x,y:r.y,z:r.z}),(p,r)=>{p.ch=HEROES[r.h]||HEROES[0];tgt(p,r.x,r.y,r.z);p.face=r.f;p.hp=r.hp;p.maxhp=r.mh;p.lives=r.lv;p.state=r.st;p.inv=r.inv;
     p.atk=r.atk?{n:r.atk[0],t:r.atk[1],len:r.atk[2],air:!!r.atk[3]}:null;p.sp=r.sp?{t:r.sp[0],r:r.sp[1]}:null;p.walk=r.w;p.moving=!!r.mv;p.combo=r.cb;p.pow=r.pw?{k:r.pw[0],t:r.pw[1]}:null;
-    p.out=!!r.out;p.conts=r.cn===-1||r.cn==null?Infinity:r.cn;p.away=!!r.aw;p.score=r.sc;p.saved=r.sav;p.look=r.lk||{};});
+    p.out=!!r.out;p.conts=r.cn===-1||r.cn==null?Infinity:r.cn;p.away=!!r.aw;p.score=r.sc;p.saved=r.sav;p.look=r.lk||{};if(r.rs)p.rs=r.rs;});
   g.enemies=keep(g.enemies,'id',s.en,r=>({id:r.id,x:r.x,y:r.y,z:r.z}),(e,r)=>{e.type=r.t;tgt(e,r.x,r.y,r.z);e.face=r.f;e.hp=r.hp;e.max=r.mx;e.state=r.st;e.timer=r.tm;e.walk=r.w;e.flash=r.fl;e.dying=!!r.dy;e.r=(EN[r.t]&&EN[r.t].r)||0;
     e.tgt=r.tg>=0?g.ps.find(p=>p.slot===r.tg)||null:null;});
   g.proj=keep(g.proj,'id',s.pj,r=>({id:r.id,x:r.x,y:r.y,z:r.z}),(q,r)=>{q.kind=r.k;q.c=r.c||null;tgt(q,r.x,r.y,r.z);q.vx=r.vx;});

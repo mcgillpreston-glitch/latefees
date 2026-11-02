@@ -65,6 +65,13 @@ def main(key, folder, hue=None, same=False):
         print(f'{f:8s} {w}x{h} drawn at {drawn:.2f}x  rel {rel:.2f} ax {ax}  {os.path.getsize(out)//1024} KB')
     e = man.setdefault(key, {})
     e['frames'] = frames
+    base = os.path.join(folder, f'{key}.png')
+    if os.path.exists(base):   # standing image: full sprite height, feet anchored like the frames
+        im = load(base); k = OUT_H / im.height
+        im = im.resize((max(1, round(im.width * k)), OUT_H), Image.LANCZOS)
+        a = np.array(im)[..., 3] > 128; cols = np.where(a[int(OUT_H * .82):].any(0))[0]
+        im.save(os.path.join(ROOT, 'art', f'{key}.webp'), 'WEBP', quality=88, method=6)
+        e.update(src=f'art/{key}.webp', w=im.width, h=im.height, ax=int((cols.min() + cols.max()) / 2), hx=im.width // 2, hy=40, hs=72)
     if 'src' not in e:   # outfit sprites (e.g. dex_night) have no separate standing image: stand on walk1
         f0 = frames.get('walk1') or next(iter(frames.values()))
         e.update(src=f0['src'], w=f0['w'], h=f0['h'], ax=f0['ax'])

@@ -388,7 +388,8 @@ const TRACKS={
   intro:{src:'music/suspenseful-piano-intro.mp3',name:'SUSPENSEFUL PIANO INTRO'},
   disco:{src:'music/eerie-disco-groove.mp3',name:'EERIE DISCO GROOVE'},
   dance:{src:'music/eerie-dance-loop.mp3',name:'EERIE DANCE LOOP'},
-  // Smooth Sail FM 96.9: one yacht rock song per stage (stage 1 keeps the eerie disco until its song exists)
+  // Smooth Sail FM 96.9: one yacht rock song per stage
+  s1:{src:'music/yacht-01-cul-de-sac-sunset.mp3',name:'CUL-DE-SAC SUNSET'},
   s2:{src:'music/yacht-02-hall-pass-breeze.mp3',name:'HALL PASS BREEZE'},
   s3:{src:'music/yacht-03-lake-effect.mp3',name:'LAKE EFFECT'},
   s4:{src:'music/yacht-04-couples-skate.mp3',name:'COUPLES SKATE (FOREVER)'},
@@ -398,6 +399,7 @@ const TRACKS={
   s8:{src:'music/yacht-08-closed-for-the-season.mp3',name:'CLOSED FOR THE SEASON'},
   s9:{src:'music/yacht-09-we-interrupt.mp3',name:'WE INTERRUPT THIS BROADCAST'},
   s10:{src:'music/yacht-10-return-all-tapes.mp3',name:'RETURN ALL TAPES'},
+  end:{src:'music/end-chompin-slurpin.mp3',name:"CHOMPIN' SLURPIN'"},
 };
 const JINGLES=['music/jingle-1-wsmo.mp3','music/jingle-2-survival-tips.mp3','music/jingle-3-stay-smooth.mp3'];
 const STATION='SMOOTH SAIL FM 96.9';
@@ -406,6 +408,7 @@ function musEl(k){if(!MUS.el[k]){const a=new Audio(TRACKS[k].src);a.loop=true;a.
 const GAME_SCENES=new Set(['play','pause','inv','over','win']);
 function musicWant(){
   const inGame=GAME_SCENES.has(scene)||((scene==='controls'&&SET.from==='pause')||(scene==='sound'&&SOUND.from==='pause'));
+  if(G&&(scene==='over'||scene==='win'))return 'end';
   if(!inGame||!G)return 'intro';
   const L=G.level||1,song=TRACKS['s'+L]?'s'+L:null;
   // mini-bosses cut to the eerie loop; the final boss gets the stage's anthem
@@ -414,7 +417,7 @@ function musicWant(){
   return zoneAt(G.level||1,G.cam+W/2)>=LFCore.levelZones(G.level||1).length-1?'dance':'disco';
 }
 function musicTick(){
-  const want=musicWant(),menuDuck=scene!=='play'&&GAME_SCENES.has(scene)||scene==='controls'&&SET.from==='pause'||scene==='sound'&&SOUND.from==='pause';
+  const want=musicWant(),menuDuck=scene!=='play'&&scene!=='over'&&scene!=='win'&&GAME_SCENES.has(scene)||scene==='controls'&&SET.from==='pause'||scene==='sound'&&SOUND.from==='pause';
   const master=muted?0:SND.music/10*.7*(menuDuck?.5:1);
   radioTick(master);
   MUS.now=master>0?want:null;
@@ -1618,21 +1621,45 @@ function renderScene(){
     txt('STARTING IN '+Math.max(1,Math.ceil((300-(g.clearT||0))/60)),W/2,ry+150,'#b8261e','center',8,null);
     if(g.clearT>40)stamp('RETURNED',rx+rw-56,ry+98,'#1f9e8e',-.22,8);
     ctx.globalAlpha=1;}
-  if(scene==='over'){rect(0,0,W,H,'rgba(20,8,6,.8)');scanlines(.14);
-    txt('GAME OVER',W/2,46,'#e8453c','center',16,INK);tag('STAGE '+(g.level||1)+': '+LEVELS[(g.level||1)-1].name,W/2,72,'#ff9a3c',INK,'center');
-    txt('THE NEIGHBORS ARE ON THEIR OWN.',W/2,94,'#ffe9c2','center',8,INK);txt('TEAM SCORE '+g.score,W/2,110,'#ffc93c','center',8,INK);
-    if(g.level>1)txt('CONTINUE FROM THIS STAGE IN THE LOBBY',W/2,124,'#3ad6c0','center',8,INK);
-    stamp('OVERDUE',W/2,156,'#e8453c',-.12,16);
-    if(g.endT>60&&(T>>4)%2)txt(NET.on?'PRESS START: BACK TO ROOM':touchMode?'TAP START TO REWIND':'PRESS START TO REWIND',W/2,188,'#ffe9c2','center',8,INK);}
-  if(scene==='win'){rect(0,0,W,H,'rgba(20,8,6,.82)');
-    const rw=280,rx=W/2-rw/2,ry=12,rh=172;rect(rx+3,ry+3,rw,rh,'rgba(0,0,0,.5)');rect(rx,ry,rw,rh,PAPER);
-    for(let x=rx;x<rx+rw;x+=8){tri(x,ry,x+4,ry-4,x+8,ry,PAPER);tri(x,ry+rh,x+4,ry+rh+4,x+8,ry+rh,PAPER);}
-    txt('HOLLOW PINES IS SAFE',W/2,ry+8,'#1f7a3a','center',16,null);txt('THE COLLECTOR HAS BEEN PAID IN FULL.',W/2,ry+30,INK,'center',8,null);
-    g.ps.slice().sort((a,b)=>a.slot-b.slot).forEach((p,i)=>{const y=ry+48+i*12;txt('P'+(p.slot+1)+' '+p.ch.first+'  SAVED '+p.saved,rx+12,y,INK,'left',8,null);txt(String(p.score).padStart(7,'0'),rx+rw-12,y,INK,'right',8,null);});
-    const y=ry+56+g.ps.length*12;txt('NEIGHBORS SAVED '+g.ps.reduce((a,p)=>a+p.saved,0)+'/'+TOTAL_SURV,W/2,y,'#1f7a5a','center',8,null);txt('TEAM SCORE '+g.score,W/2,y+13,INK,'center',8,null);
-    if(g.score>=hi)txt('NEW HIGH SCORE!',W/2,y+26,'#b8261e','center',8,null);
-    stamp('PAID IN FULL',W/2+60,ry+rh-26,'#e8453c',-.16,8);
-    if(g.endT>60&&(T>>4)%2)txt(NET.on?'PRESS START: BACK TO ROOM':touchMode?'TAP START':'PRESS START TO PLAY AGAIN',W/2,H-14,'#ffe9c2','center',8,INK);}
+  if(scene==='over'||scene==='win')drawEndScreen(g,scene==='win');
+}
+
+/* End screen: the run's rental history. Same receipt for game over and for beating the game, with run stats. */
+function drawEndScreen(g,won){
+  const rs=g.rs||{L0:1,cleared:0,bosses:0},ps=g.ps.slice().sort((a,b)=>a.slot-b.slot);
+  rect(0,0,W,H,'rgba(20,8,6,.84)');if(!won)scanlines(.12);
+  const rx=6,ry=7,rw=W-12,rh=H-16;rect(rx+3,ry+3,rw,rh,'rgba(0,0,0,.5)');rect(rx,ry,rw,rh,PAPER);
+  for(let x=rx;x<rx+rw;x+=8){tri(x,ry,x+4,ry-4,x+8,ry,PAPER);tri(x,ry+rh,x+4,ry+rh+4,x+8,ry+rh,PAPER);}
+  const dash=y=>{for(let x=rx+8;x<rx+rw-8;x+=6)rect(x,y,3,1,'#8a6a4a');};
+  txt(won?'HOLLOW PINES IS SAFE':'GAME OVER',W/2,ry+5,won?'#1f7a3a':'#b8261e','center',16,null);
+  txt(won?'THE COLLECTOR HAS BEEN PAID IN FULL.':'THE NEIGHBORS ARE ON THEIR OWN.',W/2,ry+24,INK,'center',8,null);
+  dash(ry+35);
+  // run summary
+  const secs=Math.floor((g.time||0)/60),tm=Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');
+  const last=won?NSTAGES:(g.level||1);let tot=0;for(let L=rs.L0;L<=last;L++)tot+=LFCore.survFor(L).length;
+  const saved=ps.reduce((a,p)=>a+(p.saved||0),0),dn=(LFCore.DIFF[g.diff]||{}).name||'';
+  txt('TIME '+tm,rx+10,ry+41,INK,'left',8,null);txt((rs.L0===last?'STAGE '+last:'STAGES '+rs.L0+'-'+last)+'  '+dn,rx+rw-10,ry+41,INK,'right',8,null);
+  txt('BOSSES '+rs.bosses+'   SAVED '+saved+'/'+tot,rx+10,ry+52,INK,'left',8,null);txt('TEAM '+String(g.score).padStart(7,'0'),rx+rw-10,ry+52,'#b8261e','right',8,null);
+  dash(ry+64);
+  // per-player stats
+  const cols=[['SCORE',112],['KO',150],['DEALT',202],['HURT',248],['CMB',284],['DIED',322],['LOOT',362]];
+  cols.forEach(([h,x])=>txt(h,x,ry+70,'#7a4a2e','right',8,null));
+  const mvp=ps.length>1?ps.reduce((a,b)=>b.score>a.score?b:a):null;
+  ps.forEach((p,i)=>{const y=ry+82+i*12,r=p.rs||{},lt=r.lt||{},loot=(lt.c||0)+(lt.r||0)+(lt.u||0)+(lt.s||0);
+    rect(rx+8,y-1,4,9,PCOL[p.slot]);txt(p.ch.first,rx+15,y,INK,'left',8,null);
+    const v=[String(p.score).padStart(7,'0'),r.k||0,Math.round(r.dd||0),Math.round(r.dt||0),r.mc||0,r.ld||0,loot];
+    v.forEach((x,j)=>txt(String(x),cols[j][1],y,j===6&&(lt.u||lt.s)?'#b8426a':INK,'right',8,null));
+    if(p===mvp&&p.score>0){txt(p.ch.first,rx+15,y,'#b8261e','left',8,null);}});
+  const yb=ry+84+ps.length*12;dash(yb);
+  // loot summary + notes
+  const L=ps.reduce((a,p)=>{const lt=(p.rs||{}).lt||{};for(const k in lt)a[k]=(a[k]||0)+lt[k];return a;},{});
+  txt('LOOT',rx+10,yb+6,INK,'left',8,null);[['c','COMMON'],['r','RARE'],['u','ULTRA'],['s','SET']].forEach(([k,n],i)=>txt((L[k]||0)+' '+n,rx+60+i*76,yb+6,{c:'#7a4a2e',r:'#1f8a7a',u:'#c2306e',s:'#4a7a12'}[k],'left',8,null));
+  const cu=ps.reduce((a,p)=>a+((p.rs||{}).cu||0),0);txt('CONTINUES USED '+cu,rx+10,yb+18,INK,'left',8,null);
+  if(mvp&&mvp.score>0){const w=tag('MVP',W/2-36,yb+16,'#ffc93c');txt(mvp.ch.first,W/2-36+w+4,yb+18,'#b8261e','left',8,null);}
+  if(g.score>=hi&&g.score>0)txt('NEW HIGH SCORE!',rx+rw-10,yb+18,'#b8261e','right',8,null);
+  if(!won&&g.level>1)txt('PICK UP FROM STAGE '+g.level+' IN THE LOBBY',rx+10,yb+30,'#1f7a5a','left',8,null);
+  stamp(won?'PAID IN FULL':'OVERDUE',rx+rw-72,ry+rh-26,'#e8453c',-.14,won?8:16);
+  if(g.endT>60&&(T>>4)%2)txt(NET.on?'PRESS START: BACK TO ROOM':touchMode?'TAP START':won?'PRESS START TO PLAY AGAIN':'PRESS START TO REWIND',rx+10,ry+rh-14,'#b8261e','left',8,null);
 }
 
 /* ---------- loop ---------- */
