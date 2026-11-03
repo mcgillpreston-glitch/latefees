@@ -211,7 +211,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   </div>
 </div>
 
-<script src="art/manifest.js?v=2026.11.03-5"></script>
+<script src="art/manifest.js?v=2026.11.03-6"></script>
 <script src="game-core.js?v=2026.11.03-4"></script>
 <script>
 (()=>{
@@ -1293,7 +1293,7 @@ function update(){
 const ART=globalThis.LF_ART||{};
 const SPR={};
 // Bump ART_V whenever art files are replaced under the same names, so browsers fetch the new pictures.
-const ART_V='2026.11.03-5',AV=u=>u+'?v='+ART_V;
+const ART_V='2026.11.03-6',AV=u=>u+'?v='+ART_V;
 for(const k in ART){const m=ART[k],img=new Image();img.onload=()=>{SPR[k]={img,m,white:null};};img.src=AV(m.src);
   if(m.frames)for(const f in m.frames){const fm=m.frames[f],fi=new Image();fi.onload=()=>{SPR[k+':'+f]={img:fi,m:fm,white:null};};fi.src=AV(fm.src);}}
 const SPR_H={dex:50,rae:50,benny:50,julia:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
@@ -1628,7 +1628,7 @@ function clipX(a,b,cam,fn){const x0=Math.max(a,cam)-cam,x1=Math.min(b,cam+W)-cam
 const BGIMG={},BGTRY={};
 // Backdrops load on demand from art/bg-<zone>.webp; zones without a painting use a drawn fallback in that zone's colours.
 function bgImg(k){if(!BGTRY[k]){BGTRY[k]=1;const i=new Image();i.onload=()=>{BGIMG[k]=i;};i.onerror=()=>{BGTRY[k]=2;};i.src=AV('art/bg-'+k+'.webp');}return BGIMG[k]||null;}
-['suburb','mall','lot'].forEach(bgImg);
+['suburb','mall','lot'].forEach(bgImg);let BGPRE=0;
 const ZONES=LFCore.levelZones(1);
 function drawZoneImg(k,a,b,cam,x0,x1){
   const img=BGIMG[k],tw=img.width*H/img.height;
@@ -1718,6 +1718,8 @@ const SIGNS={'school-hall':'NO RUNNING','school-gym':'GO PINE CONES!','school-fi
   'crater-woods':'KEEP OUT','crater-hull':'???','crater-core':'RETURN ALL TAPES'};
 function drawStageBG(cam,L){
   const zs=LFCore.levelZones(L);
+  // fetch this stage's paintings (and the next stage's) up front, so no area shows the fallback while its picture loads
+  if(BGPRE!==L){BGPRE=L;for(const z of zs)bgImg(z[0]);if(L<NSTAGES)for(const z of LFCore.levelZones(L+1))bgImg(z[0]);}
   for(const [k,a,b,pal] of zs){const x0=Math.max(a,cam)-cam,x1=Math.min(b,cam+W)-cam;if(x1<=x0)continue;
     ctx.save();ctx.beginPath();ctx.rect(x0,0,x1-x0,H);ctx.clip();
     if(bgImg(k))drawZoneImg(k,a,b,cam,x0,x1);else drawPalZone(k,a,b,pal||{k:'outdoor',sky:'#1a0a2a',wall:'#45221a',acc:'#ffc93c',f1:'#5e3426',f2:'#522e20'},cam);
