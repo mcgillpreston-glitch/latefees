@@ -1,7 +1,8 @@
 """Build clothing masks so equipped gear can recolour the heroes' painted clothes.
 
-For each hero frame (base image + animation frames) this writes art/mask/<sprite>.webp:
-a strip of 4 alpha masks side by side (top, inner, pants, shoes), each the size of the frame.
+For each hero this writes one atlas, art/mask/<hero>.webp: every frame (base image + animation
+frames) as a strip of 4 alpha masks side by side (top, inner, pants, shoes), each the size of the
+frame, stacked top to bottom. The row offsets go into art/manifest.js as <hero>.mask.y[frame].
   top   = outer upper-body garment (recoloured by the jacket, or the shirt if no jacket)
   inner = under layer, only where a hero visibly has one (recoloured by the shirt)
   pants = recoloured by pants
@@ -144,21 +145,35 @@ def sprites():
 def main():
     prev = sys.argv[sys.argv.index('--preview') + 1] if '--preview' in sys.argv else None
     os.makedirs(os.path.join(ROOT, 'art', 'mask'), exist_ok=True)
+    man_path = os.path.join(ROOT, 'art', 'manifest.js')
+    man_src = open(man_path).read()
+    man = json.loads(re.search(r'LF_ART=(\{.*\});', man_src, re.S).group(1))
     tiles = {}
+    strips = {}
     for hero, f, src in sprites():
         im = np.array(Image.open(os.path.join(ROOT, src)).convert('RGBA'))
         m = masks_for(hero, im, f or 'idle')
         h, w = im.shape[:2]
-        strip = np.zeros((h, w * 4, 4), np.uint8); strip[..., :3] = 255
+        strip = np.zeros((h, w * 4), np.uint8)
         for i, k in enumerate(['top', 'inner', 'pants', 'shoes']):
-            strip[:, i * w:(i + 1) * w, 3] = m[k] * 255
-        name = hero + (('_' + f) if f else '')
-        Image.fromarray(strip).save(os.path.join(ROOT, 'art', 'mask', name + '.webp'), 'WEBP', lossless=True)
+            strip[:, i * w:(i + 1) * w] = m[k] * 255
+        strips.setdefault(hero, []).append((f, strip))
         if prev:
             vis = im.copy().astype(np.float32)
             for k, c in zip(['top', 'inner', 'pants', 'shoes'], [(255, 40, 40), (255, 230, 0), (40, 120, 255), (40, 255, 80)]):
                 vis[m[k], :3] = vis[m[k], :3] * .35 + np.array(c) * .65
             tiles.setdefault(hero, []).append(Image.fromarray(vis.astype(np.uint8)))
+    for hero, rows in strips.items():
+        W = max(st.shape[1] for _, st in rows); H = sum(st.shape[0] for _, st in rows)
+        atlas = np.zeros((H, W, 4), np.uint8); atlas[..., :3] = 255
+        ys = {}; y = 0
+        for f, st in rows:
+            atlas[y:y + st.shape[0], :st.shape[1], 3] = st; ys[f] = y; y += st.shape[0]
+        out = os.path.join(ROOT, 'art', 'mask', hero + '.webp')
+        Image.fromarray(atlas).save(out, 'WEBP', lossless=True)
+        man[hero]['mask'] = {'src': 'art/mask/%s.webp' % hero, 'y': ys}
+        print('%-6s mask atlas %dx%d, %d frames, %d KB' % (hero, W, H, len(rows), os.path.getsize(out) // 1024))
+    open(man_path, 'w').write(man_src[:man_src.index('globalThis.LF_ART=')] + 'globalThis.LF_ART=' + json.dumps(man) + ';\n')
     if prev:
         rows = list(tiles.values()); tw, th = 180, 270
         sheet = Image.new('RGBA', (tw * 10, th * len(rows)), (50, 30, 25, 255))
