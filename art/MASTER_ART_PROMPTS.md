@@ -203,11 +203,11 @@ WHEN I SAY "make the zip" (use your Python tool): save each image as PNG named e
 
 ## Chat 6: the 270 item icons
 
-Use `art/MASTER_ITEM_PROMPT.md` as written: three chats (A hats and glasses, B shirts/jackets/pants/shoes, C belts/bracelets/rings), each a set of 6-per-sheet grids with a zip at the end. Grids are fine for icons because each item only needs to be ~170 px to read well at bag size. Hats and glasses are the ones to do first: they're drawn on the heroes' heads in every frame.
+Use `art/MASTER_ITEM_PROMPT.md` as written: three chats (A hats and glasses, B shirts/jackets/pants/shoes, C belts/bracelets/rings), each a set of 6-per-sheet grids with a zip at the end. Grids are fine for icons because each item only needs to be ~170 px to read well at bag size. The item lists in that file are generated from the game's data, with each item's exact colour code.
 
 ---
 
 **When the zips reach me:**
 - **Monsters and bosses:** I run the cut-out cleaner (it now drops any sliver of a neighbouring figure), even out the pose sizes, and wire them in; bosses also use their special pose for the ground-pound. Each takes a few minutes.
 - **Backgrounds:** I convert them, line the floor up with where the heroes walk, and each stage switches from its drawn stand-in to the painted scenes with the same crossfades Maple Court uses.
-- **Items:** I add the icon loader (the game doesn't have one yet; the bag and loot use drawn shapes), then hats and glasses appear on the heroes and every item gets its icon in the bag and on the ground.
+- **Items:** I add the icon loader (the game doesn't have one yet; the bag and loot use drawn shapes), then every item gets its icon in the bag, on the ground, in loot messages and on the phone's gear LCD.
