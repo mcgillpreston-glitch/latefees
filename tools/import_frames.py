@@ -23,9 +23,27 @@ FRAMES = ['walk1', 'walk2', 'walk3', 'walk4', 'attack1', 'attack2', 'attack3', '
 REF_ORDER = ['walk1', 'walk2', 'hurt', 'attack1']
 OUT_H = 360  # pixel height a standing frame is exported at (matches the base sprites)
 
+def clear_pockets(arr):
+    """Knock out flat white pockets enclosed inside the figure (background between an arm and the body that the
+    edge-connected cutout missed). Drawn whites have print grain, so only small, textureless blobs go."""
+    from scipy import ndimage
+    rgb = arr[..., :3].astype(int); a = arr[..., 3]; fig = int((a > 100).sum())
+    white = (a > 200) & (rgb.min(axis=2) >= 238) & ((rgb.max(axis=2) - rgb.min(axis=2)) <= 9)
+    lab, n = ndimage.label(white); hole = np.zeros(a.shape, bool)
+    for i in range(1, n + 1):
+        m = lab == i; sz = int(m.sum())
+        if sz < 40 or sz > fig * .05 or rgb[m].std() >= 4.0: continue
+        hole |= m
+    if hole.any():
+        arr = arr.copy(); arr[hole, 3] = 0
+        rim = cv2.dilate(hole.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool) & ~hole & (rgb.min(axis=2) >= 215)
+        arr[rim, 3] = (arr[rim, 3] * .45).astype(np.uint8)
+    return arr
+
 def load(path):
-    im = Image.open(path).convert('RGBA')
-    a = np.array(im)[..., 3]
+    arr = clear_pockets(np.array(Image.open(path).convert('RGBA')))
+    im = Image.fromarray(arr)
+    a = arr[..., 3]
     ys, xs = np.where(a > 40)
     return im.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
 

@@ -211,7 +211,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   </div>
 </div>
 
-<script src="art/manifest.js?v=2026.11.03-1"></script>
+<script src="art/manifest.js?v=2026.11.03-2"></script>
 <script src="game-core.js?v=2026.11.02-5"></script>
 <script>
 (()=>{
@@ -1208,7 +1208,7 @@ function update(){
 const ART=globalThis.LF_ART||{};
 const SPR={};
 // Bump ART_V whenever art files are replaced under the same names, so browsers fetch the new pictures.
-const ART_V='2026.11.03-1',AV=u=>u+'?v='+ART_V;
+const ART_V='2026.11.03-2',AV=u=>u+'?v='+ART_V;
 for(const k in ART){const m=ART[k],img=new Image();img.onload=()=>{SPR[k]={img,m,white:null};};img.src=AV(m.src);
   if(m.frames)for(const f in m.frames){const fm=m.frames[f],fi=new Image();fi.onload=()=>{SPR[k+':'+f]={img:fi,m:fm,white:null};};fi.src=AV(fm.src);}}
 const SPR_H={dex:50,rae:50,benny:50,julia:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
