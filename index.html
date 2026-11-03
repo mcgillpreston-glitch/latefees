@@ -211,7 +211,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   </div>
 </div>
 
-<script src="art/manifest.js?v=2026.11.03-3"></script>
+<script src="art/manifest.js?v=2026.11.03-4"></script>
 <script src="game-core.js?v=2026.11.02-5"></script>
 <script>
 (()=>{
@@ -1208,7 +1208,7 @@ function update(){
 const ART=globalThis.LF_ART||{};
 const SPR={};
 // Bump ART_V whenever art files are replaced under the same names, so browsers fetch the new pictures.
-const ART_V='2026.11.03-3',AV=u=>u+'?v='+ART_V;
+const ART_V='2026.11.03-4',AV=u=>u+'?v='+ART_V;
 for(const k in ART){const m=ART[k],img=new Image();img.onload=()=>{SPR[k]={img,m,white:null};};img.src=AV(m.src);
   if(m.frames)for(const f in m.frames){const fm=m.frames[f],fi=new Image();fi.onload=()=>{SPR[k+':'+f]={img:fi,m:fm,white:null};};fi.src=AV(fm.src);}}
 const SPR_H={dex:50,rae:50,benny:50,julia:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
@@ -1245,6 +1245,8 @@ function drawSpr(key,o,frame){
 }
 function drawPortrait(id,x,y,size){const s=SPR[id];if(!s)return false;const m=s.m,hs=m.hs;
   ctx.drawImage(s.img,clamp(m.hx-hs/2,0,m.w-hs),clamp(m.hy-hs/2,0,m.h-hs),hs,hs,x,y,size,size);return true;}
+// a 4-step walk: contact, passing, the other contact, the other passing (walk3/walk4 are the passing steps)
+const WALK4=['walk1','walk3','walk2','walk4'];
 function heroSprite(id,pose){
   const H=pose.h||SPR_H[id]||50,lk=pose.gear||null,o={h:H};let f=null,sk=id;
   // a worn set with outfit art replaces the stock look entirely; otherwise equipped colours tint the stock clothes
@@ -1254,8 +1256,10 @@ function heroSprite(id,pose){
     if(pose.getup>0&&has('getup1')){f=pose.getup>1&&has('getup2')?'getup2':'getup1';o.rot=-.08;}
     else{o.lying=true;if(pose.spin)o.rot=pose.spin;f='down';}
     if(pose.sq)squash(o,pose.sq);return drawSpr(sk,o,f);}
-  if(pose.walk){const ph=Math.sin(pose.walk*.28);o.oy=-Math.abs(ph)*H*.05;o.rot=ph*.04;
-    if(has('walk3')&&has('walk4')){const i=Math.floor((pose.walk*.14/Math.PI)%1*4+4)%4;f='walk'+(i+1);}else f=ph>0?'walk1':'walk2';}
+  if(pose.walk){const ph=Math.sin(pose.walk*.28),w4=has('walk3')&&has('walk4');o.rot=ph*.04;
+    // the body rides highest on the passing steps (walk3/walk4), lowest on the contacts, so the bob is phased to the frames
+    o.oy=-Math.abs(w4?Math.sin(pose.walk*.28-Math.PI/4):ph)*H*.05;
+    if(w4){const i=Math.floor((pose.walk*.14/Math.PI)%1*4+4)%4;f=WALK4[i];}else f=ph>0?'walk1':'walk2';}
   else o.sy=1+Math.sin(T*.08)*.012;
   if(pose.air){o.sx=.96;o.sy=1.04;f='jump';const vz=pose.vz||0;if(vz<-1.2&&has('jump3'))f='jump3';else if(Math.abs(vz)<=1.2&&has('jump2'))f='jump2';
     if(pose.kick){o.rot=.3;f='kick';}}
@@ -1285,9 +1289,9 @@ function heroSprite(id,pose){
 function enemySprite(e){
   const H=sprH0(e.type),o={h:H},st=e.state,w=e.walk||0;let f=null;
   if(st==='down'){o.lying=true;f='down';}
-  else if(st==='walk'){const k=e.type==='sh'||e.type==='mummy'?.18:e.type==='gremlin'?.35:.25,ph=Math.sin(w*k);
-    o.oy=-Math.abs(ph)*H*(e.type==='gremlin'?.08:.035);o.rot=ph*(e.type==='sh'?.08:.04);
-    if(SPR[e.type+':walk3']&&SPR[e.type+':walk4']){const i=Math.floor((w*k/Math.PI/2)%1*4+4)%4;f='walk'+(i+1);}else f=ph>0?'walk1':'walk2';}
+  else if(st==='walk'){const k=e.type==='sh'||e.type==='mummy'?.18:e.type==='gremlin'?.35:.25,ph=Math.sin(w*k),w4=!!(SPR[e.type+':walk3']&&SPR[e.type+':walk4']);
+    o.oy=-Math.abs(w4?Math.sin(w*k-Math.PI/4):ph)*H*(e.type==='gremlin'?.08:.035);o.rot=ph*(e.type==='sh'?.08:.04);
+    if(w4){const i=Math.floor((w*k/Math.PI/2)%1*4+4)%4;f=WALK4[i];}else f=ph>0?'walk1':'walk2';}
   else if(st==='windup'){o.rot=-.12;o.ox=(T%4<2?-1:1)-H*.03;o.sx=.96;o.sy=1.03;f='attack1';}
   else if(st==='attack'){o.rot=.18;o.ox=H*.08;o.sx=1.04;f='attack2';const d=EN[e.type];if(d&&d.atk&&e.timer<d.atk*.45&&SPR[e.type+':attack3'])f='attack3';
     if(e.type==='chainsaw'){o.ox+=T%2?1:-1;o.oy=T%2?-1:0;}}
