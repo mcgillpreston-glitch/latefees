@@ -212,7 +212,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 </div>
 
 <script src="art/manifest.js?v=2026.11.03-5"></script>
-<script src="game-core.js?v=2026.11.03-2"></script>
+<script src="game-core.js?v=2026.11.03-3"></script>
 <script>
 (()=>{
 const {W,H,TOP,BOT,LEVEL_END,LEVELS,NSTAGES}=LFCore;
@@ -1079,7 +1079,7 @@ function netMsg(d){
     // motion stays smooth through jitter instead of freezing and jumping (never more than 150ms behind).
     if(NET.lastSnap){const gap=G.now-NET.lastSnap;NET.gaps.push(Math.min(gap,400));if(NET.gaps.length>40)NET.gaps.shift();
       if(NET.gaps.length>=10){const srt=[...NET.gaps].sort((a,b)=>a-b),p90=srt[Math.floor(srt.length*.9)];const want=clamp(p90,34,150);NET.snapMs+=(want-NET.snapMs)*.2;}}
-    C.applySnapshot(G,snap);NET.lastSnap=G.now;predReconcile(snap);predShow(G,true);
+    netUnahead(G);C.applySnapshot(G,snap);NET.lastSnap=G.now;netVel(G);predReconcile(snap);predShow(G,true);
     const me=G.ps.find(p=>p.slot===NET.slot);if(me)me.dev=NET.dev;
     if(d.ev&&d.ev.length)drainEvents(NET.pred?d.ev.filter(e=>e.p!==NET.slot):d.ev);   // your own swing/jump sounds already played
     if((scene==='intro'&&introT>60)||scene==='nlobby')scene='play';
@@ -1099,7 +1099,7 @@ function netTick(){
   let bits=0;if(!blocked)for(const a in BITS)if(held(d,a)||hit(d,a))bits|=BITS[a];
   // one entry per tick, numbered; sent two at a time. The room plays them in order and says which one it last used.
   NET.seq++;NET.inq.push({s:NET.seq,b:bits});if(NET.inq.length>240)NET.inq.shift();
-  NET.out.push(bits);if(NET.out.length>=2){netSend({t:'in',s:NET.seq-NET.out.length+1,b:NET.out,h:bits,p:NET.out.reduce((x,y)=>x|y,0)});NET.out=[];}   // h/p: what an older room server reads
+  NET.out.push(bits);if(NET.out.length>=2){const vw=netView();netSend({t:'in',s:NET.seq-NET.out.length+1,b:NET.out,v:vw.v,l:vw.l,h:bits,p:NET.out.reduce((x,y)=>x|y,0)});NET.out=[];}   // h/p: what an older room server reads
   predStep(bits,true);
   if(++NET.pingT>=120){NET.pingT=0;NET.pingN++;NET.pingAt=performance.now();netSend({t:'ping',n:NET.pingN});}
 }
@@ -1132,6 +1132,31 @@ function predReconcile(snap){
   // what you saw a moment ago vs. the corrected version: carry the gap and let it melt away
   if(vis){NET.off.x=vis.x-p.x;NET.off.y=vis.y-p.y;if(Math.hypot(NET.off.x,NET.off.y)>40)NET.off.x=NET.off.y=0;}
 }
+/* What this screen is showing, in room ticks: the interpolated picture trails the latest snapshot (v), and walking
+   characters are drawn ahead of it by l ticks to where they most likely are by now. Sent with inputs so the room
+   can judge your hits against this picture. */
+function netView(){
+  if(!G||!NET.lastSnap)return {v:null,l:0};const now=performance.now(),a=Math.min(1,(now-NET.lastSnap)/NET.snapMs);
+  const lagMs=NET.rtt/2+(now-NET.lastSnap)+(1-a)*NET.snapMs;
+  return {v:+(G.time-(1-a)*2).toFixed(2),l:+clamp(lagMs/16.67,0,9).toFixed(2)};
+}
+// Remember each character's motion between snapshots (per room tick) so walking can be drawn ahead.
+function netVel(g){
+  const one=o=>{const walking=o.state==='walk'||(o.moving&&o.state==='idle'&&!o.atk&&!o.sp&&!(o.z>0));
+    if(o._ptm!=null&&g.time>o._ptm&&walking&&o._pw){const k=1/(g.time-o._ptm),vx=(o._nx-o._px)*k,vy=(o._ny-o._py)*k;
+      o._vx=o._vx==null?vx:o._vx*.5+vx*.5;o._vy=o._vy==null?vy:o._vy*.5+vy*.5;}else{o._vx=0;o._vy=0;}
+    o._px=o._nx;o._py=o._ny;o._ptm=g.time;o._pw=walking;};
+  for(const e of g.enemies)one(e);for(const p of g.ps)if(p.slot!==NET.slot)one(p);
+}
+function netAhead(g){
+  if(NET.noAhead)return;const l=netView().l;
+  const one=o=>{const on=(o._vx||o._vy)?1:0;o._lk=(o._lk||0)+(on-(o._lk||0))*.25;o._ax=o._ay=0;if(o._lk<.01){o._lx=o._ly=0;return;}
+    const tx=clamp((o._vx||0)*l*o._lk,-12,12),ty=clamp((o._vy||0)*l*o._lk,-6,6);   // ease toward the target lead: no wobble when a walker turns
+    o._lx=(o._lx||0)+clamp(tx-(o._lx||0),-.35,.35);o._ly=(o._ly||0)+clamp(ty-(o._ly||0),-.25,.25);o._ax=o._lx;o._ay=o._ly;o.x+=o._ax;o.y+=o._ay;};
+  for(const e of g.enemies)if(!e.dying&&e.state!=='down')one(e);for(const p of g.ps)if(p.slot!==NET.slot)one(p);
+}
+// Take the drawn-ahead offset back off before a new snapshot, so smoothing starts from the real picture.
+function netUnahead(g){const un=o=>{if(o._ax||o._ay){o.x-=o._ax||0;o.y-=o._ay||0;o._ax=o._ay=0;}};for(const e of g.enemies)un(e);for(const p of g.ps)un(p);}
 function predShow(g,hold){
   const p=NET.pred,me=p&&g.ps.find(q=>q.slot===NET.slot);if(!me)return;
   for(const k of PRED_KEYS)me[k]=p[k];
@@ -1901,7 +1926,7 @@ function renderScene(){
   if(scene==='join')return drawJoin();
   if(scene==='nlobby')return drawNLobby();
   if(scene==='intro')return drawIntro();
-  const g=G;if(!g)return;if(NET.on){C.interpolate(g,performance.now(),NET.snapMs);predShow(g);}
+  const g=G;if(!g)return;if(NET.on){C.interpolate(g,performance.now(),NET.snapMs);netAhead(g);predShow(g);}
   ctx.save();if(shakeV>.5)ctx.translate(Math.round((Math.random()-.5)*shakeV),Math.round((Math.random()-.5)*shakeV));
   drawBG(g.cam);drawWorld();ctx.restore();drawHUD();
   if(scene==='pause'){rect(0,0,W,H,'rgba(20,8,6,.62)');scanlines(.16);const lost=g.ps.find(p=>p.lostPad);

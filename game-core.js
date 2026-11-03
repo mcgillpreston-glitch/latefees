@@ -345,13 +345,24 @@ function dropBack(g,p,item){
   floatText(g,p.x,p.y-30,'BAG FULL','#ff7a5a',40);return true;}
 function endSp(p){p.state='idle';p.sp=null;}
 function canHit(e){if(e.gone||(e.state==='down'&&!(e.z>3&&(e.juggle||0)<3)))return false;if(EN[e.type].boss)return e.state!=='intro'&&e.state!=='dead'&&e.z<30;return true;}
+/* Lag compensation: online, a player swings at monsters as their screen showed them. The room keeps a short
+   history of monster positions; a player's inputs carry the tick their screen was showing (v) and how far ahead
+   their phone drew walking monsters (l). Hits are judged against that picture, never more than 9 ticks (150ms)
+   back, and only for the player's own strikes; monsters hitting players always use the present. */
+function seen(g,p,e){
+  if(!g.hist||p.view==null)return e;
+  const now=g.time-1,base=clamp(Math.round(p.view),now-9,now);if(base>=now&&!p.lead)return e;
+  const h0=g.hist.find(h=>h.t===base),r0=h0&&h0.m.get(e.id);if(!r0)return e;
+  if(r0[3]&&p.lead){const h1=g.hist.find(h=>h.t===Math.min(now,base+Math.round(p.lead))),r1=h1&&h1.m.get(e.id);if(r1)return {x:r1[0],y:r1[1],z:r1[2]};}
+  return {x:r0[0],y:r0[1],z:r0[2]};
+}
 function strike(g,p,reach,dmg,knock,hits){
-  for(const e of g.enemies){if(!canHit(e)||hits.has(e))continue;const er=e.r||0,dx=(e.x-p.x)*p.face,dy=Math.abs(e.y-p.y);
-    if(dx>-6-er&&dx<reach+er&&dy<11+er*.5&&Math.abs(e.z-p.z)<(p.z>0?36:20)){hits.add(e);dmgEnemy(g,e,dmg,knock,p.face,p);}}
+  for(const e of g.enemies){if(!canHit(e)||hits.has(e))continue;const q=seen(g,p,e),er=e.r||0,dx=(q.x-p.x)*p.face,dy=Math.abs(q.y-p.y);
+    if(dx>-6-er&&dx<reach+er&&dy<11+er*.5&&Math.abs(q.z-p.z)<(p.z>0?36:20)){hits.add(e);dmgEnemy(g,e,dmg,knock,p.face,p);}}
 }
 function strikeR(g,p,rad,dmg,hits){
-  for(const e of g.enemies){if(!canHit(e)||hits.has(e))continue;const er=e.r||0,dx=e.x-p.x,dy=(e.y-p.y)*2;
-    if(dx*dx+dy*dy<(rad+er)*(rad+er)&&Math.abs(e.z-p.z)<30){hits.add(e);dmgEnemy(g,e,dmg,true,Math.sign(dx)||p.face,p);}}
+  for(const e of g.enemies){if(!canHit(e)||hits.has(e))continue;const q=seen(g,p,e),er=e.r||0,dx=q.x-p.x,dy=(q.y-p.y)*2;
+    if(dx*dx+dy*dy<(rad+er)*(rad+er)&&Math.abs(q.z-p.z)<30){hits.add(e);dmgEnemy(g,e,dmg,true,Math.sign(dx)||p.face,p);}}
 }
 function dmgEnemy(g,e,dmg,knock,dir,p){
   if(p&&hasPow(p,'boombox')){dmg*=2;knock=true;part(g,e.x,e.y,30,'#ff9a3c',{vx:rnd(-.5,.5),vy:0,vz:.8,l:30,s:3,gv:0});}
@@ -575,6 +586,7 @@ function step(g){
   g.att=g.enemies.filter(e=>!e.gone&&(e.state==='windup'||e.state==='attack')).length;
   for(const e of g.enemies)if(!e.gone)updEnemy(g,e);
   g.enemies=g.enemies.filter(e=>!e.gone);
+  if(g.lagc){(g.hist=g.hist||[]).push({t:g.time,m:new Map(g.enemies.map(e=>[e.id,[e.x,e.y,e.z,e.state==='walk'?1:0]]))});if(g.hist.length>12)g.hist.shift();}
   for(const q of g.proj){q.x+=q.vx;q.y+=q.vy;q.life--;
     if(q.from==='e'){if(hurtAny(g,p=>Math.abs(q.x-p.x)<9&&Math.abs(q.y-p.y)<8&&p.z<22,q.dmg,Math.sign(q.vx)||1,false))q.life=0;}
     else for(const e of g.enemies){const er=e.r||0;if(q.life>0&&canHit(e)&&!q.hits.has(e)&&Math.abs(e.x-q.x)<12+er&&Math.abs(e.y-q.y)<12+er*.5){
@@ -691,7 +703,7 @@ function interpolate(g,now,ms){
 }
 
 // Bump on every change to the rules so the website can tell when a room server is out of date.
-const CORE_VERSION='2026.11.03-2';
+const CORE_VERSION='2026.11.03-3';
 const LFCore={CORE_VERSION,W,H,TOP,BOT,LEVEL_END,PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,DIFF,DIFFS,LEVELS,NSTAGES,levelZones,levelLen,genWaves,loadLevel,survFor,
   CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,calcStatsFor,gearLookFor,cleanStats,cleanLook,bonusTxt,
   clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,dropBack,step,snapshot,applySnapshot,interpolate,hasPow,active,updPlayer,snapDiff,snapPatch};

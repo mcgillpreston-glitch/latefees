@@ -210,7 +210,8 @@ export class Room {
         // back the last one it used, so the client can replay the rest on top of the server's state.
         if (Array.isArray(d.b)) {
           const s0 = d.s | 0;
-          for (let i = 0; i < d.b.length && i < 8; i++) p.q.push({ s: s0 + i, b: d.b[i] | 0 });
+          const v = typeof d.v === "number" ? d.v : null, l = typeof d.l === "number" ? Math.max(0, Math.min(9, d.l)) : 0;
+          for (let i = 0; i < d.b.length && i < 8; i++) p.q.push({ s: s0 + i, b: d.b[i] | 0, v, l });
           while (p.q.length > 8) p.q.shift();
         } else { p.held = d.h | 0; p.pressed |= d.p | 0; }
         break;
@@ -263,7 +264,7 @@ export class Room {
       let bits;
       if (p.q.length || p.ack) {
         while (p.q.length > 4) p.q.shift();          // client running ahead of the room: drop the oldest instead of lagging
-        if (p.q.length) { const e = p.q.shift(); bits = e.b; p.ack = e.s; p.last = e.b; } else bits = p.last;
+        if (p.q.length) { const e = p.q.shift(); bits = e.b; p.ack = e.s; p.last = e.b; if (e.v != null) { gp.view = e.v; gp.lead = e.l; } } else bits = p.last;
         gp.ack = p.ack;
       } else bits = p.held | p.pressed;
       const o = {};
@@ -297,7 +298,7 @@ export class Room {
 
   startGame() {
     const specs = [...this.players].filter(([, p]) => p.ws).map(([slot, p]) => ({ slot, hero: p.hero, st: p.st, look: p.look }));
-    this.G = C.newGame(specs, this.stage, this.diff);
+    this.G = C.newGame(specs, this.stage, this.diff); this.G.lagc = true;
     this.status = "play"; this.count = 0; this.tick = 0; this.evBuf = []; this.prevSnap = null;
     this.startAt = Date.now() + START_DELAY_MS;
     for (const p of this.players.values()) { p.held = 0; p.pressed = 0; p.q = []; p.ack = 0; p.last = 0; p.full = true; }
