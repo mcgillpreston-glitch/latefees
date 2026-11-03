@@ -211,7 +211,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   </div>
 </div>
 
-<script src="art/manifest.js?v=2026.11.03-6"></script>
+<script src="art/manifest.js?v=2026.11.03-7"></script>
 <script src="game-core.js?v=2026.11.03-4"></script>
 <script>
 (()=>{
@@ -677,7 +677,7 @@ function drawLcd(){
     else rect(4,48,32,3,'#0b0e0b');
     const g=GEAR[v.id];CATS.forEach((cat,i)=>{const x=3+(i%3)*12,y=53+Math.floor(i/3)*10.5,it=g&&g.eq[cat];
       rect(x,y,11,10,it?'#0e120e':'#121712');ctx.save();ctx.translate(x+.5,y);ctx.scale(.62,.62);
-      if(it)drawIcon(cat,BASES[it.k].col,0,0);else{ctx.globalAlpha=.28;iconShape(cat,'#9fb39a',0,0,true);ctx.globalAlpha=1;}ctx.restore();});
+      if(it)drawIcon(cat,BASES[it.k].col,0,0,it.k,17);else{ctx.globalAlpha=.28;iconShape(cat,'#9fb39a',0,0,true);ctx.globalAlpha=1;}ctx.restore();});
     ctx.setTransform(1,0,0,1,0,0);});
 }
 // VCR readout: the famous unset clock plus a scrolling line of run stats, station info and records.
@@ -772,7 +772,14 @@ function iconShape(cat,c,x,y,mono){
   else if(cat==='bracelet'){ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x+8,y+8,5,4,0,0,Math.PI*2);ctx.stroke();rect(x+7,y+3,3,2,gold);rect(x+3,y+8,1,1,lt);}
   else if(cat==='ring'){ctx.strokeStyle=gold;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+8,y+10,4,0,Math.PI*2);ctx.stroke();rect(x+6,y+2,5,5,c);rect(x+7,y+3,2,1,lt);}
 }
-function drawIcon(cat,c,x,y){iconShape(cat,'#2b150f',x+1,y+1,true);iconShape(cat,'#2b150f',x-1,y,true);iconShape(cat,'#2b150f',x,y-1,true);iconShape(cat,c,x,y,false);}
+/* Item icons: art/icons-<slot>.webp holds the slot's 30 illustrated icons in a 6x5 grid of 96px cells, item index i
+   at column i%6, row i//6 (tools/import_items.py). Until a sheet loads, the drawn shape stands in. */
+const ICONS={},ICON_CELL=96;let iconsAsked=false;
+function iconSheet(cat){if(!iconsAsked){iconsAsked=true;CATS.forEach(c=>{const i=new Image();i.onload=()=>{ICONS[c]=i;};i.src=AV('art/icons-'+c+'.webp');});}return ICONS[cat];}
+function drawIcon(cat,c,x,y,k,sz=16){
+  const sh=k&&iconSheet(cat);
+  if(sh){const n=+k.slice(cat.length)||0,o=(16-sz)/2;ctx.drawImage(sh,(n%6)*ICON_CELL,Math.floor(n/6)*ICON_CELL,ICON_CELL,ICON_CELL,x+o,y+o,sz,sz);return;}
+  iconShape(cat,'#2b150f',x+1,y+1,true);iconShape(cat,'#2b150f',x-1,y,true);iconShape(cat,'#2b150f',x,y-1,true);iconShape(cat,c,x,y,false);}
 
 /* ---------- inventory screen ---------- */
 const INV={p:null,from:'play',zone:'bag',c:0,r:0,scrap:null};
@@ -814,7 +821,7 @@ function invCell(x,y,item,cat,sel,col){
   const R=item?RAR[BASES[item.k].rar]:null;
   rect(x,y,18,18,'#241008');if(R){rect(x+1,y+1,16,16,R.col+'26');}
   ctx.strokeStyle=sel?((T>>3)%2?'#ffffff':col):R?R.col:'#7a3f26';ctx.lineWidth=sel?2:1;ctx.strokeRect(x+.5,y+.5,17,17);
-  if(item)drawIcon(BASES[item.k].cat,BASES[item.k].col,x+1,y+1);
+  if(item)drawIcon(BASES[item.k].cat,BASES[item.k].col,x+1,y+1,item.k);
   else if(cat==='sort'){tri(x+5,y+8,x+9,y+3,x+13,y+8,'#d9a87c');tri(x+5,y+10,x+13,y+10,x+9,y+15,'#d9a87c');}
   else if(cat){ctx.globalAlpha=.55;iconShape(cat,'#b8865a',x+1,y+1,true);ctx.globalAlpha=1;}
 }
@@ -1293,7 +1300,7 @@ function update(){
 const ART=globalThis.LF_ART||{};
 const SPR={};
 // Bump ART_V whenever art files are replaced under the same names, so browsers fetch the new pictures.
-const ART_V='2026.11.03-6',AV=u=>u+'?v='+ART_V;
+const ART_V='2026.11.03-7',AV=u=>u+'?v='+ART_V;
 for(const k in ART){const m=ART[k],img=new Image();img.onload=()=>{SPR[k]={img,m,white:null};};img.src=AV(m.src);
   if(m.frames)for(const f in m.frames){const fm=m.frames[f],fi=new Image();fi.onload=()=>{SPR[k+':'+f]={img:fi,m:fm,white:null};};fi.src=AV(fm.src);}}
 const SPR_H={dex:50,rae:50,benny:50,julia:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
@@ -1610,7 +1617,7 @@ function drawPick(k){
   if(k.kind==='gear'){const b=BASES[k.item.k],R=RAR[b.rar];
     if(b.rar!=='c'){const top=k.y-(b.rar==='r'?46:70),gr=ctx.createLinearGradient(0,top,0,k.y);gr.addColorStop(0,R.col+'00');gr.addColorStop(1,R.col+'b0');
       ctx.globalAlpha=.6+Math.sin(k.t*.1)*.25;ctx.fillStyle=gr;ctx.fillRect(sx-1,top,3,k.y-top);ctx.globalAlpha=1;}
-    ell(sx,Math.round(k.y),8,2.5,R.col+'55');drawIcon(b.cat,b.col,sx-8,sy-10);
+    ell(sx,Math.round(k.y),8,2.5,R.col+'55');drawIcon(b.cat,b.col,sx-8,sy-10,k.item.k,19);
     if(b.rar!=='c'||G.ps.some(p=>!p.out&&Math.abs(p.x-k.x)<40&&Math.abs(p.y-k.y)<24)){const w=b.name.length*8+6,lx=clamp(sx,w/2+2,W-w/2-2);
       rect(lx-w/2,sy-24,w,11,'rgba(40,16,10,.8)');txt(b.name,lx,sy-22,R.col,'center',8,null);}
     return;}
