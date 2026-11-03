@@ -28,11 +28,11 @@ def clear_pockets(arr):
     edge-connected cutout missed). Drawn whites have print grain, so only small, textureless blobs go."""
     from scipy import ndimage
     rgb = arr[..., :3].astype(int); a = arr[..., 3]; fig = int((a > 100).sum())
-    white = (a > 200) & (rgb.min(axis=2) >= 238) & ((rgb.max(axis=2) - rgb.min(axis=2)) <= 9)
+    white = (a > 200) & (rgb.min(axis=2) >= 232) & ((rgb.max(axis=2) - rgb.min(axis=2)) <= 10)
     lab, n = ndimage.label(white); hole = np.zeros(a.shape, bool)
     for i in range(1, n + 1):
         m = lab == i; sz = int(m.sum())
-        if sz < 40 or sz > fig * .05 or rgb[m].std() >= 4.0: continue
+        if sz < 40 or sz > fig * .10 or rgb[m].std() >= 4.0: continue
         hole |= m
     if hole.any():
         arr = arr.copy(); arr[hole, 3] = 0
