@@ -212,7 +212,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 </div>
 
 <script src="art/manifest.js?v=2026.11.03-5"></script>
-<script src="game-core.js?v=2026.11.03-1"></script>
+<script src="game-core.js?v=2026.11.03-2"></script>
 <script>
 (()=>{
 const {W,H,TOP,BOT,LEVEL_END,LEVELS,NSTAGES}=LFCore;
@@ -1026,8 +1026,8 @@ function updateFX(){
 }
 
 /* ---------- online: rooms on a Cloudflare Durable Object ---------- */
-const NET={on:false,ws:null,code:'',slot:-1,token:null,dev:'kb1',lobby:null,snapMs:50,lastSnap:0,err:'',busy:false,held:0,sendT:0,cur:0,codeIn:['A','A','A','A'],col:0,ready:false,gone:false,tries:0,
-  rtt:0,pingT:0,pingAt:0,pingN:0,gaps:[],lead:{x:0,y:0}};
+const NET={on:false,ws:null,code:'',slot:-1,token:null,dev:'kb1',lobby:null,snapMs:40,lastSnap:0,err:'',busy:false,held:0,sendT:0,cur:0,codeIn:['A','A','A','A'],col:0,ready:false,gone:false,tries:0,
+  rtt:0,pingT:0,pingAt:0,pingN:0,gaps:[],seq:0,inq:[],out:[],ackBits:0,pred:null,off:{x:0,y:0},snap:null};
 const serverEl=document.getElementById('server');
 const DEFAULT_SERVER='https://latefees.prestonmcgill.workers.dev';
 try{serverEl.value=localStorage.getItem('lfotd-server')||DEFAULT_SERVER;}catch(e){serverEl.value=DEFAULT_SERVER;}
@@ -1068,16 +1068,20 @@ function netMsg(d){
     if(scene==='online'||scene==='join')scene='nlobby';break;
   case 'lobby':NET.lobby=d;if(scene==='play'||scene==='pause'||scene==='inv'||scene==='over'||scene==='win'||scene==='intro'){if(d.status==='lobby'){scene='nlobby';G=null;}}
     else if(scene==='nlobby'&&d.status!=='lobby'){scene='play';toast('JOINED A GAME IN PROGRESS','#3ad6c0');}break;
-  case 'start':G=null;FX.parts=[];FX.texts=[];shakeV=0;scene='intro';introT=0;NET.ready=false;break;
-  case 'snap':{if(!G)G={ps:[],enemies:[],proj:[],pick:[],surv:[],waves:[],ev:[],net:true,endT:0};
+  case 'start':G=null;NET.snap=null;NET.pred=null;NET.inq=[];NET.out=[];FX.parts=[];FX.texts=[];shakeV=0;scene='intro';introT=0;NET.ready=false;break;
+  case 'snap':{
+    let snap=d.s;
+    if(!snap){if(!NET.snap)break;try{snap=C.snapPatch(NET.snap,d.d);}catch(e){NET.snap=null;netSend({t:'full'});break;}}   // a delta: patch the last one
+    NET.snap=snap;
+    if(!G)G={ps:[],enemies:[],proj:[],pick:[],surv:[],waves:[],ev:[],net:true,endT:0};
     G.now=performance.now();
     // Snapshots come every 50ms; on a phone network they bunch up. Interpolate over the 90th-percentile gap so
     // motion stays smooth through jitter instead of freezing and jumping (never more than 150ms behind).
     if(NET.lastSnap){const gap=G.now-NET.lastSnap;NET.gaps.push(Math.min(gap,400));if(NET.gaps.length>40)NET.gaps.shift();
-      if(NET.gaps.length>=10){const srt=[...NET.gaps].sort((a,b)=>a-b),p90=srt[Math.floor(srt.length*.9)];const want=clamp(p90,50,150);NET.snapMs+=(want-NET.snapMs)*.2;}}
-    C.applySnapshot(G,d.s);NET.lastSnap=G.now;
+      if(NET.gaps.length>=10){const srt=[...NET.gaps].sort((a,b)=>a-b),p90=srt[Math.floor(srt.length*.9)];const want=clamp(p90,34,150);NET.snapMs+=(want-NET.snapMs)*.2;}}
+    C.applySnapshot(G,snap);NET.lastSnap=G.now;predReconcile(snap);predShow(G,true);
     const me=G.ps.find(p=>p.slot===NET.slot);if(me)me.dev=NET.dev;
-    if(d.ev&&d.ev.length)drainEvents(d.ev);
+    if(d.ev&&d.ev.length)drainEvents(NET.pred?d.ev.filter(e=>e.p!==NET.slot):d.ev);   // your own swing/jump sounds already played
     if((scene==='intro'&&introT>60)||scene==='nlobby')scene='play';
     stageProgress();
     if(G.status==='over'&&scene!=='over'){scene='over';G.endT=0;saveHi();}
@@ -1092,24 +1096,47 @@ function netMsg(d){
 function netTick(){
   if(!NET.ws||NET.ws.readyState!==1||NET.slot<0)return;
   const d=NET.dev,blocked=scene==='pause'||scene==='inv'||scene==='controls';
-  let h=0,p=0;if(!blocked)for(const a in BITS){if(held(d,a))h|=BITS[a];if(hit(d,a))p|=BITS[a];}
-  NET.sendT++;
-  if(p||h!==NET.held||NET.sendT>=30){netSend({t:'in',h,p});NET.held=h;NET.sendT=0;}
+  let bits=0;if(!blocked)for(const a in BITS)if(held(d,a)||hit(d,a))bits|=BITS[a];
+  // one entry per tick, numbered; sent two at a time. The room plays them in order and says which one it last used.
+  NET.seq++;NET.inq.push({s:NET.seq,b:bits});if(NET.inq.length>240)NET.inq.shift();
+  NET.out.push(bits);if(NET.out.length>=2){netSend({t:'in',s:NET.seq-NET.out.length+1,b:NET.out,h:bits,p:NET.out.reduce((x,y)=>x|y,0)});NET.out=[];}   // h/p: what an older room server reads
+  predStep(bits,true);
   if(++NET.pingT>=120){NET.pingT=0;NET.pingN++;NET.pingAt=performance.now();netSend({t:'ping',n:NET.pingN});}
 }
-// Your own hero answers the stick at once: while the server catches up, the picture leads the last snapshot by the
-// distance you'd cover in one round trip, and eases back to the real position when you stop. Walking only; swings,
-// jumps and hits still wait for the server, which decides them.
-function netLead(g){
-  const me=g.ps.find(p=>p.slot===NET.slot),L=NET.lead;if(!me)return;
-  const can=scene==='play'&&!me.out&&!me.away&&me.state==='idle'&&!me.atk&&!me.sp&&me.z<=0&&NET.ws;
-  const d=NET.dev,mx=can?(held(d,'right')?1:0)-(held(d,'left')?1:0):0,my=can?(held(d,'down')?1:0)-(held(d,'up')?1:0):0;
-  const sp=me.ch.spd*(1+((me.st&&me.st.SPD)||0)/100)*(C.hasPow(me,'jolt')?1.45:1),ms=Math.min(220,NET.rtt*.5+25+NET.snapMs);
-  const tx=mx*sp*ms/16.7,ty=my*sp*.62*ms/16.7;
-  L.x+=clamp(tx-L.x,-sp,sp);L.y+=clamp(ty-L.y,-sp*.62,sp*.62);
-  if(!can&&Math.abs(L.x)<.01&&Math.abs(L.y)<.01){L.x=L.y=0;return;}
-  me.x=clamp(me.x+L.x,g.cam+10,g.cam+W-10);me.y=clamp(me.y+L.y,C.TOP,C.BOT);if(mx)me.face=mx;
-  if((mx||my)&&!me.moving){me.moving=true;me.walk+=1;}   // start the walk cycle now; the server's own count takes over once it moves
+/* Your own hero runs on your phone. Every tick it steps the same updPlayer the room runs, against a world with no
+   monsters in it: moves, jumps, swings and specials start the instant you press. Whether a swing hits, and what
+   it does, is still the room's call. Each snapshot says which input the room last used; the phone resets your hero
+   to the room's version and replays the newer inputs on top, then eases away any difference so nothing jumps. */
+const PRED_KEYS=['x','y','z','vz','vx','face','state','timer','atk','sp','walk','moving','hs','buffer','comboN','comboW'];
+const toIn=b=>{const o={};for(const a in BITS)o[a]=!!(b&BITS[a]);return o;};
+function predWorld(){return {enemies:[],proj:[],pick:[],ev:[],cam:G.cam,time:G.time,pid:0,kid:0,level:G.level,diff:G.diff,ps:[]};}
+function predStep(bits,live){
+  const p=NET.pred;if(!p||!G)return;
+  const w=predWorld();p.pin=p.in;p.in=toIn(bits);
+  if(!p.out&&(G.status==='play'||G.status==='clear'))C.updPlayer(w,p);
+  if(live)for(const e of w.ev)if(e.t==='beep'&&e.p===NET.slot)beep(e.f,e.d,e.ty,e.v,e.sl);
+}
+function predReconcile(snap){
+  const r=snap.ps.find(q=>q.s===NET.slot),me=G.ps.find(q=>q.slot===NET.slot);
+  if(!r||!me||r.ak==null||r.out||r.aw){NET.pred=null;return;}   // an older room server, or nothing to predict
+  const old=NET.pred,vis=old?{x:old.x+NET.off.x,y:old.y+NET.off.y}:null;
+  const acked=NET.inq.find(e=>e.s===r.ak);if(acked)NET.ackBits=acked.b;
+  NET.inq=NET.inq.filter(e=>e.s>r.ak);
+  const h=me.ch,a=r.atk;
+  const p={slot:NET.slot,ch:h,x:r.x,y:r.y,z:r.z,vz:r.vz||0,vx:r.vx||0,face:r.f,state:r.st,timer:r.tm||0,hs:r.hs||0,inv:r.inv,hp:r.hp,maxhp:r.mh,lives:r.lv,
+    atk:a?{n:a[0],t:a[1],len:a[2],air:!!a[3],reach:h.reach+(a[0]===3?4:0),dmg:a[0]===3?Math.round(h.dmg*1.6):h.dmg,hits:new Set(Array.from({length:a[4]||0},(_,i)=>i))}:null,
+    sp:r.sp?{t:r.sp[0],r:r.sp[1],hits:new Set()}:null,walk:r.w,moving:!!r.mv,combo:r.cb,comboT:0,comboN:r.cN||0,comboW:r.cW||0,buffer:!!r.bf,
+    pow:r.pw?{k:r.pw[0],t:r.pw[1]}:null,st:calcStats(h.id),out:false,away:false,rs:null,in:toIn(NET.ackBits),pin:{},look:me.look};
+  NET.pred=p;
+  for(const e of NET.inq)predStep(e.b,false);
+  // what you saw a moment ago vs. the corrected version: carry the gap and let it melt away
+  if(vis){NET.off.x=vis.x-p.x;NET.off.y=vis.y-p.y;if(Math.hypot(NET.off.x,NET.off.y)>40)NET.off.x=NET.off.y=0;}
+}
+function predShow(g,hold){
+  const p=NET.pred,me=p&&g.ps.find(q=>q.slot===NET.slot);if(!me)return;
+  for(const k of PRED_KEYS)me[k]=p[k];
+  me.x=p.x+NET.off.x;me.y=p.y+NET.off.y;me._nx=undefined;if(hold)return;
+  NET.off.x*=.82;NET.off.y*=.82;if(Math.abs(NET.off.x)<.05)NET.off.x=0;if(Math.abs(NET.off.y)<.05)NET.off.y=0;
 }
 function updOnline(){
   if(NET.busy){if(menuHit('back')){netLeave(true);}return;}
@@ -1874,7 +1901,7 @@ function renderScene(){
   if(scene==='join')return drawJoin();
   if(scene==='nlobby')return drawNLobby();
   if(scene==='intro')return drawIntro();
-  const g=G;if(!g)return;if(NET.on){C.interpolate(g,performance.now(),NET.snapMs);netLead(g);}
+  const g=G;if(!g)return;if(NET.on){C.interpolate(g,performance.now(),NET.snapMs);predShow(g);}
   ctx.save();if(shakeV>.5)ctx.translate(Math.round((Math.random()-.5)*shakeV),Math.round((Math.random()-.5)*shakeV));
   drawBG(g.cam);drawWorld();ctx.restore();drawHUD();
   if(scene==='pause'){rect(0,0,W,H,'rgba(20,8,6,.62)');scanlines(.16);const lost=g.ps.find(p=>p.lostPad);

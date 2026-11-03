@@ -239,6 +239,7 @@ const goo=(g,x,y,z,n=8)=>ev(g,{t:'fx',k:'goo',x:r1(x),y:r1(y),z:r1(z),n});
 const smoke=(g,x,y,z)=>ev(g,{t:'fx',k:'smoke',x:r1(x),y:r1(y),z:r1(z)});
 const part=(g,x,y,z,c,o)=>ev(g,{t:'fx',k:'part',x:r1(x),y:r1(y),z:r1(z),c,...o});
 const shake=(g,v)=>ev(g,{t:'shake',v});
+const pbeep=(g,p,...a)=>{beep(g,...a);g.ev[g.ev.length-1].p=p.slot;};   // a sound the player's own button press makes
 const r1=v=>Math.round(v*10)/10;
 
 /* ---------- input: each player carries in/pin (this tick, last tick) ---------- */
@@ -329,11 +330,11 @@ function pickGear(g,p,k){
 /* ---------- players ---------- */
 function startAtk(g,p,n){const h=p.ch,base=h.atk+(n===3?6:0);
   p.atk={n,t:0,len:Math.round(base*(hasPow(p,'jolt')?.65:1)),reach:h.reach+(n===3?4:0),dmg:n===3?Math.round(h.dmg*1.6):h.dmg,hits:new Set(),air:false};
-  p.buffer=false;beep(g,n===3?520:420,.06,'triangle',.04,.6);
+  p.buffer=false;pbeep(g,p,n===3?520:420,.06,'triangle',.04,.6);
   if(hasPow(p,'pog'))g.proj.push({id:++g.pid,from:'p',owner:p,x:p.x+p.face*10,y:p.y,z:16,vx:p.face*4.4,vy:0,dmg:6,life:70,hits:new Set(),kind:'pog'});}
 function trySpecial(g,p){
   const cost=hasPow(p,'beeper')?0:Math.round(p.ch.cost*(1-(p.st?p.st.SPC:0)/100));
-  if(p.hp>cost){p.hp-=cost;p.state='special';p.sp={t:0,hits:new Set(),r:0};p.inv=Math.max(p.inv,40);p.atk=null;beep(g,220,.3,'sawtooth',.05,3);}
+  if(p.hp>cost){p.hp-=cost;p.state='special';p.sp={t:0,hits:new Set(),r:0};p.inv=Math.max(p.inv,40);p.atk=null;pbeep(g,p,220,.3,'sawtooth',.05,3);}
   else floatText(g,p.x,p.y,'TOO HURT!','#ff7a5a',44);
 }
 // A client whose bag filled up before the room server heard about it hands a just-looted item back: it goes back on the ground.
@@ -424,7 +425,7 @@ function updPlayer(g,p){
     if(hit(p,'atk')&&pr>.3)p.buffer=true;
     if(hit(p,'spec')){p.atk=null;trySpecial(g,p);return;}
     // a hit that connected can be cancelled out of: jump away, or chain the next swing early
-    if(a.hits.size&&pr>.55&&hit(p,'jump')){p.atk=null;p.vz=4.2;p.z=.01;beep(g,300,.1,'square',.03,2);clampP(g,p);return;}
+    if(a.hits.size&&pr>.55&&hit(p,'jump')){p.atk=null;p.vz=4.2;p.z=.01;pbeep(g,p,300,.1,'square',.03,2);clampP(g,p);return;}
     const done=a.t>=a.len||(a.hits.size&&a.n<3&&p.buffer&&pr>=.7);
     if(done){p.atk=null;if(a.n<3){p.comboN=a.n;p.comboW=16;}else{p.comboN=0;p.comboW=0;}
       if(p.buffer&&a.n<3)startAtk(g,p,a.n+1);p.buffer=false;}
@@ -435,10 +436,10 @@ function updPlayer(g,p){
   if(hasPow(p,'jolt')&&p.moving&&g.time%3===0)part(g,p.x-p.face*6,p.y,rnd(4,24),'#ff4a3c',{vx:-p.face,vy:0,vz:0,l:8,s:2,gv:0});
   if(air){
     if(p.atk&&p.atk.air)strike(g,p,22,h.dmg+3,true,p.atk.hits);
-    else if(hit(p,'atk')){p.atk={air:true,hits:new Set(),n:0,t:0,len:1};beep(g,380,.08,'triangle',.04,.6);}
+    else if(hit(p,'atk')){p.atk={air:true,hits:new Set(),n:0,t:0,len:1};pbeep(g,p,380,.08,'triangle',.04,.6);}
     if(grav(p))p.atk=null;
   }else{
-    if(hit(p,'jump')){p.vz=4.2;p.z=.01;beep(g,300,.1,'square',.03,2);}
+    if(hit(p,'jump')){p.vz=4.2;p.z=.01;pbeep(g,p,300,.1,'square',.03,2);}
     else if(hit(p,'spec'))trySpecial(g,p);
     else if(hit(p,'atk'))startAtk(g,p,p.comboW>0?p.comboN+1:1);
   }
@@ -620,12 +621,42 @@ function pickTick(g,act){
 }
 function endTick(g){for(const p of g.ps)p.pin={...p.in};}
 
+/* ---------- snapshot deltas ----------
+   The server sends a full snapshot once, then only what changed. Lists of things with an id (players, monsters,
+   shots, pickups) are matched by id; anything else that changed is sent whole. Both sides run on plain JSON copies. */
+const NOCHG={};
+const listKey=v=>Array.isArray(v)&&v.length&&v[0]&&typeof v[0]==='object'&&!Array.isArray(v[0])?('id' in v[0]?'id':'s' in v[0]?'s':null):null;
+function snapDiff(a,b){
+  if(a===b)return NOCHG;
+  if(Array.isArray(b)){
+    const key=listKey(b)||listKey(a);
+    if(key&&Array.isArray(a)){const m=new Map(a.map(o=>[o[key],o]));let same=a.length===b.length;
+      const l=b.map((o,i)=>{const old=m.get(o[key]);if(!old){same=false;return {$n:o};}if(a[i]!==old)same=false;const d=snapDiff(old,o);if(d===NOCHG)return o[key];same=false;return {$k:o[key],...d};});
+      return same?NOCHG:{$l:l,$key:key};}
+    return JSON.stringify(a)===JSON.stringify(b)?NOCHG:b;}
+  if(b&&typeof b==='object'){
+    if(!a||typeof a!=='object'||Array.isArray(a))return b;
+    const o={};let n=0;for(const k in b){const d=snapDiff(a[k],b[k]);if(d!==NOCHG){o[k]=d;n++;}}
+    const del=Object.keys(a).filter(k=>!(k in b));if(del.length){o.$x=del;n++;}
+    return n?o:NOCHG;}
+  return b;
+}
+function snapPatch(a,d){
+  if(!d||typeof d!=='object'||Array.isArray(d))return d;
+  if('$l' in d){const key=d.$key,m=new Map((a||[]).map(o=>[o[key],o]));
+    return d.$l.map(e=>{if(e===null||typeof e!=='object'){const o=m.get(e);if(!o)throw new Error('snapshot base missing '+e);return o;}
+      if('$n' in e)return e.$n;const o=m.get(e.$k);if(!o)throw new Error('snapshot base missing '+e.$k);return snapPatch(o,e);});}
+  if(!a||typeof a!=='object'||Array.isArray(a))return d;
+  const o={...a};for(const k in d){if(k==='$x'||k==='$k')continue;o[k]=snapPatch(a[k],d[k]);}
+  if(d.$x)for(const k of d.$x)delete o[k];return o;
+}
+
 /* ---------- snapshots: what a client needs to draw the world ---------- */
 function snapshot(g){
   return {rs:g.status==='over'||g.status==='win'?g.rs:undefined,df:g.diff,lv:g.level,cl:g.clearT,gl:g.grabLen||300,fin:g.final?1:0,tm:g.time,cam:r1(g.cam),lock:g.lock,wi:g.waveI,sc:g.score,sv:g.saved,go:g.go,ban:g.banner&&g.banner.t>0?[g.banner.txt,g.banner.t]:0,st:g.status,ct:g.ctT,bn:g.bonus,
     boss:g.boss&&!g.boss.gone?g.boss.id:-1,
     ps:g.ps.map(p=>({s:p.slot,h:HEROES.indexOf(p.ch),x:r1(p.x),y:r1(p.y),z:r1(p.z),f:p.face,hp:Math.round(p.hp),mh:p.maxhp,lv:p.lives,st:p.state,inv:p.inv,hs:p.hs||0,tm:p.timer|0,vz:r1(p.vz||0),
-      atk:p.atk?[p.atk.n,p.atk.t,p.atk.len,p.atk.air?1:0]:0,sp:p.sp?[p.sp.t,r1(p.sp.r)]:0,w:Math.round(p.walk),mv:p.moving?1:0,cb:p.combo,pw:p.pow?[p.pow.k,p.pow.t]:0,
+      atk:p.atk?[p.atk.n,p.atk.t,p.atk.len,p.atk.air?1:0,p.atk.hits.size]:0,vx:r1(p.vx||0),cN:p.comboN||0,cW:p.comboW||0,bf:p.buffer?1:0,ak:p.ack,sp:p.sp?[p.sp.t,r1(p.sp.r)]:0,w:Math.round(p.walk),mv:p.moving?1:0,cb:p.combo,pw:p.pow?[p.pow.k,p.pow.t]:0,
       out:p.out?1:0,cn:p.conts===Infinity?-1:p.conts,aw:p.away?1:0,sc:p.score,sav:p.saved,lk:p.look,rs:g.status==='over'||g.status==='win'?p.rs:undefined})),
     en:g.enemies.map(e=>({t:e.type,id:e.id,x:r1(e.x),y:r1(e.y),z:r1(e.z),f:e.face,hp:Math.round(e.hp),mx:e.max,st:e.state,tm:e.timer,w:Math.round(e.walk),fl:e.flash,dy:e.dying?1:0,tg:e.tgt?e.tgt.slot:-1,hs:e.hs||0,vz:r1(e.vz||0)})),
     pj:g.proj.map(q=>({id:q.id,k:q.kind,c:q.c||0,x:r1(q.x),y:r1(q.y),z:r1(q.z),vx:r1(q.vx)})),
@@ -660,9 +691,9 @@ function interpolate(g,now,ms){
 }
 
 // Bump on every change to the rules so the website can tell when a room server is out of date.
-const CORE_VERSION='2026.11.03-1';
+const CORE_VERSION='2026.11.03-2';
 const LFCore={CORE_VERSION,W,H,TOP,BOT,LEVEL_END,PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,DIFF,DIFFS,LEVELS,NSTAGES,levelZones,levelLen,genWaves,loadLevel,survFor,
   CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,calcStatsFor,gearLookFor,cleanStats,cleanLook,bonusTxt,
-  clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,dropBack,step,snapshot,applySnapshot,interpolate,hasPow,active};
+  clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,dropBack,step,snapshot,applySnapshot,interpolate,hasPow,active,updPlayer,snapDiff,snapPatch};
 globalThis.LFCore=LFCore;
 })();

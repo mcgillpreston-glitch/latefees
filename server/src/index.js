@@ -6,7 +6,7 @@ const C = globalThis.LFCore;
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const TICK_MS = 1000 / 60;
-const SNAP_EVERY = 3;          // 20 snapshots a second
+const SNAP_EVERY = 2;          // 30 snapshots a second (deltas after the first, so it costs less than 20 full ones did)
 const AWAY_MS = 15_000;        // a dropped player keeps their slot this long, then the game goes on without them
 const LOBBY_COUNT = 180;       // ticks of countdown once everyone is ready
 const START_DELAY_MS = 3000;   // intro text on the clients
@@ -117,7 +117,7 @@ export class Room {
     for (const [slot, p] of this.players) {
       if (d.token && p.token === d.token) {
         if (p.ws && p.ws !== ws) { try { p.ws.close(1000, "replaced"); } catch {} }
-        p.ws = ws; p.away = false; p.held = 0; p.pressed = 0;
+        p.ws = ws; p.away = false; p.held = 0; p.pressed = 0; p.q = []; p.last = 0; p.full = true;
         if (this.G) { const gp = this.G.ps.find(q => q.slot === slot); if (gp) { gp.away = false; gp.in = {}; } }
         this.send(ws, { t: "welcome", slot, token: p.token, code: this.code, core: C.CORE_VERSION });
         this.sendLobby();
@@ -128,7 +128,7 @@ export class Room {
     let slot = 0; while (this.players.has(slot)) slot++;
     let hero = 0; const taken = new Set([...this.players.values()].map(p => p.hero)); while (taken.has(hero) && hero < 3) hero++;
     const token = crypto.randomUUID();
-    const p = { ws, token, hero, locked: false, name: String(d.name || "P").slice(0, 8), st: C.cleanStats(d.st), look: C.cleanLook(d.look), away: false, awayAt: 0, held: 0, pressed: 0 };
+    const p = { ws, token, hero, locked: false, name: String(d.name || "P").slice(0, 8), st: C.cleanStats(d.st), look: C.cleanLook(d.look), away: false, awayAt: 0, held: 0, pressed: 0, q: [], ack: 0, last: 0, full: true };
     this.players.set(slot, p);
     this.send(ws, { t: "welcome", slot, token, code: this.code, core: C.CORE_VERSION });
     if (this.status === "play" && this.G) {
@@ -206,8 +206,16 @@ export class Room {
         break;
       }
       case "in": {
-        p.held = d.h | 0; p.pressed |= d.p | 0; break;
+        // New clients send every tick's buttons with a sequence number; the room plays one per tick and reports
+        // back the last one it used, so the client can replay the rest on top of the server's state.
+        if (Array.isArray(d.b)) {
+          const s0 = d.s | 0;
+          for (let i = 0; i < d.b.length && i < 8; i++) p.q.push({ s: s0 + i, b: d.b[i] | 0 });
+          while (p.q.length > 8) p.q.shift();
+        } else { p.held = d.h | 0; p.pressed |= d.p | 0; }
+        break;
       }
+      case "full": p.full = true; break;
       case "again": {
         if (this.status === "over" || this.status === "win") this.toLobby();
         break;
@@ -252,7 +260,13 @@ export class Room {
     const g = this.G;
     for (const [slot, p] of this.players) {
       const gp = g.ps.find(q => q.slot === slot); if (!gp) continue;
-      const bits = p.held | p.pressed, o = {};
+      let bits;
+      if (p.q.length || p.ack) {
+        while (p.q.length > 4) p.q.shift();          // client running ahead of the room: drop the oldest instead of lagging
+        if (p.q.length) { const e = p.q.shift(); bits = e.b; p.ack = e.s; p.last = e.b; } else bits = p.last;
+        gp.ack = p.ack;
+      } else bits = p.held | p.pressed;
+      const o = {};
       o.up = !!(bits & 1); o.down = !!(bits & 2); o.left = !!(bits & 4); o.right = !!(bits & 8);
       o.atk = !!(bits & 16); o.jump = !!(bits & 32); o.spec = !!(bits & 64); o.start = !!(bits & 128);
       gp.in = o; p.pressed = 0;
@@ -262,18 +276,31 @@ export class Room {
     this.tick++;
     if (g.ev.length) { this.evBuf.push(...g.ev); g.ev.length = 0; }
     if (this.tick % SNAP_EVERY === 0 || g.status === "over" || g.status === "win") {
-      this.broadcast({ t: "snap", s: C.snapshot(g), ev: this.evBuf });
+      this.sendSnap(g);
       this.evBuf = [];
     }
     if (g.status === "over" || g.status === "win") { this.status = g.status; if (g.status === "over") this.stage = g.level || 1; this.stopTimer(); this.sendLobby(); }
   }
 
+  // Everyone gets what changed since the last snapshot; a player who just arrived (or asked) gets the whole thing.
+  sendSnap(g) {
+    const str = JSON.stringify(C.snapshot(g)), cur = JSON.parse(str), ev = JSON.stringify(this.evBuf);
+    let delta = null;
+    if (this.prevSnap) { const d = C.snapDiff(this.prevSnap, cur); delta = '{"t":"snap","d":' + JSON.stringify(d && typeof d === "object" && !Object.keys(d).length && !Array.isArray(d) ? {} : d) + ',"ev":' + ev + "}"; }
+    const full = '{"t":"snap","s":' + str + ',"ev":' + ev + "}";
+    for (const p of this.players.values()) {
+      if (!p.ws) continue;
+      try { if (p.full || !delta) { p.ws.send(full); p.full = false; } else p.ws.send(delta); } catch {}
+    }
+    this.prevSnap = cur;
+  }
+
   startGame() {
     const specs = [...this.players].filter(([, p]) => p.ws).map(([slot, p]) => ({ slot, hero: p.hero, st: p.st, look: p.look }));
     this.G = C.newGame(specs, this.stage, this.diff);
-    this.status = "play"; this.count = 0; this.tick = 0; this.evBuf = [];
+    this.status = "play"; this.count = 0; this.tick = 0; this.evBuf = []; this.prevSnap = null;
     this.startAt = Date.now() + START_DELAY_MS;
-    for (const p of this.players.values()) { p.held = 0; p.pressed = 0; }
+    for (const p of this.players.values()) { p.held = 0; p.pressed = 0; p.q = []; p.ack = 0; p.last = 0; p.full = true; }
     this.broadcast({ t: "start", delay: START_DELAY_MS });
     this.sendLobby();
   }
