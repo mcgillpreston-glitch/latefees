@@ -7,7 +7,7 @@ const C = globalThis.LFCore;
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const TICK_MS = 1000 / 60;
 const SNAP_EVERY = 3;          // 20 snapshots a second
-const AWAY_MS = 60_000;        // how long a dropped player keeps their slot
+const AWAY_MS = 15_000;        // a dropped player keeps their slot this long, then the game goes on without them
 const LOBBY_COUNT = 180;       // ticks of countdown once everyone is ready
 const START_DELAY_MS = 3000;   // intro text on the clients
 const MAX_PLAYERS = 4;
@@ -155,9 +155,11 @@ export class Room {
     this.maybeIdle();
   }
 
-  removePlayer(slot) {
+  removePlayer(slot, why) {
+    const p = this.players.get(slot);
     this.players.delete(slot);
     if (this.G) C.removePlayer(this.G, slot);
+    if (p && why) this.broadcast({ t: "gone", slot, msg: `P${slot + 1} ${why}` });
     this.sendLobby();
     this.maybeIdle();
   }
@@ -212,7 +214,7 @@ export class Room {
       }
       case "leave": {
         try { if (p.ws) p.ws.close(1000, "left"); } catch {}
-        this.removePlayer(slot); break;
+        this.removePlayer(slot, this.status === "play" ? "LEFT THE GAME" : null); break;
       }
       case "ping": this.send(p.ws, { t: "pong", n: d.n }); break;
     }
@@ -254,7 +256,7 @@ export class Room {
       o.up = !!(bits & 1); o.down = !!(bits & 2); o.left = !!(bits & 4); o.right = !!(bits & 8);
       o.atk = !!(bits & 16); o.jump = !!(bits & 32); o.spec = !!(bits & 64); o.start = !!(bits & 128);
       gp.in = o; p.pressed = 0;
-      if (p.away && Date.now() - p.awayAt > AWAY_MS) this.removePlayer(slot);
+      if (p.away && Date.now() - p.awayAt > AWAY_MS) this.removePlayer(slot, "DROPPED OUT");
     }
     C.step(g);
     this.tick++;

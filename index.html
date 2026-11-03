@@ -212,7 +212,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 </div>
 
 <script src="art/manifest.js?v=2026.11.03-5"></script>
-<script src="game-core.js?v=2026.11.02-5"></script>
+<script src="game-core.js?v=2026.11.03-1"></script>
 <script>
 (()=>{
 const {W,H,TOP,BOT,LEVEL_END,LEVELS,NSTAGES}=LFCore;
@@ -679,7 +679,7 @@ function tickerSegs(){const o=[];
     const ps=G.ps.filter(p=>p.rs);const sum=k=>ps.reduce((a,p)=>a+(p.rs[k]||0),0);const mc=Math.max(0,...ps.map(p=>p.rs.mc||0));
     o.push('KO '+nf(sum('k')),'BOSSES '+nf(sum('bk')),'BEST COMBO '+mc,'DEALT '+nf(sum('dd')),'TAKEN '+nf(sum('dt')),'SAVED '+(G.saved||0)+'/'+LFCore.survFor(L).length,'LOOT '+nf(ps.reduce((a,p)=>a+Object.values(p.rs.lt||{}).reduce((x,y)=>x+y,0),0)));
     const t=Math.floor((G.time||0)/60);o.push('TIME '+Math.floor(t/60)+':'+String(t%60).padStart(2,'0'),String(G.diff||DIFFSEL).toUpperCase()+' MODE');
-    if(NET.on)o.push('ROOM '+NET.code+'  '+G.ps.length+' PLAYERS');}
+    if(NET.on)o.push('ROOM '+NET.code+'  '+G.ps.length+' PLAYERS'+(NET.rtt?'  PING '+Math.round(NET.rtt)+'MS':''));}
   else{const np=Object.keys(pads).length;o.push('HIGH SCORE '+nf(hi),'STAGES UNLOCKED '+STG.max+'/'+NSTAGES,'DIFFICULTY '+DIFFSEL.toUpperCase(),np?np+' CONTROLLER'+(np>1?'S':'')+' PAIRED':'PAIR A CONTROLLER OVER BLUETOOTH','BE KIND, REWIND');}
   const now=MUS.jingle&&MUS.jk==='start'?(MUS.jtitle||'STATION BREAK'):MUS.now&&MUS.now[0]==='s'?TRACKS[MUS.now].name:null;
   o.push(now?'96.9 FM NOW PLAYING: '+now:'SMOOTH SAIL FM 96.9 - SOFT SONGS FOR HARD NIGHTS');
@@ -1026,7 +1026,8 @@ function updateFX(){
 }
 
 /* ---------- online: rooms on a Cloudflare Durable Object ---------- */
-const NET={on:false,ws:null,code:'',slot:-1,token:null,dev:'kb1',lobby:null,snapMs:50,lastSnap:0,err:'',busy:false,held:0,sendT:0,cur:0,codeIn:['A','A','A','A'],col:0,ready:false,gone:false,tries:0};
+const NET={on:false,ws:null,code:'',slot:-1,token:null,dev:'kb1',lobby:null,snapMs:50,lastSnap:0,err:'',busy:false,held:0,sendT:0,cur:0,codeIn:['A','A','A','A'],col:0,ready:false,gone:false,tries:0,
+  rtt:0,pingT:0,pingAt:0,pingN:0,gaps:[],lead:{x:0,y:0}};
 const serverEl=document.getElementById('server');
 const DEFAULT_SERVER='https://latefees.prestonmcgill.workers.dev';
 try{serverEl.value=localStorage.getItem('lfotd-server')||DEFAULT_SERVER;}catch(e){serverEl.value=DEFAULT_SERVER;}
@@ -1069,7 +1070,12 @@ function netMsg(d){
     else if(scene==='nlobby'&&d.status!=='lobby'){scene='play';toast('JOINED A GAME IN PROGRESS','#3ad6c0');}break;
   case 'start':G=null;FX.parts=[];FX.texts=[];shakeV=0;scene='intro';introT=0;NET.ready=false;break;
   case 'snap':{if(!G)G={ps:[],enemies:[],proj:[],pick:[],surv:[],waves:[],ev:[],net:true,endT:0};
-    G.now=performance.now();C.applySnapshot(G,d.s);NET.lastSnap=G.now;
+    G.now=performance.now();
+    // Snapshots come every 50ms; on a phone network they bunch up. Interpolate over the 90th-percentile gap so
+    // motion stays smooth through jitter instead of freezing and jumping (never more than 150ms behind).
+    if(NET.lastSnap){const gap=G.now-NET.lastSnap;NET.gaps.push(Math.min(gap,400));if(NET.gaps.length>40)NET.gaps.shift();
+      if(NET.gaps.length>=10){const srt=[...NET.gaps].sort((a,b)=>a-b),p90=srt[Math.floor(srt.length*.9)];const want=clamp(p90,50,150);NET.snapMs+=(want-NET.snapMs)*.2;}}
+    C.applySnapshot(G,d.s);NET.lastSnap=G.now;
     const me=G.ps.find(p=>p.slot===NET.slot);if(me)me.dev=NET.dev;
     if(d.ev&&d.ev.length)drainEvents(d.ev);
     if((scene==='intro'&&introT>60)||scene==='nlobby')scene='play';
@@ -1079,6 +1085,8 @@ function netMsg(d){
     break;}
   case 'err':NET.err=d.msg||'ERROR';NET.busy=false;toast(NET.err,'#ff7a5a');break;
   case 'kick':toast(d.msg||'REMOVED FROM ROOM','#ff7a5a');netLeave(true);break;
+  case 'gone':if(d.slot!==NET.slot)toast(d.msg||'A PLAYER LEFT','#d9a87c');break;
+  case 'pong':if(d.n===NET.pingN){const r=performance.now()-NET.pingAt;NET.rtt=NET.rtt?NET.rtt*.7+r*.3:r;}break;
   }
 }
 function netTick(){
@@ -1087,6 +1095,21 @@ function netTick(){
   let h=0,p=0;if(!blocked)for(const a in BITS){if(held(d,a))h|=BITS[a];if(hit(d,a))p|=BITS[a];}
   NET.sendT++;
   if(p||h!==NET.held||NET.sendT>=30){netSend({t:'in',h,p});NET.held=h;NET.sendT=0;}
+  if(++NET.pingT>=120){NET.pingT=0;NET.pingN++;NET.pingAt=performance.now();netSend({t:'ping',n:NET.pingN});}
+}
+// Your own hero answers the stick at once: while the server catches up, the picture leads the last snapshot by the
+// distance you'd cover in one round trip, and eases back to the real position when you stop. Walking only; swings,
+// jumps and hits still wait for the server, which decides them.
+function netLead(g){
+  const me=g.ps.find(p=>p.slot===NET.slot),L=NET.lead;if(!me)return;
+  const can=scene==='play'&&!me.out&&!me.away&&me.state==='idle'&&!me.atk&&!me.sp&&me.z<=0&&NET.ws;
+  const d=NET.dev,mx=can?(held(d,'right')?1:0)-(held(d,'left')?1:0):0,my=can?(held(d,'down')?1:0)-(held(d,'up')?1:0):0;
+  const sp=me.ch.spd*(1+((me.st&&me.st.SPD)||0)/100)*(C.hasPow(me,'jolt')?1.45:1),ms=Math.min(220,NET.rtt*.5+25+NET.snapMs);
+  const tx=mx*sp*ms/16.7,ty=my*sp*.62*ms/16.7;
+  L.x+=clamp(tx-L.x,-sp,sp);L.y+=clamp(ty-L.y,-sp*.62,sp*.62);
+  if(!can&&Math.abs(L.x)<.01&&Math.abs(L.y)<.01){L.x=L.y=0;return;}
+  me.x=clamp(me.x+L.x,g.cam+10,g.cam+W-10);me.y=clamp(me.y+L.y,C.TOP,C.BOT);if(mx)me.face=mx;
+  if((mx||my)&&!me.moving){me.moving=true;me.walk+=1;}   // start the walk cycle now; the server's own count takes over once it moves
 }
 function updOnline(){
   if(NET.busy){if(menuHit('back')){netLeave(true);}return;}
@@ -1742,7 +1765,7 @@ function drawHUD(){
   if(g.ps.every(p=>p.out)){const can=g.ps.some(p=>p.conts>0);panel(W/2-130,82,260,44,can?'#ffc93c':'#e8453c','rgba(40,16,10,.92)');
     if(can){txt('CONTINUE?',W/2,89,'#ffc93c','center',16,INK);txt('PRESS START  '+Math.ceil((600-g.ctT)/60),W/2,111,'#ffe9c2','center');}
     else{txt('OUT OF CONTINUES',W/2,89,'#ff5a4a','center',16,INK);txt('THE DEAD WIN THIS ONE',W/2,111,'#ffe9c2','center');}}
-  if(NET.on){tag('ROOM '+NET.code,W-3,52,'#ff5fa8',INK,'right');if(!NET.ws)txt((T>>3)%2?'RECONNECTING...':'RECONNECTING',W/2,H-12,'#ff7a5a','center');}
+  if(NET.on){tag('ROOM '+NET.code,W-3,52,'#ff5fa8',INK,'right');if(NET.rtt)txt(Math.round(NET.rtt)+'MS',W-3,66,NET.rtt<120?'#c8f05a':NET.rtt<250?'#ffc93c':'#ff7a5a','right',5);if(!NET.ws)txt((T>>3)%2?'RECONNECTING...':'RECONNECTING',W/2,H-12,'#ff7a5a','center');}
   else if(scene==='play'&&g.time<360&&g.level===STG.cur&&!touchMode&&!g.boss&&g.ps.length<4)txt('MORE PLAYERS: PRESS START TO JOIN',W/2,H-12,'#ffe9c2','center',8,INK);
 }
 function logo(y){
@@ -1851,7 +1874,7 @@ function renderScene(){
   if(scene==='join')return drawJoin();
   if(scene==='nlobby')return drawNLobby();
   if(scene==='intro')return drawIntro();
-  const g=G;if(!g)return;if(NET.on)C.interpolate(g,performance.now(),NET.snapMs);
+  const g=G;if(!g)return;if(NET.on){C.interpolate(g,performance.now(),NET.snapMs);netLead(g);}
   ctx.save();if(shakeV>.5)ctx.translate(Math.round((Math.random()-.5)*shakeV),Math.round((Math.random()-.5)*shakeV));
   drawBG(g.cam);drawWorld();ctx.restore();drawHUD();
   if(scene==='pause'){rect(0,0,W,H,'rgba(20,8,6,.62)');scanlines(.16);const lost=g.ps.find(p=>p.lostPad);

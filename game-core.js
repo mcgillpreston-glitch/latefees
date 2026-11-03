@@ -382,7 +382,7 @@ function killBoss(g,e,p){
   for(const o of g.enemies)if(o!==e&&!o.gone&&o.state!=='down'){o.state='down';o.dying=true;o.vz=3;o.z=.01;o.vx=0;o.timer=60;}
 }
 function hurtPlayer(g,p,dmg,dir,knock){
-  if(p.out||p.inv>0||p.state==='down'||p.state==='special'||hasPow(p,'troll'))return false;
+  if(p.out||p.away||p.inv>0||p.state==='down'||p.state==='special'||hasPow(p,'troll'))return false;
   dmg=Math.max(1,Math.round(dmg*(1-(p.st?p.st.DEF:0)/100)));p.hp=Math.max(0,p.hp-dmg);if(p.rs)p.rs.dt+=dmg;shake(g,knock?6:4);p.hs=4;rumble(g,p.slot,knock||p.hp<=0?1:.7,knock?260:140);beep(g,110,.18,'sawtooth',.06,.5);p.atk=null;p.buffer=false;p.combo=0;
   sparks(g,p.x,p.y,18,6,['#ffffff','#ff7a5a']);
   if(p.hp<=0||knock){p.state='down';p.vx=dir*2.4;p.vz=3;p.z=Math.max(p.z,.01);p.timer=p.hp<=0?90:50;}
@@ -446,7 +446,7 @@ function updPlayer(g,p){
 }
 
 /* ---------- enemies ---------- */
-function nearest(g,e){let best=null,bd=1e9;for(const p of g.ps){if(p.out)continue;const d=Math.abs(p.x-e.x)+Math.abs(p.y-e.y)*2+(p.state==='down'?120:0);if(d<bd){bd=d;best=p;}}return best;}
+function nearest(g,e){let best=null,bd=1e9;for(const p of g.ps){if(p.out||p.away)continue;const d=Math.abs(p.x-e.x)+Math.abs(p.y-e.y)*2+(p.state==='down'?120:0);if(d<bd){bd=d;best=p;}}return best;}
 function eHit(g,e,reach,dmg,knock){return hurtAny(g,p=>{const dx=(p.x-e.x)*e.face;return dx>-6&&dx<reach&&Math.abs(p.y-e.y)<10&&p.z<18;},dmg,e.face,knock);}
 function updEnemy(g,e){
   const d=EN[e.type];if(e.flash>0)e.flash--;if(e.cd>0)e.cd--;
@@ -560,7 +560,8 @@ function step(g){
   const act=active(g);
   if(!act.length){const can=g.ps.some(p=>p.conts>0);if(++g.ctT>(can?600:150)){g.status='over';}endTick(g);return;}else g.ctT=0;
   const maxCam=g.len-W,lim=g.lock!==null?g.lock:maxCam;
-  const maxX=Math.max(...act.map(p=>p.x)),minX=Math.min(...act.map(p=>p.x));
+  const here=act.filter(p=>!p.away),who=here.length?here:act;   // a player whose connection dropped doesn't hold the screen back
+  const maxX=Math.max(...who.map(p=>p.x)),minX=Math.min(...who.map(p=>p.x));
   g.cam=Math.max(g.cam,Math.min(maxX-W*.42,g.cam+3,minX-12,lim));
   const w=g.waves[g.waveI],n=g.ps.length;
   if(w&&!w.on&&g.cam>=w.x-.01){w.on=true;g.lock=w.x;g.cam=Math.min(g.cam,w.x);
@@ -659,7 +660,7 @@ function interpolate(g,now,ms){
 }
 
 // Bump on every change to the rules so the website can tell when a room server is out of date.
-const CORE_VERSION='2026.11.02-5';
+const CORE_VERSION='2026.11.03-1';
 const LFCore={CORE_VERSION,W,H,TOP,BOT,LEVEL_END,PCOL,HEROES,POW,POWKEYS,EN,WAVES,SURV,FIXED_PICKS,DIFF,DIFFS,LEVELS,NSTAGES,levelZones,levelLen,genWaves,loadLevel,survFor,
   CATS,CAT_NAME,RAR,STAT,STAT_KEYS,CAP,POOL,SETS,SET_OF,BASES,BASE_LIST,BAG_MAX,ITEMCOL,setSize,makeItem,rollRarity,emptyGear,cleanItem,calcStatsFor,gearLookFor,cleanStats,cleanLook,bonusTxt,
   clamp,lerp,rnd,pick,spawn,newGame,addPlayer,removePlayer,revive,setStats,dropBack,step,snapshot,applySnapshot,interpolate,hasPow,active};
