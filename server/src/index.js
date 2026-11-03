@@ -11,6 +11,7 @@ const AWAY_MS = 15_000;        // a dropped player keeps their slot this long, t
 const LOBBY_COUNT = 180;       // ticks of countdown once everyone is ready
 const START_DELAY_MS = 3000;   // intro text on the clients
 const MAX_PLAYERS = 4;
+const REGIONS = ["wnam", "enam", "sam", "weur", "eeur", "apac", "oc", "afr", "me"];   // Cloudflare Durable Object location hints
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -26,9 +27,12 @@ export default {
     if (url.pathname === "/" || url.pathname === "/health") return json({ ok: true, game: "The Last Video Store", core: C.CORE_VERSION, rooms: "POST /rooms, then wss://.../rooms/CODE/ws" });
 
     if (url.pathname === "/rooms" && request.method === "POST") {
+      // ?region=<hint> asks Cloudflare to start the room in that area; without it the room starts near the host.
+      const region = url.searchParams.get("region");
+      const opts = REGIONS.includes(region) ? { locationHint: region } : undefined;
       for (let i = 0; i < 8; i++) {
         const code = Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
-        const stub = env.ROOM.get(env.ROOM.idFromName(code));
+        const stub = env.ROOM.get(env.ROOM.idFromName(code), opts);
         const r = await stub.fetch("https://room/create", { method: "POST" });
         const st = await r.json();
         if (st.ok) return json({ code });

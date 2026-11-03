@@ -212,7 +212,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 </div>
 
 <script src="art/manifest.js?v=2026.11.03-5"></script>
-<script src="game-core.js?v=2026.11.03-3"></script>
+<script src="game-core.js?v=2026.11.03-4"></script>
 <script>
 (()=>{
 const {W,H,TOP,BOT,LEVEL_END,LEVELS,NSTAGES}=LFCore;
@@ -566,7 +566,13 @@ function updControls(){
 const SOUND={cur:0,from:'title'};
 // Staff only: on the title-screen SETTINGS, Q five times asks for the password; the dev menu picks any stage.
 const DEV={q:0,pw:'',stage:1,err:0,cur:0};
-const SOUND_ROWS=['music','sfx','dj','mute','skin','stick','back'];
+const SOUND_ROWS=['music','sfx','dj','mute','skin','stick','region','back'];
+/* Where a hosted online room runs. AUTO lets Cloudflare put it next to the host; otherwise the host picks the area
+   nearest the middle of the group (Cloudflare location hints). Joining players use whatever the host chose. */
+const REGIONS=[['auto','AUTO'],['wnam','US WEST'],['enam','US EAST'],['sam','S AMERICA'],['weur','EUROPE W'],['eeur','EUROPE E'],['apac','ASIA'],['oc','OCEANIA'],['afr','AFRICA'],['me','MIDDLE EAST']];
+let REGION='auto';try{const r=localStorage.getItem('lfotd-region');if(REGIONS.some(q=>q[0]===r))REGION=r;}catch(e){}
+function setRegion(dv){const i=REGIONS.findIndex(q=>q[0]===REGION);REGION=REGIONS[(i+dv+REGIONS.length)%REGIONS.length][0];try{localStorage.setItem('lfotd-region',REGION);}catch(e){}}
+const regionName=()=>REGIONS.find(q=>q[0]===REGION)[1];
 function openSound(from){SOUND.from=from;SOUND.cur=0;DEV.q=0;scene='sound';beep(660,.08);}
 function closeSound(){scene=SOUND.from==='pause'&&G?'pause':'title';beep(330,.08);}
 function updSound(){
@@ -580,9 +586,10 @@ function updSound(){
   if(dv&&row==='mute'){muted=!muted;saveSound();}
   if(dv&&row==='skin'){applySkin(SKINS[(skinIdx()+dv+SKINS.length)%SKINS.length].id);beep(660,.06);}
   if(dv&&row==='stick'){setStick(STICK==='stick'?'dpad':'stick');beep(660,.06);}
+  if(dv&&row==='region'){setRegion(dv);beep(660,.06);}
   if(hit('menu','back')||devs().some(d=>isPad(d)&&hit(d,'back'))){closeSound();return;}
   if(menuHit('ok')){if(row==='dj'){SND.dj=DJ_MODES[(DJ_MODES.indexOf(SND.dj)+1)%3];if(SND.dj==='off'||SND.dj==='short'&&MUS.jtitle)stopVoice();saveSound();beep(660,.06);}
-    else if(row==='mute'){muted=!muted;saveSound();beep(660,.08);}else if(row==='skin'){applySkin(SKINS[(skinIdx()+1)%SKINS.length].id);beep(660,.06);}else if(row==='stick'){setStick(STICK==='stick'?'dpad':'stick');beep(660,.06);}else if(row==='back')closeSound();}
+    else if(row==='mute'){muted=!muted;saveSound();beep(660,.08);}else if(row==='skin'){applySkin(SKINS[(skinIdx()+1)%SKINS.length].id);beep(660,.06);}else if(row==='stick'){setStick(STICK==='stick'?'dpad':'stick');beep(660,.06);}else if(row==='region'){setRegion(1);beep(660,.06);}else if(row==='back')closeSound();}
 }
 function drawSound(){
   uiBg('SETTINGS');panel(4,32,W-8,124,'#ffc93c','rgba(42,20,14,.94)');panel(4,160,W-8,48,'#3ad6c0','rgba(42,20,14,.94)');
@@ -594,11 +601,13 @@ function drawSound(){
     ['SKIN',y=>{const k=SKINS[skinIdx()],on=SOUND.cur===4;txt('<',170,y,on?'#ffc93c':'#d9a87c','left',8,null);
       // a little handheld: shell, d-pad cross, two buttons
       rect(182,y-3,22,14,k.clear?'#9b6fd6':k.shell);rect(185,y-1,8,3,k.dpad);rect(187,y-3,3,7,k.dpad);ell(197,y+1,2,2,k.btn);ell(200,y-1,2,2,k.btn);
-      txt(k.name,209,y,on?'#ffe9c2':'#d9a87c','left',8,null);txt('>',209+k.name.length*8+6,y,on?'#ffc93c':'#d9a87c','left',8,null);
+      txt(k.name,209,y,on?'#ffe9c2':'#d9a87c','left',8,null);txt('>',209+ctx.measureText(k.name).width+6,y,on?'#ffc93c':'#d9a87c','left',8,null);
       if(!touchMode)txt('PHONE SHELL + FRAME',W-12,y,'#8a5a44','right',6,null);}],
     ['STICK',y=>{[['dpad','D-PAD'],['stick','JOYSTICK']].forEach(([m,n],i)=>{const x=170+i*54,sel=STICK===m,w=i?70:50;rect(x,y-2,w,12,sel?(SOUND.cur===5?'#ffc93c':'#d9771e'):'#45221a');txt(n,x+w/2,y,sel?'#2a140e':'#d9a87c','center',8,null);});
-      if(!touchMode)txt('PHONE ONLY',W-12,y,'#8a5a44','right',6,null);}],['BACK',()=>{}]];
-  rows.forEach(([lab,draw],i)=>{const y=40+i*17,on=SOUND.cur===i;if(on){rect(8,y-5,W-16,18,'#5e2f22');rect(8,y-5,3,18,'#ffc93c');tri(13,y-1,13,y+7,18,y+3,'#ffc93c');}
+      if(!touchMode)txt('PHONE ONLY',W-12,y,'#8a5a44','right',6,null);}],
+    ['REGION',y=>{const on=SOUND.cur===6,n=regionName();txt('<',170,y,on?'#ffc93c':'#d9a87c','left',8,null);txt(n,182,y,on?'#ffe9c2':'#d9a87c','left',8,null);txt('>',182+ctx.measureText(n).width+6,y,on?'#ffc93c':'#d9a87c','left',8,null);
+      txt(REGION==='auto'?'NEAR HOST':'ONLINE HOST',W-12,y,'#8a5a44','right',6,null);}],['BACK',()=>{}]];
+  rows.forEach(([lab,draw],i)=>{const y=39+i*15,on=SOUND.cur===i;if(on){rect(8,y-4,W-16,16,'#5e2f22');rect(8,y-4,3,16,'#ffc93c');tri(13,y-1,13,y+7,18,y+3,'#ffc93c');}
     txt(lab,22,y,on?'#ffc93c':'#ffe9c2');draw(y);});
   const now=MUS.jingle&&MUS.jk==='start'?'96.9 FM  '+(MUS.jtitle||'STATION BREAK'):MUS.now?(MUS.now[0]==='s'?'96.9 FM  ':'')+TRACKS[MUS.now].name:MUS.jingle?'96.9 FM  STATION BREAK':'MUSIC OFF';
   txt('NOW PLAYING',22,166,'#d9a87c','left',8,null);txt(now,22,177,MUS.now||MUS.jingle?'#3ad6c0':'#8a5a44','left',8,null);
@@ -1039,7 +1048,7 @@ function myGear(){const h=NET.lobby&&NET.lobby.players.find(p=>p.s===NET.slot);c
 async function netHost(){
   const base=serverBase();if(!base){NET.err='SET THE SERVER ADDRESS BELOW THE GAME';return;}
   NET.busy=true;NET.err='';
-  try{const r=await fetch(base+'/rooms',{method:'POST'});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();netJoin(j.code);}
+  try{const r=await fetch(base+'/rooms'+(REGION!=='auto'?'?region='+REGION:''),{method:'POST'});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();netJoin(j.code);}
   catch(e){NET.err='COULD NOT REACH SERVER';NET.busy=false;}
 }
 function netJoin(code){
@@ -1197,7 +1206,8 @@ function drawOnline(){
   const base=serverBase();uiBg('ONLINE',base?base.replace(/^https?:\/\//,'').slice(0,34):'NO SERVER SET',base?'#3ad6c0':'#ff7a5a');
   vhs(W/2-84,44,168,72,'#ff5fa8','rgba(42,20,14,.94)');
   ['HOST A ROOM','JOIN WITH CODE','BACK'].forEach((it,i)=>menuRow(it,W/2+2,56+i*18,NET.cur===i,140,'#ff5fa8'));
-  if(NET.busy)txt((T>>4)%2?'CONNECTING...':'CONNECTING',W/2,128,'#3ad6c0','center',8,INK);
+  txt('ROOM REGION: '+regionName()+'  (SETTINGS)',W/2,122,'#d9a87c','center',6,INK);
+  if(NET.busy)txt((T>>4)%2?'CONNECTING...':'CONNECTING',W/2,132,'#3ad6c0','center',8,INK);
   if(NET.err)tag(NET.err,W/2,142,'#ff7a5a',INK,'center');
   panel(24,166,W-48,32,'#3ad6c0','rgba(42,20,14,.9)');
   txt('EVERYONE OPENS THIS PAGE ON THEIR OWN DEVICE',W/2,172,'#ffe9c2','center',8,null);
