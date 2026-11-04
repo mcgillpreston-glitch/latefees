@@ -475,6 +475,17 @@ const TRACKS={
   s8:{src:'music/yacht-08-closed-for-the-season.mp3',name:'CLOSED FOR THE SEASON'},
   s9:{src:'music/yacht-09-we-interrupt.mp3',name:'WE INTERRUPT THIS BROADCAST'},
   s10:{src:'music/yacht-10-return-all-tapes.mp3',name:'RETURN ALL TAPES'},
+  // ...and the station's own records, played in rotation between the stage songs on any stage
+  s11:{src:'music/yacht-11-smooth-sail.mp3',name:'SMOOTH SAIL (STATION THEME)'},
+  s12:{src:'music/yacht-12-overdue.mp3',name:'OVERDUE'},
+  s13:{src:'music/yacht-13-late-fee-blues.mp3',name:'LATE FEE BLUES'},
+  s14:{src:'music/yacht-14-ninety-six-point-nine.mp3',name:'NINETY-SIX POINT NINE'},
+  s15:{src:'music/yacht-15-pager-me-later.mp3',name:'PAGER ME LATER'},
+  s16:{src:'music/yacht-16-rental-return.mp3',name:'RENTAL RETURN'},
+  s17:{src:'music/yacht-17-meteor-shower.mp3',name:'METEOR SHOWER'},
+  s18:{src:'music/yacht-18-mall-walker.mp3',name:'MALL WALKER'},
+  s19:{src:'music/yacht-19-night-shift.mp3',name:'NIGHT SHIFT'},
+  s20:{src:'music/yacht-20-the-dead-dont-rewind.mp3',name:"THE DEAD DON'T REWIND"},
   end:{src:'music/end-chompin-slurpin.mp3',name:"CHOMPIN' SLURPIN'"},
 };
 const JINGLES=['music/jingle-1-wsmo.mp3','music/jingle-2-survival-tips.mp3','music/jingle-3-stay-smooth.mp3'];
@@ -485,16 +496,27 @@ const MUS={el:{},vol:{},started:false,blocked:false,now:null,lastL:0,jingle:null
 const DJ_BREAKS={1:['dj-01-sign-on','dj-02-brenda'],2:['dj-03-marcus'],3:['dj-04-camp-letter'],4:['dj-05-skate'],5:['dj-06-drive-in'],
   6:['dj-07-walt'],7:['dj-08-video-store'],8:['dj-09-lena'],9:['dj-10-still-here'],10:['dj-11-sign-off']};
 const DJ_BUMPS=['dj-bump-1','dj-bump-2','dj-bump-3','dj-bump-4'];
-function musEl(k){if(!MUS.el[k]){const a=new Audio(TRACKS[k].src);a.loop=true;a.preload='auto';a.volume=0;MUS.el[k]=a;MUS.vol[k]=0;}return MUS.el[k];}
+function musEl(k){if(!MUS.el[k]){const a=new Audio(TRACKS[k].src),rec=/^s\d+$/.test(k);a.loop=!rec;a.preload='auto';a.volume=0;
+  if(rec)a.onended=()=>{if(MUS.cur===k)stationNext();else{a.currentTime=0;}};MUS.el[k]=a;MUS.vol[k]=0;}return MUS.el[k];}
+/* The station's running order on a stage: the stage's own song, then two station records, then the stage song again,
+   and so on. Station records come out of a shuffled bag, so none repeats until all nine have played; the station
+   theme opens the first bag of a session. A bumper or jingle plays over the top of each new record. */
+const STATION_RECS=['s11','s12','s13','s14','s15','s16','s17','s18','s19'];   // s20, the closing anthem, is saved for the win screen
+MUS.bag=[];MUS.cur=null;MUS.stL=0;MUS.seq=0;MUS.firstBag=true;
+function stationRec(){if(!MUS.bag.length){const b=STATION_RECS.slice().sort(()=>Math.random()-.5);if(MUS.firstBag){MUS.firstBag=false;b.splice(b.indexOf('s11'),1);b.unshift('s11');}MUS.bag=b;}return MUS.bag.shift();}
+function stationKey(L){if(MUS.stL!==L){MUS.stL=L;MUS.seq=0;MUS.cur='s'+L;}return MUS.cur;}
+function stationNext(){const L=MUS.stL||1;MUS.seq++;MUS.cur=MUS.seq%3===0?'s'+L:stationRec();MUS.looped=true;
+  const a=musEl(MUS.cur);if(a.paused)a.currentTime=0;}
 const GAME_SCENES=new Set(['play','pause','inv','over','win']);
 function musicWant(){
   const inGame=GAME_SCENES.has(scene)||((scene==='controls'&&SET.from==='pause')||(scene==='sound'&&SOUND.from==='pause')||(scene==='guide'&&GUIDE.from==='pause'));
-  if(G&&(scene==='over'||scene==='win'))return 'end';
+  if(G&&scene==='win')return 's20';   // the station's closing anthem for a finished run
+  if(G&&scene==='over')return 'end';
   if(!inGame||!G)return 'intro';
   const L=G.level||1,song=TRACKS['s'+L]?'s'+L:null;
   // mini-bosses cut to the eerie loop; the final boss gets the stage's anthem
   if(G.boss&&!G.boss.gone&&!(song&&EN[G.boss.type]&&EN[G.boss.type].final))return 'dance';
-  if(song)return MUS.jingle&&MUS.jk==='start'?null:song;
+  if(song)return MUS.jingle&&MUS.jk==='start'?null:(G.boss&&!G.boss.gone)?song:stationKey(L);
   return zoneAt(G.level||1,G.cam+W/2)>=LFCore.levelZones(G.level||1).length-1?'dance':'disco';
 }
 function musicTick(){
@@ -505,7 +527,7 @@ function musicTick(){
   for(const k in TRACKS){
     const target=k===want?master*(MUS.jingle&&MUS.jk==='bump'?.3:1):0;if(!MUS.el[k]&&target===0)continue;
     const a=musEl(k);let v=MUS.vol[k]||0;v+=(target-v)*(target>v?.05:.035);if(Math.abs(target-v)<.004)v=target;MUS.vol[k]=v;a.volume=clamp(v,0,1);
-    if(v>.001&&a.paused&&MUS.started){const pr=a.play();if(pr&&pr.catch)pr.then(()=>{MUS.blocked=false;}).catch(()=>{MUS.blocked=true;});}
+    if(v>.001&&a.paused&&MUS.started&&target>0){const pr=a.play();if(pr&&pr.catch)pr.then(()=>{MUS.blocked=false;}).catch(()=>{MUS.blocked=true;});}
     else if(v<=.001&&target===0&&!a.paused){a.pause();a.currentTime=0;MUS.lt[k]=0;}
     if(k===want&&k[0]==='s'&&!a.paused){const t=a.currentTime;if(t+3<(MUS.lt[k]||0))MUS.looped=true;MUS.lt[k]=t;}
   }
@@ -526,7 +548,7 @@ function stopVoice(){if(MUS.jingle){MUS.fading.push(MUS.jingle);MUS.jingle=null;
 function fadeVoices(){for(const j of MUS.fading){j.volume=Math.max(0,j.volume-.04);if(j.volume<=0)j.pause();}MUS.fading=MUS.fading.filter(j=>j.volume>0);}
 function radioTick(master){
   const inGame=G&&GAME_SCENES.has(scene),L=inGame?G.level||1:0;
-  if(!inGame){MUS.lastL=0;MUS.looped=false;stopVoice();fadeVoices();return;}
+  if(!inGame){MUS.lastL=0;MUS.looped=false;MUS.stL=0;stopVoice();fadeVoices();return;}
   const jingle=kind=>playVoice(JINGLES[MUS.ji++%JINGLES.length],kind||'start');
   const bump=kind=>playVoice('music/'+DJ_BUMPS[MUS.bi++%DJ_BUMPS.length]+'.mp3',kind,null,kind==='start'?jingle:null);
   if(L!==MUS.lastL){MUS.lastL=L;MUS.announced=null;MUS.looped=false;stopVoice();
@@ -1348,6 +1370,8 @@ const ART_V='2026.11.03-7',AV=u=>u+'?v='+ART_V;
    fought for the line, and a file that failed stayed on its drawn stand-in until a reload. Now pictures go through one
    queue, a few at a time, most urgent first: what the title and stage 1 need, then each later stage in order.
    Failed downloads are retried. The boot screen waits for the first group. */
+// a sprite is a rectangle on an image: a whole single-frame file, or one frame on a sheet
+const sprOf=(img,m,at)=>({img,m,white:null,sx:at?at[0]:0,sy:at?at[1]:0,w:at?m.w:img.width,h:at?m.h:img.height});
 const LOADQ=[],LOADING=new Set();let loadDone=0,loadTotal=0,bootNeed=0,bootGot=0,booted=false;
 function queueImg(url,pri,boot,done){const job={url,pri,boot,done,tries:0};LOADQ.push(job);loadTotal++;if(boot)bootNeed++;pumpLoads();}
 function pumpLoads(){
@@ -1364,16 +1388,20 @@ const stageSprites=L=>{const lv=LEVELS[L-1],set=new Set(['dex','rae','benny','ju
 // monsters, and the opening scenery (under 1.5 MB). Everything else keeps arriving behind it, nearest stage first.
 {const first=stageSprites(STG.cur),pri={};for(let L=1;L<=NSTAGES;L++)for(const k of stageSprites(L))if(pri[k]==null)pri[k]=L===STG.cur?0:10+L;
   const early=new Set(['dex','rae','benny','julia']);for(const w of LFCore.genWaves(STG.cur).slice(0,2))for(const t of w.list)early.add(t);
+  // frames come from sprite sheets (tools/pack_sprites.py): one download per sheet, each frame a rectangle on it
+  const sheets={},put=(name,m,sheetUrl,p,boot)=>{const S=sheets[sheetUrl]=sheets[sheetUrl]||{p,boot,list:[]};S.p=Math.min(S.p,p);S.boot=S.boot||boot;S.list.push([name,m]);};
   for(const k in ART){const m=ART[k],base=k.split('_')[0],p=pri[k]!=null?pri[k]:pri[base]!=null?pri[base]+1:40,boot=early.has(k);
-    queueImg(AV(m.src),p-(boot?1:0),boot,img=>{SPR[k]={img,m,white:null};});
+    if(m.sheet)put(k,m,m.sheet,p-(boot?1:0),boot);else queueImg(AV(m.src),p-(boot?1:0),boot,img=>{SPR[k]=sprOf(img,m);});
     if(m.frames)for(const f in m.frames){const fm=m.frames[f],walk=f==='walk1'||f==='walk2',core=walk||f==='attack1'||f==='attack2'||f==='walk3'||f==='walk4';
-      queueImg(AV(fm.src),p+(core?0:.5)-(boot&&walk?1:0),boot&&walk,fi=>{SPR[k+':'+f]={img:fi,m:fm,white:null};});}}}
+      if(fm.sheet)put(k+':'+f,fm,fm.sheet,p+(core?0:.5)-(boot&&walk?1:0),boot&&walk);
+      else queueImg(AV(fm.src),p+(core?0:.5)-(boot&&walk?1:0),boot&&walk,fi=>{SPR[k+':'+f]=sprOf(fi,fm);});}}
+  for(const url in sheets){const S=sheets[url];queueImg(AV(url),S.p,S.boot,img=>{for(const [name,m] of S.list)SPR[name]=sprOf(img,m,m.at);});}}
 iconSheet('hat');   // the item icons come right behind the opening set
 const SPR_H={dex:50,rae:50,benny:50,julia:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
 const sprH0=k=>SPR_H[k]||Math.round((EN[k]&&EN[k].boss?46:50)*((EN[k]&&EN[k].look&&EN[k].look.k)||1));
 const sprH=k=>SPR[k]?sprH0(k):(EN[k]&&EN[k].look?sprH0(k)*.8:31);
-function whiteOf(s){if(s.white)return s.white;const c=document.createElement('canvas');c.width=s.img.width;c.height=s.img.height;const x=c.getContext('2d');
-  x.drawImage(s.img,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#ffffff';x.fillRect(0,0,c.width,c.height);s.white=c;return c;}
+function whiteOf(s){if(s.white)return s.white;const c=document.createElement('canvas');c.width=s.w;c.height=s.h;const x=c.getContext('2d');
+  x.drawImage(s.img,s.sx,s.sy,s.w,s.h,0,0,s.w,s.h);x.globalCompositeOperation='source-in';x.fillStyle='#ffffff';x.fillRect(0,0,c.width,c.height);s.white=c;return c;}
 /* Gear recolour: art/mask/<hero>.webp is an atlas of every frame's 4 alpha masks side by side (top, inner, pants, shoes),
    one frame per row at the offsets in manifest <hero>.mask.y. Equipped items tint those regions with the 'color' blend,
    which keeps the painted shading and ink. */
@@ -1382,13 +1410,13 @@ function maskFor(key){const mm=ART[key]&&ART[key].mask;if(!mm)return null;
   if(!MASKTRY[key]){MASKTRY[key]=1;queueImg(AV(mm.src),2,false,i=>{MASK[key]=i;});}return MASK[key]||null;}
 function tintRegions(lk){if(!lk)return null;const r=[lk.jacket||lk.shirt||null,lk.jacket?lk.shirt||null:null,lk.pants||null,lk.shoes||null];return r.some(Boolean)?r:null;}
 function tinted(s,key,frame,regs){
-  const mk=maskFor(key),y0=mk&&ART[key].mask.y[frame||''];if(!mk||y0==null)return s.img;
+  const mk=maskFor(key),y0=mk&&ART[key].mask.y[frame||''];if(!mk||y0==null)return null;
   const name=key+(frame?'_'+frame:''),ck=name+'|'+regs.join(',');let c=TINT.get(ck);if(c)return c;
-  const w=s.img.width,h=s.img.height;c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(s.img,0,0);
+  const w=s.w,h=s.h;c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(s.img,s.sx,s.sy,w,h,0,0,w,h);
   const t=document.createElement('canvas');t.width=w;t.height=h;const tx=t.getContext('2d');
   regs.forEach((col,i)=>{if(!col)return;tx.globalCompositeOperation='copy';tx.drawImage(mk,i*w,y0,w,h,0,0,w,h);tx.globalCompositeOperation='source-in';tx.fillStyle=col;tx.fillRect(0,0,w,h);
     x.globalCompositeOperation='color';x.drawImage(t,0,0);x.globalCompositeOperation='multiply';x.globalAlpha=.25;x.drawImage(t,0,0);x.globalAlpha=1;});
-  x.globalCompositeOperation='destination-in';x.drawImage(s.img,0,0);
+  x.globalCompositeOperation='destination-in';x.drawImage(s.img,s.sx,s.sy,w,h,0,0,w,h);
   if(TINT.size>300)TINT.delete(TINT.keys().next().value);TINT.set(ck,c);return c;
 }
 function drawSpr(key,o,frame){
@@ -1398,13 +1426,13 @@ function drawSpr(key,o,frame){
   if(o.lying&&!(fs&&frame==='down')){ctx.translate(h*.45,-ax*.85);ctx.rotate(-Math.PI/2);}
   ctx.translate(o.ox||0,o.oy||0);ctx.rotate((o.rot||0)*(fs?.35:1));ctx.scale(o.sx||1,o.sy||1);
   if(o.alpha!=null)ctx.globalAlpha*=o.alpha;
-  const regs=o.look&&tintRegions(o.look),img=regs?tinted(s,key,fs?frame:'',regs):s.img;
-  ctx.drawImage(img,-ax,-h,w,h);
+  const regs=o.look&&tintRegions(o.look),tc=regs&&tinted(s,key,fs?frame:'',regs);
+  if(tc)ctx.drawImage(tc,-ax,-h,w,h);else ctx.drawImage(s.img,s.sx,s.sy,s.w,s.h,-ax,-h,w,h);
   if(o.flash){ctx.globalAlpha*=o.flash;ctx.drawImage(whiteOf(s),-ax,-h,w,h);}
   ctx.restore();return true;
 }
 function drawPortrait(id,x,y,size){const s=SPR[id];if(!s)return false;const m=s.m,hs=m.hs;
-  ctx.drawImage(s.img,clamp(m.hx-hs/2,0,m.w-hs),clamp(m.hy-hs/2,0,m.h-hs),hs,hs,x,y,size,size);return true;}
+  ctx.drawImage(s.img,s.sx+clamp(m.hx-hs/2,0,m.w-hs),s.sy+clamp(m.hy-hs/2,0,m.h-hs),hs,hs,x,y,size,size);return true;}
 // a 4-step walk: contact, passing, the other contact, the other passing (walk3/walk4 are the passing steps)
 const WALK4=['walk1','walk3','walk2','walk4'];
 function heroSprite(id,pose){
