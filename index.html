@@ -228,7 +228,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   </div>
 </div>
 
-<script src="art/manifest.js?v=2026.11.03-7"></script>
+<script src="art/manifest.js?v=2026.11.04-1"></script>
 <script src="game-core.js?v=2026.11.03-5"></script>
 <script>
 (()=>{
@@ -1365,7 +1365,7 @@ function update(){
 const ART=globalThis.LF_ART||{};
 const SPR={};
 // Bump ART_V whenever art files are replaced under the same names, so browsers fetch the new pictures.
-const ART_V='2026.11.03-7',AV=u=>u+'?v='+ART_V;
+const ART_V='2026.11.04-1',AV=u=>u+'?v='+ART_V;
 /* ---------- picture loading ----------
    Everything used to be requested at once, so on a phone the heroes could take seconds to appear while 400 files
    fought for the line, and a file that failed stayed on its drawn stand-in until a reload. Now pictures go through one
@@ -1732,18 +1732,13 @@ const BGIMG={},BGTRY={};
 function bgImg(k,pri=5,boot=false){if(!BGTRY[k]){BGTRY[k]=1;queueImg(AV('art/bg-'+k+'.webp'),pri,boot,i=>{BGIMG[k]=i;});}return BGIMG[k]||null;}
 for(const z of LFCore.levelZones(STG.cur))bgImg(z[0],-1,true);let BGPRE=0;
 const ZONES=LFCore.levelZones(1);
+/* Where each area's painting starts (game px into the painting). Chosen by tools/bg_phase.py so both ends of every area
+   land on a quiet stretch of wall rather than through a sign; re-run it if a painting or an area's length changes. */
+const BGBL=32;
+const BGOFF={"suburb":296,"mall":603,"lot":224,"school-hall":116,"school-gym":214,"school-field":359,"camp-cabins":143,"camp-lake":108,"camp-woods":574,"rink-snack":181,"rink-floor":586,"rink-dj":68,"drivein-stand":189,"drivein-cars":103,"drivein-screen":26,"bowl-lanes":64,"bowl-arcade":23,"bowl-bar":632,"video-shelves":26,"video-dock":631,"video-office":206,"water-wave":249,"water-slides":26,"water-lockers":539,"tv-news":332,"tv-studio":617,"tv-roof":7,"crater-woods":461,"crater-hull":73,"crater-core":538};
 function drawZoneImg(k,a,b,cam,x0,x1){
-  const img=BGIMG[k],tw=img.width*H/img.height;
-  for(let wx=a+Math.floor((Math.max(a,cam+x0)-a)/tw)*tw;wx<Math.min(b,cam+x1);wx+=tw)ctx.drawImage(img,wx-cam,0,tw+.6,H);
-}
-function drawBGImages(cam){
-  if(!BGIMG.suburb||!BGIMG.mall||!BGIMG.lot)return false;
-  for(const [k,a,b] of ZONES){const x0=Math.max(a,cam)-cam,x1=Math.min(b,cam+W)-cam;if(x1<=x0)continue;
-    ctx.save();ctx.beginPath();ctx.rect(x0,0,x1-x0,H);ctx.clip();drawZoneImg(k,a,b,cam,x0,x1);ctx.restore();}
-  // Cross-fade 36px across each area boundary so the cut between panoramas isn't a hard seam.
-  for(const [prev,pa,a] of [['suburb',0,1250],['mall',1250,2450]]){const sx=a-cam;if(sx<-40||sx>W)continue;
-    for(let j=0;j<12;j++){const x=sx+j*3;ctx.save();ctx.beginPath();ctx.rect(x,0,3,H);ctx.clip();ctx.globalAlpha=1-(j+.5)/12;drawZoneImg(prev,pa,a+40,cam,x,x+3);ctx.restore();}}
-  return true;
+  const img=BGIMG[k],tw=img.width*H/img.height,o=a-(BGOFF[k]||0);
+  for(let wx=o+Math.floor((cam+x0-o)/tw)*tw;wx<cam+x1;wx+=tw)ctx.drawImage(img,wx-cam,0,tw+.6,H);
 }
 function bgPrefetch(L){
   // fetch this stage's paintings (and the next stage's) up front, so no area shows the fallback while its picture loads
@@ -1752,8 +1747,7 @@ function bgPrefetch(L){
 function drawBG(cam,L){
   L=L||(G&&G.level)||1;
   bgPrefetch(L);   // every stage, Maple Court included: its paintings were only fetched when it was the stage selected at startup
-  if(L>1)return drawStageBG(cam,L);
-  if(drawBGImages(cam))return;
+  if(L>1||BGIMG.suburb&&BGIMG.mall&&BGIMG.lot)return drawStageBG(cam,L);   // Maple Court keeps its hand-drawn street until its paintings arrive
   // sunset sky
   const g=ctx.createLinearGradient(0,0,0,TOP);g.addColorStop(0,'#4a1430');g.addColorStop(.45,'#c43a4a');g.addColorStop(.8,'#ff8a3c');g.addColorStop(1,'#ffc93c');rect(0,0,W,TOP,g);
   for(let i=0;i<30;i++){const x=(((i*97-cam*.08)%W)+W)%W,y=(i*53)%50;rect(x|0,y,1,1,i%5?'#ffb0a0':'#ffe9c2');}
@@ -1829,8 +1823,12 @@ function drawStageBG(cam,L){
     ctx.save();ctx.beginPath();ctx.rect(x0,0,x1-x0,H);ctx.clip();
     if(bgImg(k))drawZoneImg(k,a,b,cam,x0,x1);else drawPalZone(k,a,b,pal||{k:'outdoor',sky:'#1a0a2a',wall:'#45221a',acc:'#ffc93c',f1:'#5e3426',f2:'#522e20'},cam);
     ctx.restore();}
-  for(let i=1;i<zs.length;i++){const [pk,pa]=zs[i-1],a=zs[i][1],sx=a-cam;if(sx<-40||sx>W||!BGIMG[pk]||!BGIMG[zs[i][0]])continue;
-    for(let j=0;j<12;j++){const x=sx+j*3;ctx.save();ctx.beginPath();ctx.rect(x,0,3,H);ctx.clip();ctx.globalAlpha=1-(j+.5)/12;drawZoneImg(pk,pa,a+40,cam,x,x+3);ctx.restore();}}
+  // Each join fades smoothly over 64 px centred on it: the next area eases in over the last 32 px of the old one, and the
+  // old one eases out over the first 32 px of the next.
+  for(let i=1;i<zs.length;i++){const [pk,pa]=zs[i-1],[nk,a]=zs[i],sx=a-cam;if(sx<-BGBL||sx>W+BGBL||!BGIMG[pk]||!BGIMG[nk])continue;
+    for(let x=-BGBL;x<BGBL;x+=2){if(sx+x+2<0||sx+x>W)continue;const t=(x+BGBL+1)/(2*BGBL),w=t*t*(3-2*t),before=x<0;
+      ctx.save();ctx.beginPath();ctx.rect(sx+x,0,2,H);ctx.clip();ctx.globalAlpha=before?w:1-w;
+      if(before)drawZoneImg(nk,a,a,cam,sx+x,sx+x+2);else drawZoneImg(pk,pa,a,cam,sx+x,sx+x+2);ctx.restore();}}
 }
 function drawPalZone(key,a,b,P,cam){
   const sg=ctx.createLinearGradient(0,0,0,TOP);sg.addColorStop(0,'#0a0610');sg.addColorStop(1,P.sky);rect(0,0,W,TOP,sg);
