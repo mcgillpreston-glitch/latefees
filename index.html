@@ -1745,8 +1745,13 @@ function drawBGImages(cam){
     for(let j=0;j<12;j++){const x=sx+j*3;ctx.save();ctx.beginPath();ctx.rect(x,0,3,H);ctx.clip();ctx.globalAlpha=1-(j+.5)/12;drawZoneImg(prev,pa,a+40,cam,x,x+3);ctx.restore();}}
   return true;
 }
+function bgPrefetch(L){
+  // fetch this stage's paintings (and the next stage's) up front, so no area shows the fallback while its picture loads
+  if(BGPRE!==L){BGPRE=L;for(const z of LFCore.levelZones(L))bgImg(z[0]);if(L<NSTAGES)for(const z of LFCore.levelZones(L+1))bgImg(z[0]);}
+}
 function drawBG(cam,L){
   L=L||(G&&G.level)||1;
+  bgPrefetch(L);   // every stage, Maple Court included: its paintings were only fetched when it was the stage selected at startup
   if(L>1)return drawStageBG(cam,L);
   if(drawBGImages(cam))return;
   // sunset sky
@@ -1820,8 +1825,6 @@ const SIGNS={'school-hall':'NO RUNNING','school-gym':'GO PINE CONES!','school-fi
   'crater-woods':'KEEP OUT','crater-hull':'???','crater-core':'RETURN ALL TAPES'};
 function drawStageBG(cam,L){
   const zs=LFCore.levelZones(L);
-  // fetch this stage's paintings (and the next stage's) up front, so no area shows the fallback while its picture loads
-  if(BGPRE!==L){BGPRE=L;for(const z of zs)bgImg(z[0]);if(L<NSTAGES)for(const z of LFCore.levelZones(L+1))bgImg(z[0]);}
   for(const [k,a,b,pal] of zs){const x0=Math.max(a,cam)-cam,x1=Math.min(b,cam+W)-cam;if(x1<=x0)continue;
     ctx.save();ctx.beginPath();ctx.rect(x0,0,x1-x0,H);ctx.clip();
     if(bgImg(k))drawZoneImg(k,a,b,cam,x0,x1);else drawPalZone(k,a,b,pal||{k:'outdoor',sky:'#1a0a2a',wall:'#45221a',acc:'#ffc93c',f1:'#5e3426',f2:'#522e20'},cam);
