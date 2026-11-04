@@ -2337,17 +2337,23 @@ function gPocket(pg){
   gPara('UPRIGHT: A REWIND POCKET TV. D-PAD LEFT, YOUR LCD IN THE MIDDLE, BUTTONS RIGHT. SIDEWAYS: A WIDE SET WITH NOTHING OVER THE PICTURE. SETTINGS > STICK SWAPS THE D-PAD FOR A JOYSTICK. SETTINGS > SKIN PICKS THE CASE.',14,146,'#ffe9c2',5);
   txt('THE SKIN ALSO COLOURS THE SCREEN FRAME ON A COMPUTER.',W/2,186,'#d9a87c','center',5,null);
 }
+let LOGO_IMG=null,LOGO_ASKED=false;
 function gAbout(pg){
   // laid out top to bottom by measured text; if the device's font runs wide, the body steps down a size so it all fits
   const paras=[[null,'THE LAST VIDEO STORE, SMOOTH SAIL FM 96.9, DJ JUNE, DEX, RAE, BENNY, JULIA AND THE MONSTERS, STAGES, ITEMS AND LOGOS IN THIS GAME ARE TRADEMARKS OF OUR BAD ENTERTAINMENT. NO PART OF THE GAME, ITS ART OR ITS MUSIC MAY BE COPIED OR REUSED WITHOUT PERMISSION.','#d9a87c'],
     ['MADE WITH AI','THE ART AND MUSIC WERE AI PROMPTED, THEN CORRECTED AND ADJUSTED BY HAND. THE CODE WAS WRITTEN WITH AI ASSISTANCE.','#ffe9c2'],
     ['A WORK OF FICTION','EVERY PERSON, PLACE, STORE, BRAND, PRODUCT AND ITEM HERE IS MADE UP. ANY LIKENESS TO REAL PEOPLE, LIVING OR DEAD, OR TO REAL PRODUCTS OR PLACES IS COINCIDENTAL AND NOT INTENDED.','#ffe9c2'],
     ['THANKS','PRESS START 2P FONT BY CODEMAN38, SIL OPEN FONT LICENSE. ONLINE ROOMS RUN ON CLOUDFLARE WORKERS.','#ffe9c2']];
-  const top=76,bottom=H-22,mw=W-32;
+  const top=94,bottom=H-22,mw=W-32;
   let fs=5;const height=f=>paras.reduce((h,[hd,b])=>h+(hd?11:0)+wrapPx(b,f,mw).length*(f+2)+3,0);
   while(fs>3&&top+height(fs)>bottom)fs-=.5;
-  txt('THE LAST VIDEO STORE',W/2,54,pg.c,'center',8,null);
-  gFit('\u00a9 2026 OUR BAD ENTERTAINMENT. ALL RIGHTS RESERVED.',W/2,66,'#ffe9c2','center',5,mw);
+  // the studio logo top left, the title and copyright beside it
+  if(!LOGO_ASKED){LOGO_ASKED=true;queueImg(AV('art/ourbad.webp'),1,false,i=>{LOGO_IMG=i;});}
+  const lw=80,lh=40,cx=(14+lw+6+W-14)/2;
+  if(LOGO_IMG)ctx.drawImage(LOGO_IMG,14,50,lw,lh);
+  txt('THE LAST VIDEO STORE',cx,58,pg.c,'center',8,null);
+  gFit('\u00a9 2026 OUR BAD ENTERTAINMENT.',cx,71,'#ffe9c2','center',6,W-lw-40);
+  gFit('ALL RIGHTS RESERVED.',cx,80,'#d9a87c','center',5,W-lw-40);
   let y=top;
   for(const [hd,b,c] of paras){if(hd){gFit(hd,14,y,pg.c,'left',7,mw);y+=11;}y+=gPara(b,14,y,c,fs,mw,'left',fs+2)*(fs+2)+3;}
 }
