@@ -775,7 +775,7 @@ function iconShape(cat,c,x,y,mono){
 /* Item icons: art/icons-<slot>.webp holds the slot's 30 illustrated icons in a 6x5 grid of 96px cells, item index i
    at column i%6, row i//6 (tools/import_items.py). Until a sheet loads, the drawn shape stands in. */
 const ICONS={},ICON_CELL=96;let iconsAsked=false;
-function iconSheet(cat){if(!iconsAsked){iconsAsked=true;CATS.forEach(c=>{const i=new Image();i.onload=()=>{ICONS[c]=i;};i.src=AV('art/icons-'+c+'.webp');});}return ICONS[cat];}
+function iconSheet(cat){if(!iconsAsked){iconsAsked=true;CATS.forEach(c=>queueImg(AV('art/icons-'+c+'.webp'),1,false,i=>{ICONS[c]=i;}));}return ICONS[cat];}
 function drawIcon(cat,c,x,y,k,sz=16){
   const sh=k&&iconSheet(cat);
   if(sh){const n=+k.slice(cat.length)||0,o=(16-sz)/2;ctx.drawImage(sh,(n%6)*ICON_CELL,Math.floor(n/6)*ICON_CELL,ICON_CELL,ICON_CELL,x+o,y+o,sz,sz);return;}
@@ -1301,8 +1301,32 @@ const ART=globalThis.LF_ART||{};
 const SPR={};
 // Bump ART_V whenever art files are replaced under the same names, so browsers fetch the new pictures.
 const ART_V='2026.11.03-7',AV=u=>u+'?v='+ART_V;
-for(const k in ART){const m=ART[k],img=new Image();img.onload=()=>{SPR[k]={img,m,white:null};};img.src=AV(m.src);
-  if(m.frames)for(const f in m.frames){const fm=m.frames[f],fi=new Image();fi.onload=()=>{SPR[k+':'+f]={img:fi,m:fm,white:null};};fi.src=AV(fm.src);}}
+/* ---------- picture loading ----------
+   Everything used to be requested at once, so on a phone the heroes could take seconds to appear while 400 files
+   fought for the line, and a file that failed stayed on its drawn stand-in until a reload. Now pictures go through one
+   queue, a few at a time, most urgent first: what the title and stage 1 need, then each later stage in order.
+   Failed downloads are retried. The boot screen waits for the first group. */
+const LOADQ=[],LOADING=new Set();let loadDone=0,loadTotal=0,bootNeed=0,bootGot=0,booted=false;
+function queueImg(url,pri,boot,done){const job={url,pri,boot,done,tries:0};LOADQ.push(job);loadTotal++;if(boot)bootNeed++;pumpLoads();}
+function pumpLoads(){
+  while(LOADING.size<6&&LOADQ.length){let bi=0;for(let i=1;i<LOADQ.length;i++)if(LOADQ[i].pri<LOADQ[bi].pri)bi=i;
+    const job=LOADQ.splice(bi,1)[0];LOADING.add(job);const img=new Image();
+    img.onload=()=>{LOADING.delete(job);loadDone++;if(job.boot)bootGot++;job.done(img);pumpLoads();};
+    img.onerror=()=>{LOADING.delete(job);if(++job.tries<4){setTimeout(()=>{LOADQ.push(job);pumpLoads();},700*job.tries);}else{loadDone++;if(job.boot)bootGot++;}pumpLoads();};
+    img.src=job.url;}
+}
+// what each stage needs: its monsters, boss and survivors, so the right pictures are ahead in line
+const stageSprites=L=>{const lv=LEVELS[L-1],set=new Set(['dex','rae','benny','julia']);for(const w of LFCore.genWaves(L))for(const t of w.list)set.add(t);
+  for(const t of [...(lv.fresh||[]),...(lv.pool||[])])set.add(t);if(lv.boss)set.add(lv.boss);for(const k in ART)if(k.startsWith('surv_'))set.add(k);return set;};
+// The boot screen waits only for what the first screens show: the heroes standing and walking, the first two waves'
+// monsters, and the opening scenery (under 1.5 MB). Everything else keeps arriving behind it, nearest stage first.
+{const first=stageSprites(STG.cur),pri={};for(let L=1;L<=NSTAGES;L++)for(const k of stageSprites(L))if(pri[k]==null)pri[k]=L===STG.cur?0:10+L;
+  const early=new Set(['dex','rae','benny','julia']);for(const w of LFCore.genWaves(STG.cur).slice(0,2))for(const t of w.list)early.add(t);
+  for(const k in ART){const m=ART[k],base=k.split('_')[0],p=pri[k]!=null?pri[k]:pri[base]!=null?pri[base]+1:40,boot=early.has(k);
+    queueImg(AV(m.src),p-(boot?1:0),boot,img=>{SPR[k]={img,m,white:null};});
+    if(m.frames)for(const f in m.frames){const fm=m.frames[f],walk=f==='walk1'||f==='walk2',core=walk||f==='attack1'||f==='attack2'||f==='walk3'||f==='walk4';
+      queueImg(AV(fm.src),p+(core?0:.5)-(boot&&walk?1:0),boot&&walk,fi=>{SPR[k+':'+f]={img:fi,m:fm,white:null};});}}}
+iconSheet('hat');   // the item icons come right behind the opening set
 const SPR_H={dex:50,rae:50,benny:50,julia:50,sh:50,mummy:52,wolf:52,pod:52,chainsaw:56,cop:56,cook:52,gremlin:42,tape:54,blob:80};
 const sprH0=k=>SPR_H[k]||Math.round((EN[k]&&EN[k].boss?46:50)*((EN[k]&&EN[k].look&&EN[k].look.k)||1));
 const sprH=k=>SPR[k]?sprH0(k):(EN[k]&&EN[k].look?sprH0(k)*.8:31);
@@ -1313,7 +1337,7 @@ function whiteOf(s){if(s.white)return s.white;const c=document.createElement('ca
    which keeps the painted shading and ink. */
 const MASK={},MASKTRY={},TINT=new Map();
 function maskFor(key){const mm=ART[key]&&ART[key].mask;if(!mm)return null;
-  if(!MASKTRY[key]){MASKTRY[key]=1;const i=new Image();i.onload=()=>{MASK[key]=i;};i.src=AV(mm.src);}return MASK[key]||null;}
+  if(!MASKTRY[key]){MASKTRY[key]=1;queueImg(AV(mm.src),2,false,i=>{MASK[key]=i;});}return MASK[key]||null;}
 function tintRegions(lk){if(!lk)return null;const r=[lk.jacket||lk.shirt||null,lk.jacket?lk.shirt||null:null,lk.pants||null,lk.shoes||null];return r.some(Boolean)?r:null;}
 function tinted(s,key,frame,regs){
   const mk=maskFor(key),y0=mk&&ART[key].mask.y[frame||''];if(!mk||y0==null)return s.img;
@@ -1634,8 +1658,8 @@ function clipX(a,b,cam,fn){const x0=Math.max(a,cam)-cam,x1=Math.min(b,cam+W)-cam
 /* Painted backdrops: one panorama per area, scaled to the view height and tiled along the level. */
 const BGIMG={},BGTRY={};
 // Backdrops load on demand from art/bg-<zone>.webp; zones without a painting use a drawn fallback in that zone's colours.
-function bgImg(k){if(!BGTRY[k]){BGTRY[k]=1;const i=new Image();i.onload=()=>{BGIMG[k]=i;};i.onerror=()=>{BGTRY[k]=2;};i.src=AV('art/bg-'+k+'.webp');}return BGIMG[k]||null;}
-['suburb','mall','lot'].forEach(bgImg);let BGPRE=0;
+function bgImg(k,pri=5,boot=false){if(!BGTRY[k]){BGTRY[k]=1;queueImg(AV('art/bg-'+k+'.webp'),pri,boot,i=>{BGIMG[k]=i;});}return BGIMG[k]||null;}
+for(const z of LFCore.levelZones(STG.cur))bgImg(z[0],-1,true);let BGPRE=0;
 const ZONES=LFCore.levelZones(1);
 function drawZoneImg(k,a,b,cam,x0,x1){
   const img=BGIMG[k],tw=img.width*H/img.height;
@@ -1931,8 +1955,17 @@ function render(){renderScene();ctx.setTransform(SC,0,0,SC,0,0);
   const top=scene==='inv';
   (scene==='controls'||top?toasts.slice(-1):toasts).forEach((t,i)=>{const y=top?5:H-16-i*15,w=t.s.length*8+12,x=top?Math.round((W-w)/2):4;ctx.globalAlpha=Math.min(1,t.t/30);
     rect(x+1,y-2,w,13,'rgba(0,0,0,.45)');rrect(x-1,y-4,w+2,15,3,INK);rrect(x,y-3,w,13,2,'#2a1612');rect(x,y-3,3,13,t.c);txt(t.s,x+7,y,t.c,'left',8,null);ctx.globalAlpha=1;});}
+function drawBoot(){
+  rect(0,0,W,H,'#2a140e');const f=bootNeed?bootGot/bootNeed:1,bw=160,bx=W/2-bw/2,by=H/2+6;
+  logo(26);txt('LOADING',W/2,by-16,'#ffe9c2','center',8,INK);
+  rect(bx-1,by-1,bw+2,10,'#120806');rect(bx,by,Math.round(bw*f),8,'#ffc93c');
+  for(let i=1;i<10;i++)rect(bx+i*16,by,1,8,'#2a140e');
+  txt(Math.round(f*100)+'%',W/2,by+14,'#d9a87c','center',8,null);
+  if(performance.now()>8000)txt('SLOW CONNECTION, HANG ON...',W/2,by+30,'#ff9a3c','center',6,null);
+}
 function renderScene(){
   ctx.setTransform(SC,0,0,SC,0,0);ctx.clearRect(0,0,W,H);
+  if(!booted){if(bootGot>=bootNeed||performance.now()>12000){booted=true;}else return drawBoot();}
   if(scene==='title')return drawTitle();
   if(scene==='select')return drawSelect();
   if(scene==='controls')return drawControls();
@@ -2118,6 +2151,6 @@ let last=performance.now(),acc=0;const STEP=1000/60;
 function frame(now){acc+=Math.min(100,now-last);last=now;let n=0;while(acc>=STEP&&n<5){update();acc-=STEP;n++;}render();if(touchMode)shellTick();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 rebuildKeys();renderPadList();renderLegend();
-window.__lf={MUSW:()=>[musicWant(),MUS.now,!!MUS.jingle,Object.fromEntries(Object.entries(MUS.el).map(([k,a])=>[k,[a.paused?'paused':'playing',+a.volume.toFixed(2)]]))],get DIFFSEL(){return DIFFSEL},setDiff,STG,unlockTo,enemySprite,MUS,SND,SPR,drawHero,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
+window.__lfboot=()=>({got:bootGot,need:bootNeed,done:loadDone,total:loadTotal,booted,sprites:Object.keys(SPR).length});window.__lf={MUSW:()=>[musicWant(),MUS.now,!!MUS.jingle,Object.fromEntries(Object.entries(MUS.el).map(([k,a])=>[k,[a.paused?'paused':'playing',+a.volume.toFixed(2)]]))],get DIFFSEL(){return DIFFSEL},setDiff,STG,unlockTo,enemySprite,MUS,SND,SPR,drawHero,get scene(){return scene},set scene(v){scene=v},get G(){return G},L,pads,ks,makeItem,GEAR,BASE_LIST,SETS,applyGear,INV,NET,FX,serverEl};
 })();
 </script>
