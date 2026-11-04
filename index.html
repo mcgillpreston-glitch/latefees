@@ -212,7 +212,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
 </div>
 
 <script src="art/manifest.js?v=2026.11.03-7"></script>
-<script src="game-core.js?v=2026.11.03-4"></script>
+<script src="game-core.js?v=2026.11.03-5"></script>
 <script>
 (()=>{
 const {W,H,TOP,BOT,LEVEL_END,LEVELS,NSTAGES}=LFCore;
@@ -1043,7 +1043,7 @@ function updateFX(){
 
 /* ---------- online: rooms on a Cloudflare Durable Object ---------- */
 const NET={on:false,ws:null,code:'',slot:-1,token:null,dev:'kb1',lobby:null,snapMs:40,lastSnap:0,err:'',busy:false,held:0,sendT:0,cur:0,codeIn:['A','A','A','A'],col:0,ready:false,gone:false,tries:0,
-  rtt:0,pingT:0,pingAt:0,pingN:0,gaps:[],seq:0,inq:[],out:[],ackBits:0,pred:null,off:{x:0,y:0},snap:null};
+  rtt:0,pingT:0,pingAt:0,pingN:0,gaps:[],seq:0,inq:[],out:[],ackBits:0,pred:null,off:{x:0,y:0},snap:null,view:false,big:0};
 const serverEl=document.getElementById('server');
 const DEFAULT_SERVER='https://latefees.prestonmcgill.workers.dev';
 try{serverEl.value=localStorage.getItem('lfotd-server')||DEFAULT_SERVER;}catch(e){serverEl.value=DEFAULT_SERVER;}
@@ -1052,9 +1052,9 @@ function serverBase(){let u=(serverEl.value||'').trim().replace(/\/+$/,'')||DEFA
 const BITS={up:1,down:2,left:4,right:8,atk:16,jump:32,spec:64,start:128};
 function netSend(o){if(NET.ws&&NET.ws.readyState===1)NET.ws.send(JSON.stringify(o));}
 function myGear(){const h=NET.lobby&&NET.lobby.players.find(p=>p.s===NET.slot);const hid=h?HEROES[h.h].id:(G&&G.ps.find(p=>p.slot===NET.slot)||{ch:HEROES[0]}).ch.id;return {st:calcStats(hid),look:gearLook(hid)};}
-async function netHost(){
+async function netHost(view){
   const base=serverBase();if(!base){NET.err='SET THE SERVER ADDRESS BELOW THE GAME';return;}
-  NET.busy=true;NET.err='';
+  NET.busy=true;NET.err='';NET.view=!!view;
   try{const r=await fetch(base+'/rooms'+(REGION!=='auto'?'?region='+REGION:''),{method:'POST'});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();netJoin(j.code);}
   catch(e){NET.err='COULD NOT REACH SERVER';NET.busy=false;}
 }
@@ -1063,7 +1063,7 @@ function netJoin(code){
   NET.busy=true;NET.err='';NET.code=code.toUpperCase();NET.gone=false;
   let ws;try{ws=new WebSocket(base.replace(/^http/,'ws')+'/rooms/'+NET.code+'/ws');}catch(e){NET.err='BAD SERVER ADDRESS';NET.busy=false;return;}
   NET.ws=ws;
-  ws.onopen=()=>{NET.tries=0;netSend({t:'join',token:NET.token,name:'P',...myGear()});};
+  ws.onopen=()=>{NET.tries=0;netSend(NET.view?{t:'join',view:true}:{t:'join',token:NET.token,name:'P',...myGear()});};
   ws.onmessage=m=>{let d;try{d=JSON.parse(m.data);}catch(e){return;}netMsg(d);};
   ws.onclose=()=>{if(NET.ws!==ws)return;NET.ws=null;
     if(NET.gone){netLeave(true);return;}
@@ -1073,16 +1073,16 @@ function netJoin(code){
 }
 function netLeave(silent){
   const ws=NET.ws;NET.gone=true;NET.ws=null;if(ws){try{ws.send(JSON.stringify({t:'leave'}));}catch(e){}try{ws.close();}catch(e){}}
-  NET.on=false;NET.busy=false;NET.lobby=null;NET.slot=-1;
+  NET.on=false;NET.busy=false;NET.lobby=null;NET.slot=-1;NET.view=false;NET.big=0;
   if(scene!=='title'&&scene!=='online'&&scene!=='join'){scene='online';NET.cur=0;}
   if(!silent)toast('LEFT THE ROOM','#d9a87c');
 }
 function netMsg(d){
   switch(d.t){
-  case 'welcome':NET.slot=d.slot;NET.token=d.token;NET.code=d.code;NET.busy=false;NET.on=true;NET.err='';
+  case 'welcome':NET.slot=d.slot;if(!d.view)NET.token=d.token;NET.view=!!d.view;NET.code=d.code;NET.busy=false;NET.on=true;NET.err='';
     NET.serverCore=d.core||'OLD';if(NET.serverCore!==C.CORE_VERSION)toast('ROOM SERVER IS OUT OF DATE: REDEPLOY IT','#ff7a5a');
     if(scene==='online'||scene==='join')scene='nlobby';break;
-  case 'lobby':NET.lobby=d;if(scene==='play'||scene==='pause'||scene==='inv'||scene==='over'||scene==='win'||scene==='intro'){if(d.status==='lobby'){scene='nlobby';G=null;}}
+  case 'lobby':NET.lobby=d;NET.big=d.big||0;if(scene==='play'||scene==='pause'||scene==='inv'||scene==='over'||scene==='win'||scene==='intro'){if(d.status==='lobby'){scene='nlobby';G=null;}}
     else if(scene==='nlobby'&&d.status!=='lobby'){scene='play';toast('JOINED A GAME IN PROGRESS','#3ad6c0');}break;
   case 'start':G=null;NET.snap=null;NET.pred=null;NET.inq=[];NET.out=[];FX.parts=[];FX.texts=[];shakeV=0;scene='intro';introT=0;NET.ready=false;break;
   case 'snap':{
@@ -1110,6 +1110,8 @@ function netMsg(d){
   }
 }
 function netTick(){
+  if(NET.view){if(NET.ws&&NET.ws.readyState===1&&++NET.pingT>=120){NET.pingT=0;NET.pingN++;NET.pingAt=performance.now();netSend({t:'ping',n:NET.pingN});}
+    if(hit('menu','back')&&scene!=='over'&&scene!=='win'){netSend({t:'leave'});netLeave();}return;}
   if(!NET.ws||NET.ws.readyState!==1||NET.slot<0)return;
   const d=NET.dev,blocked=scene==='pause'||scene==='inv'||scene==='controls';
   let bits=0;if(!blocked)for(const a in BITS)if(held(d,a)||hit(d,a))bits|=BITS[a];
@@ -1181,10 +1183,10 @@ function predShow(g,hold){
 }
 function updOnline(){
   if(NET.busy){if(menuHit('back')){netLeave(true);}return;}
-  if(menuHit('up')){NET.cur=(NET.cur+2)%3;beep(440,.05);}if(menuHit('down')){NET.cur=(NET.cur+1)%3;beep(440,.05);}
+  if(menuHit('up')){NET.cur=(NET.cur+3)%4;beep(440,.05);}if(menuHit('down')){NET.cur=(NET.cur+1)%4;beep(440,.05);}
   if(hit('menu','back')||devs().some(d=>isPad(d)&&hit(d,'back'))){scene='title';return;}
   if(menuHit('ok')){const d=devs().find(okHit)||'kb1';NET.dev=d;
-    if(NET.cur===0)netHost();else if(NET.cur===1){scene='join';NET.col=0;NET.err='';}else scene='title';}
+    if(NET.cur===0)netHost(false);else if(NET.cur===1){scene='join';NET.col=0;NET.err='';}else if(NET.cur===2)netHost(true);else scene='title';}
 }
 const AZ='ABCDEFGHJKLMNPQRSTUVWXYZ';
 function updJoin(){
@@ -1197,6 +1199,7 @@ function updJoin(){
 }
 function updNLobby(){
   const d=NET.dev,lb=NET.lobby;if(!lb)return;
+  if(NET.view){if(hit('menu','back')||menuHit('back')){netLeave();}return;}
   const me=lb.players.find(p=>p.s===NET.slot);
   if(hit('menu','back')){netSend({t:'leave'});netLeave();return;}
   if(isPad(d)?hit(d,'back'):hit(d,'jump')){if(me&&me.lk)netSend({t:'lock',v:false});else{netSend({t:'leave'});netLeave();}return;}
@@ -1208,14 +1211,34 @@ function updNLobby(){
     if(isPad(d)?hit(d,'ok'):hit(d,'atk')||hit(d,'start')){netSend({t:'lock',v:true,...myGearFor(me.h)});beep(880,.12,'square',.05,.5);}}
 }
 const isHost=lb=>lb&&lb.players.length&&Math.min(...lb.players.map(p=>p.s))===NET.slot;
+const pageUrl=()=>{try{const u=location.href.split(/[?#]/)[0];return u.startsWith('http')?u.replace(/^https?:\/\//,'').replace(/\/index\.html$/,'').replace(/\/$/,''):'';}catch(e){return '';}};
+// The big screen's lobby: the code written large, where to join, and who has joined so far.
+function drawBigLobby(){
+  const lb=NET.lobby;uiBg('BIG SCREEN',lb?lb.players.length+'/4 PHONES':'','#d9a87c');
+  if(!lb){txt('OPENING ROOM...',W/2,100,'#d9a87c','center',8,INK);return;}
+  vhs(W/2-120,30,240,74,'#ffc93c','rgba(42,20,14,.94)');
+  txt('ROOM CODE',W/2,38,'#d9a87c','center',8,null);
+  ctx.save();ctx.translate(W/2,52);ctx.scale(3,3);txt(NET.code,0,0,'#ffe9c2','center',8,INK);ctx.restore();
+  const u=pageUrl();txt(u?'ON YOUR PHONE OPEN '+u.toUpperCase():'OPEN THE GAME ON YOUR PHONE',W/2,86,'#3ad6c0','center',6,null);
+  txt('ONLINE > JOIN WITH CODE > '+NET.code,W/2,95,'#3ad6c0','center',6,null);
+  HEROES.forEach((h,i)=>{const x=8+i*94,y=110,hov=lb.players.filter(p=>p.h===i),lock=hov.find(p=>p.lk);
+    vhs(x,y,88,70,HERO_COVER[h.id]||'#ffc93c',lock?'#4a241a':hov.length?'#3a2030':'#2e1712');
+    ctx.save();ctx.translate(x+46,y+56);ctx.scale(1.4,1.4);drawHero(h.id,{h:36,walk:hov.length?T:0,atkP:-1,n:1,gear:(lock&&lock.look)||{}});ctx.restore();
+    hov.forEach((s,j)=>{const col=PCOL[s.s],tg='P'+(s.s+1);if(s.lk){rect(x+6,y+5+j*11,tg.length*8+4,11,col);txt(tg,x+8,y+7+j*11,INK,'left',8,null);}else txt(tg,x+8,y+7+j*11,col,'left',8,INK);});
+    txt(h.first,x+46,y+60,'#ffe9c2','center',6,INK);if(lock)stamp('RENTED',x+46,y+30,'#e8453c',-.3,8);});
+  const n=lb.stage||1,hint=lb.count>0?'STARTING IN '+Math.ceil(lb.count/60)+'...':lb.players.length?'WAITING FOR EVERYONE TO PRESS READY':'WAITING FOR PHONES TO JOIN';
+  txt(hint,W/2,186,lb.count>0?'#ffc93c':'#d9a87c','center',8,INK);
+  txt('STAGE '+n+': '+LEVELS[n-1].name+'   '+((LFCore.DIFF[lb.diff]||{}).name||'')+'   (THE FIRST PHONE PICKS)   ESC LEAVES',W/2,199,'#d9a87c','center',6,null);
+}
 function myGearFor(h){const hid=HEROES[h].id;return {st:calcStats(hid),look:gearLook(hid)};}
 function drawOnline(){
   const base=serverBase();uiBg('ONLINE',base?base.replace(/^https?:\/\//,'').slice(0,34):'NO SERVER SET',base?'#3ad6c0':'#ff7a5a');
-  vhs(W/2-84,44,168,72,'#ff5fa8','rgba(42,20,14,.94)');
-  ['HOST A ROOM','JOIN WITH CODE','BACK'].forEach((it,i)=>menuRow(it,W/2+2,56+i*18,NET.cur===i,140,'#ff5fa8'));
-  txt('ROOM REGION: '+regionName()+'  (SETTINGS)',W/2,122,'#d9a87c','center',6,INK);
-  if(NET.busy)txt((T>>4)%2?'CONNECTING...':'CONNECTING',W/2,132,'#3ad6c0','center',8,INK);
-  if(NET.err)tag(NET.err,W/2,142,'#ff7a5a',INK,'center');
+  vhs(W/2-84,40,168,88,'#ff5fa8','rgba(42,20,14,.94)');
+  ['HOST A ROOM','JOIN WITH CODE','BIG SCREEN','BACK'].forEach((it,i)=>menuRow(it,W/2+2,52+i*18,NET.cur===i,140,'#ff5fa8'));
+  if(NET.cur===2)txt('THIS SCREEN SHOWS THE GAME. PHONES JOIN AS CONTROLLERS.',W/2,134,'#ffc93c','center',6,INK);
+  if(NET.cur!==2)txt('ROOM REGION: '+regionName()+'  (SETTINGS)',W/2,134,'#d9a87c','center',6,INK);
+  if(NET.busy)txt((T>>4)%2?'CONNECTING...':'CONNECTING',W/2,144,'#3ad6c0','center',8,INK);
+  if(NET.err)tag(NET.err,W/2,154,'#ff7a5a',INK,'center');
   panel(24,166,W-48,32,'#3ad6c0','rgba(42,20,14,.9)');
   txt('EVERYONE OPENS THIS PAGE ON THEIR OWN DEVICE',W/2,172,'#ffe9c2','center',8,null);
   txt('ONE PLAYER PER DEVICE. 4 PER ROOM.',W/2,185,'#d9a87c','center',8,null);
@@ -1231,6 +1254,7 @@ function drawJoin(){
   txt(isPad(NET.dev)?'D-PAD PICKS LETTERS   A JOINS   B BACK':'TYPE THE CODE   ENTER JOINS   ESC BACK',W/2,180,'#ffe9c2','center',8,INK);
 }
 function drawNLobby(){
+  if(NET.view)return drawBigLobby();
   const lb=NET.lobby;uiBg('ROOM '+NET.code,lb?lb.players.length+'/4 IN':'','#d9a87c');
   if(!lb){txt('WAITING FOR ROOM...',W/2,100,'#d9a87c','center',8,INK);return;}
   HEROES.forEach((h,i)=>{const x=8+i*94,y=28,hov=lb.players.filter(p=>p.h===i),lock=hov.find(p=>p.lk),cc=HERO_COVER[h.id]||'#ffc93c';
@@ -1276,6 +1300,7 @@ function update(){
   else if(scene==='select')updSelect();
   else if(scene==='intro'){introT++;if(NET.on){if(introT>240&&G)scene='play';}else if(introT>360||(introT>20&&anyOk()))scene='play';}
   else if((scene==='play'||scene==='pause'||scene==='over'||scene==='win')&&!G){if(NET.on)netTick();}
+  else if(scene==='play'&&NET.view){netTick();updateFX();}   // a big screen only watches
   else if(scene==='play'){const pz=G.ps.find(p=>!p.out&&p.dev&&(hit(p.dev,'start')||hit(p.dev,'pause')));
     const ip=G.ps.find(p=>!p.out&&!p.lostPad&&p.dev&&hit(p.dev,'inv'));
     if(pz||hit('menu','back')){scene='pause';pCur=0;if(NET.on)netTick();}else if(ip){openInv(ip,'play');if(NET.on)netTick();}else if(NET.on){netTick();updateFX();}else{localStep();updateFX();}}
@@ -1842,6 +1867,24 @@ function drawPanel(i){
   if(p.pow){const P=POW[p.pow.k];rect(x+3,y+23,16,6,INK);rect(x+4,y+24,Math.round(14*p.pow.t/P.dur),4,P.col);}
   if(p.lostPad||p.away){rrect(x,y,92,31,3,'rgba(26,20,18,.96)');label(p.away?'AWAY':'NO PAD');if((T>>4)%2)txt(p.away?'RECONNECTING':'RECONNECT',x+4,y+19,'#ff7a5a','left',8,null);}
 }
+/* The phone's screen when a big screen is showing the game: your hero, health, lives, score and combo, big enough
+   to glance at; the fight itself is on the TV. The pad below works exactly as before. */
+function drawPadFace(g){
+  const me=g.ps.find(p=>p.slot===NET.slot),col=PCOL[Math.max(0,NET.slot)];
+  rect(0,0,W,H,'#1c0b07');for(let y=0;y<H;y+=4)rect(0,y,W,1,'rgba(0,0,0,.18)');
+  if(!me){txt('JOINING...',W/2,H/2-4,'#d9a87c','center',8,INK);return;}
+  const h=me.ch;rect(0,0,W,26,col);txt('P'+(me.slot+1)+'  '+h.name,8,9,INK,'left',8,null);txt('ROOM '+NET.code,W-8,9,INK,'right',8,null);
+  ctx.save();ctx.translate(72,172);ctx.scale(2.4,2.4);drawHero(h.id,{walk:me.moving?T:0,atkP:me.atk&&!me.atk.air?me.atk.t/me.atk.len:-1,n:me.atk?me.atk.n:1,gear:gearLook(h.id),h:50,hurt:me.state==='hurt',down:me.state==='down',air:me.z>0});ctx.restore();
+  const bx=150,bw=W-bx-10;
+  txt('HEALTH',bx,40,'#d9a87c','left',8,null);rect(bx,52,bw,14,'#120806');const f=clamp(me.hp/me.maxhp,0,1);rect(bx+1,53,Math.round((bw-2)*f),12,f>.3?'#c8f05a':'#ff5a4a');txt(Math.round(me.hp)+'/'+me.maxhp,bx+bw/2,55,INK,'center',8,null);
+  txt('LIVES',bx,76,'#d9a87c','left',8,null);for(let i=0;i<me.lives;i++){rect(bx+i*22,86,18,12,INK);rect(bx+i*22+1,87,16,10,col);rect(bx+i*22+4,90,4,4,INK);rect(bx+i*22+10,90,4,4,INK);}
+  txt('SCORE',bx,112,'#d9a87c','left',8,null);txt(String(me.score).padStart(7,'0'),bx,124,'#ffe9c2','left',16,INK);
+  if(me.combo>1)txt(me.combo+' HITS',bx,150,'#ffc93c','left',16,INK);
+  if(me.pow){const P=POW[me.pow.k];txt(P.name+'  '+Math.ceil(me.pow.t/60)+'S',bx,172,P.col,'left',8,INK);}
+  if(me.out)txt(me.conts>0?'PRESS START TO CONTINUE':'OUT OF CONTINUES',W/2,H-30,'#ff7a5a','center',8,INK);
+  else if(me.state==='down')txt('GET UP!',W/2,H-30,'#ff7a5a','center',8,INK);
+  txt('WATCH THE BIG SCREEN',W/2,H-14,'#3ad6c0','center',8,null);
+}
 function drawHUD(){
   const g=G;for(let i=0;i<4;i++)drawPanel(i);
   const dn=(LFCore.DIFF[g.diff]||{}).name||'',dc={EASY:'#c8f05a',NORMAL:'#ffc93c',HARD:'#ff5a4a'}[dn]||'#ffc93c';
@@ -1980,6 +2023,7 @@ function renderScene(){
   if(scene==='intro')return drawIntro();
   const g=G;if(!g)return;if(NET.on){C.interpolate(g,performance.now(),NET.snapMs);netAhead(g);predShow(g);}
   ctx.save();if(shakeV>.5)ctx.translate(Math.round((Math.random()-.5)*shakeV),Math.round((Math.random()-.5)*shakeV));
+  if(touchMode&&NET.big&&!NET.view&&scene==='play'){ctx.restore();return drawPadFace(g);}   // a phone in a big-screen room is the controller
   drawBG(g.cam);drawWorld();ctx.restore();drawHUD();
   if(scene==='pause'){rect(0,0,W,H,'rgba(20,8,6,.62)');scanlines(.16);const lost=g.ps.find(p=>p.lostPad);
     // VCR pause on-screen display

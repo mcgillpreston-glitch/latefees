@@ -60,6 +60,7 @@ export class Room {
     this.state = state;
     this.code = "";
     this.players = new Map();   // slot -> {ws, token, hero, locked, name, st, look, away, awayAt, held, pressed}
+    this.viewers = new Set();   // big screens: get every message, hold no slot, send no input
     this.status = "lobby";      // lobby | play | over | win
     this.G = null;
     this.timer = null;
@@ -102,10 +103,15 @@ export class Room {
       server.addEventListener("message", (ev) => {
         let d; try { d = JSON.parse(ev.data); } catch { return; }
         if (!d || typeof d !== "object") return;
-        if (slot < 0) { if (d.t === "join") slot = this.join(server, d); return; }
+        if (slot < 0) {
+          if (d.t === "join" && d.view) { this.addViewer(server); slot = -2; return; }
+          if (d.t === "join") slot = this.join(server, d);
+          return;
+        }
+        if (slot === -2) { if (d.t === "ping") this.send(server, { t: "pong", n: d.n }); else if (d.t === "full") server.full = true; else if (d.t === "again" && (this.status === "over" || this.status === "win")) this.toLobby(); return; }
         this.onMessage(slot, d);
       });
-      const drop = () => { if (slot >= 0) this.disconnect(slot, server); };
+      const drop = () => { if (slot >= 0) this.disconnect(slot, server); else if (slot === -2) { this.viewers.delete(server); this.sendLobby(); this.maybeIdle(); } };
       server.addEventListener("close", drop);
       server.addEventListener("error", drop);
       return new Response(null, { status: 101, webSocket: client });
@@ -114,7 +120,14 @@ export class Room {
   }
 
   send(ws, o) { try { ws.send(JSON.stringify(o)); } catch {} }
-  broadcast(o) { const s = JSON.stringify(o); for (const p of this.players.values()) if (p.ws) { try { p.ws.send(s); } catch {} } }
+  broadcast(o) { const s = JSON.stringify(o); for (const p of this.players.values()) if (p.ws) { try { p.ws.send(s); } catch {} } for (const v of this.viewers) { try { v.send(s); } catch {} } }
+
+  addViewer(ws) {
+    ws.full = true; this.viewers.add(ws);
+    this.send(ws, { t: "welcome", slot: -1, view: true, code: this.code, core: C.CORE_VERSION });
+    if (this.status === "play" && this.G) this.send(ws, { t: "start", delay: 0 });
+    this.sendLobby();
+  }
 
   join(ws, d) {
     // A returning player (same token) gets their old slot back.
@@ -235,7 +248,7 @@ export class Room {
 
   lobbyMsg() {
     return { t: "lobby", code: this.code, status: this.status, count: this.count, stage: this.stage, diff: this.diff,
-      players: [...this.players].map(([s, p]) => ({ s, h: p.hero, lk: p.locked, nm: p.name, on: !!p.ws, look: p.look })) };
+      big: this.viewers.size, players: [...this.players].map(([s, p]) => ({ s, h: p.hero, lk: p.locked, nm: p.name, on: !!p.ws, look: p.look })) };
   }
   sendLobby() { this.broadcast(this.lobbyMsg()); }
 
@@ -297,6 +310,7 @@ export class Room {
       if (!p.ws) continue;
       try { if (p.full || !delta) { p.ws.send(full); p.full = false; } else p.ws.send(delta); } catch {}
     }
+    for (const v of this.viewers) { try { if (v.full || !delta) { v.send(full); v.full = false; } else v.send(delta); } catch {} }
     this.prevSnap = cur;
   }
 
@@ -319,6 +333,10 @@ export class Room {
 
   maybeIdle() {
     if ([...this.players.values()].some(p => p.ws)) return;
+    if (this.viewers.size) {   // a big screen is still up: keep the code, go back to the lobby and wait for phones
+      if (this.status !== "lobby" && !this.players.size) { this.stopTimer(); this.G = null; this.status = "lobby"; this.count = 0; this.sendLobby(); }
+      return;
+    }
     // Nobody connected: close the room so the code can be reused.
     this.stopTimer(); this.G = null; this.status = "lobby"; this.count = 0; this.players.clear();
     this.setCreated(0);
