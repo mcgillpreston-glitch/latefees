@@ -1707,14 +1707,28 @@ function drawSurv(s){
   ctx.restore();ctx.globalAlpha=1;
   if(!s.saved&&(s.t%180)<80){rect(sx-19,sy-64,38,12,'#ffe9c2');tri(sx-2,sy-52,sx+4,sy-52,sx,sy-48,'#ffe9c2');txt('HELP!',sx,sy-62,'#e8453c','center',8,null);}
 }
+/* Item names on the ground. With one or two items they're full size; with more, a smaller font, and any label that
+   would cover another moves up a row, so a pile of loot doesn't turn into a wall of text. */
+let PLAB=[],PCNT=0;
+function drawPickLabels(){
+  if(!PLAB.length){PCNT=0;return;}
+  const small=PCNT>2,fs=small?5:8,h=small?8:11,placed=[];ctx.font=fs+'px "Press Start 2P", monospace';
+  PLAB.sort((a,b)=>b.y-a.y||a.x-b.x);
+  for(const l of PLAB){const w=Math.ceil(ctx.measureText(l.s).width)+(small?4:6),x=clamp(l.x,w/2+2,W-w/2-2);let y=small?l.y+3:l.y;
+    for(let n=0;n<8&&placed.some(r=>x-w/2<r.x+r.w&&x+w/2>r.x&&y<r.y+r.h&&y+h>r.y);n++)y-=h+1;
+    placed.push({x:x-w/2,y,w,h});
+    rect(x-w/2,y,w,h,'rgba(40,16,10,.8)');txt(l.s,x,y+(small?1.5:2),l.c,'center',fs,null);}
+  PLAB=[];PCNT=0;
+}
 function drawPick(k){
   const sx=Math.round(k.x-G.cam),bob=Math.abs(Math.sin(k.t*.08))*3,sy=Math.round(k.y-6-bob);
-  if(k.kind==='gear'){const b=BASES[k.item.k],R=RAR[b.rar];
+  if(k.kind==='gear'){const b=BASES[k.item.k],R=RAR[b.rar];if(sx>-10&&sx<W+10)PCNT++;
     if(b.rar!=='c'){const top=k.y-(b.rar==='r'?46:70),gr=ctx.createLinearGradient(0,top,0,k.y);gr.addColorStop(0,R.col+'00');gr.addColorStop(1,R.col+'b0');
       ctx.globalAlpha=.6+Math.sin(k.t*.1)*.25;ctx.fillStyle=gr;ctx.fillRect(sx-1,top,3,k.y-top);ctx.globalAlpha=1;}
-    ell(sx,Math.round(k.y),8,2.5,R.col+'55');drawIcon(b.cat,b.col,sx-8,sy-10,k.item.k,19);
-    if(b.rar!=='c'||G.ps.some(p=>!p.out&&Math.abs(p.x-k.x)<40&&Math.abs(p.y-k.y)<24)){const w=b.name.length*8+6,lx=clamp(sx,w/2+2,W-w/2-2);
-      rect(lx-w/2,sy-24,w,11,'rgba(40,16,10,.8)');txt(b.name,lx,sy-22,R.col,'center',8,null);}
+    ell(sx,Math.round(k.y),8,2.5,R.col+'55');
+    // a soft outline glow in the item's rarity colour, pulsing gently (stronger for the rarer ones)
+    ctx.save();ctx.shadowColor=R.col;ctx.shadowBlur=SC*(b.rar==='c'?1.6:2.4)*(1+Math.sin(k.t*.1)*.25);drawIcon(b.cat,b.col,sx-8,sy-10,k.item.k,19);ctx.restore();
+    if(b.rar!=='c'||G.ps.some(p=>!p.out&&Math.abs(p.x-k.x)<40&&Math.abs(p.y-k.y)<24))PLAB.push({s:b.name,x:sx,y:sy-24,c:R.col});
     return;}
   if(POW[k.kind]){const c=POW[k.kind].col;ctx.strokeStyle=c;ctx.globalAlpha=.5+Math.sin(k.t*.15)*.3;ctx.lineWidth=1;
     ctx.beginPath();ctx.ellipse(sx,Math.round(k.y),9+Math.sin(k.t*.15)*2,3,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
@@ -1876,7 +1890,7 @@ function drawWorld(){
     else if(q.kind==='pin'){ctx.save();ctx.translate(sx,sy);ctx.rotate(g.time*.35);ell(0,-3,2.5,3,'#ffe9c2');ell(0,3,3.5,4,'#ffe9c2');rect(-2,-1,4,1,'#e8453c');ctx.restore();}
     else if(q.c){ell(sx,sy,4,3,q.c);ell(sx-1,sy-1,2,1.5,'#ffffff');}
     else{ctx.save();ctx.translate(sx,sy);ctx.rotate(g.time*.4);rect(-5,-5,10,10,'#c89a5a');rect(-3,-3,6,6,'#a87a3a');ctx.restore();}}});}
-  items.sort((a,b)=>a.y-b.y);for(const it of items)it.d();
+  PLAB=[];PCNT=0;items.sort((a,b)=>a.y-b.y);for(const it of items)it.d();drawPickLabels();
   for(const q of FX.parts)rect(Math.round(q.x-cam),Math.round(q.y-q.z),q.s,q.s,q.c);
   for(const t of FX.texts){ctx.globalAlpha=Math.min(1,t.t/20);txt(t.s,clamp(Math.round(t.x-cam),Math.ceil(t.s.length*4)+2,W-Math.ceil(t.s.length*4)-2),Math.round(t.y-t.z),t.c,'center');ctx.globalAlpha=1;}
 }
