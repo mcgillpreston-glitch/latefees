@@ -2215,6 +2215,8 @@ function gFig(type,x,y,h){ctx.save();ctx.translate(x,y);
   ctx.restore();}
 const g6=(s,x,y,c,al='left')=>txt(s,x,y,c,al,6,null);
 function gLines(lines,x,y,c='#ffe9c2',size=6,lh=8){lines.forEach((l,i)=>txt(l,x,y+i*lh,c,'left',size,null));}
+// a paragraph wrapped to the panel: the pixel font is square, so a 6px line holds (width/6) characters
+function gPara(s,x,y,c='#ffe9c2',size=6,maxW=W-28,al='left',lh){const ls=wrapLines(s,Math.floor(maxW/size));ls.forEach((l,i)=>txt(l,x,y+i*(lh||size+2),c,al,size,null));return ls.length;}
 function gHeroes(pg){
   HEROES.forEach((h,i)=>{const x=14+i*91,cx=x+44;panel(x,52,88,138,PCOL[i],'rgba(28,12,8,.6)');
     ctx.save();ctx.beginPath();ctx.rect(x,52,88,70);ctx.clip();ctx.translate(cx,118);drawHero(h.id,{walk:T+i*7,atkP:-1,n:1,gear:gearLook(h.id),h:56});ctx.restore();
@@ -2224,29 +2226,29 @@ function gHeroes(pg){
 }
 function gPow(pg){
   const ks=['jolt','boombox','pog','troll','beeper','pizza'];
-  ks.forEach((k,i)=>{const x=14+(i%3)*121,y=56+Math.floor(i/3)*66,c=k==='pizza'?'#ffc93c':POW[k].col;panel(x,y,117,60,c,'rgba(28,12,8,.6)');
-    ctx.save();ctx.translate(x+24,y+36);ctx.scale(2,2);
+  ks.forEach((k,i)=>{const x=14+(i%2)*181,y=54+Math.floor(i/2)*46,c=k==='pizza'?'#ffc93c':POW[k].col;panel(x,y,177,42,c,'rgba(28,12,8,.6)');
+    ctx.save();ctx.translate(x+24,y+28);ctx.scale(2,2);
     if(k==='pizza'){tri(-6,-4,6,-4,0,5,'#f0c43a');rect(-6,-6,12,2,'#c87a2a');rect(-2,-2,2,2,'#c62828');rect(1,0,2,2,'#c62828');}else powIcon(k,0,4);ctx.restore();
-    txt(k==='pizza'?'PIZZA':POW[k].name,x+50,y+16,c,'left',8,null);g6(POW_LINES[k],x+50,y+30,'#ffe9c2');
-    if(k==='boombox')g6('EVERY HIT FLOORS THEM',x+50,y+40,'#d9a87c');if(k==='troll')g6('TOUCH HURTS THEM',x+50,y+40,'#d9a87c');});
+    txt(k==='pizza'?'PIZZA':POW[k].name,x+50,y+9,c,'left',8,null);g6(POW_LINES[k],x+50,y+22,'#ffe9c2');
+    if(k==='boombox')g6('EVERY HIT FLOORS THEM',x+50,y+31,'#d9a87c');if(k==='troll')g6('TOUCH HURTS THEM',x+50,y+31,'#d9a87c');});
 }
 function gGear(pg){
   g6('NINE SLOTS, 270 ITEMS. STATS ROLL WHEN THEY DROP.',W/2,53,'#ffe9c2','center');
-  CATS.forEach((c,i)=>{const x=20+i*39;rect(x,62,34,34,'rgba(28,12,8,.6)');drawIcon(c,ITEMCOL[i%ITEMCOL.length],x+5,67,c+(26+i)%30,24);g6(CAT_NAME[c].slice(0,7),x+17,98,'#d9a87c','center');});
+  CATS.forEach((c,i)=>{const x=20+i*39;rect(x,62,34,34,'rgba(28,12,8,.6)');drawIcon(c,ITEMCOL[i%ITEMCOL.length],x+5,67,c+(26+i)%30,24);txt(CAT_NAME[c],x+17,98,'#d9a87c','center',5,null);});
   g6('RARITY',14,112,pg.c);
   [['c','1 STAT'],['r','2 STATS, X2'],['u','3 BIG STATS'],['s','SET PIECE']].forEach(([r,d],i)=>{const x=14+i*92,R=RAR[r];
     ctx.save();ctx.shadowColor=R.col;ctx.shadowBlur=SC*2;rect(x,122,10,10,R.col);ctx.restore();g6(R.name,x+14,120,R.col);g6(d,x+14,128,'#ffe9c2');});
   g6('SETS',14,142,pg.c);g6('WEAR 3+ PIECES TO WEAR THE OUTFIT',W-14,142,'#d9a87c','right');
-  SETS.forEach((st,i)=>{const x=14+i*92;rect(x,152,86,14,st.col);txt(st.name,x+43,155,INK,'center',6,null);g6('BONUS AT '+st.bonus.map(b=>b[0]).join('/')+' PC',x+43,169,'#ffe9c2','center');});
-  g6('YOUR BAG: SELECT ON A PAD, I OR \' ON KEYS, GEAR ON A PHONE. 24 SLOTS PER HERO.',W/2,182,'#d9a87c','center');
+  SETS.forEach((st,i)=>{const x=14+i*92;rect(x,152,86,14,st.col);txt(st.name,x+43,155,INK,'center',6,null);txt('BONUS AT '+st.bonus.map(b=>b[0]).join('/')+' PC',x+43,169,'#ffe9c2','center',5,null);});
+  gPara('YOUR BAG: SELECT ON A PAD, I OR \' ON KEYS, GEAR ON A PHONE. 24 SLOTS PER HERO.',W/2,180,'#d9a87c',5,W-28,'center');
 }
 const traitOf=d=>d.armor?['ARMORED','#ff9a3c']:d.block?['BLOCKS','#ffc93c']:d.knock?['KNOCKS','#ff5fa8']:d.shot?['SHOOTS','#c8f05a']:d.ai==='charge'?['CHARGES','#ff9a3c']:d.ai==='lunge'?['POUNCES','#3ad6c0']:d.float?['FLOATS','#c8e8ff']:['CROWDS','#d9a87c'];
 function gMonsters(list){
-  list.forEach((k,i)=>{const d=EN[k],x=14+(i%5)*73,y=54+Math.floor(i/5)*46,cx=x+35;rect(x,y,70,44,'rgba(28,12,8,.5)');
-    ctx.save();ctx.beginPath();ctx.rect(x,y,70,44);ctx.clip();gFig(k,x+18,y+42,36);ctx.restore();
-    const nm=d.name.split(' ');gLines(nm.length>1?[nm[0],nm.slice(1).join(' ')]:[nm[0],''],x+36,y+8,'#ffe9c2',6,8);
-    const [tr,tc]=traitOf(d);txt(tr,x+36,y+30,tc,'left',5,null);});
-  g6('BIG ONES TAKE TWICE THE HITS. HIT BLOCKERS FROM BEHIND.',W/2,190,'#d9a87c','center');
+  list.forEach((k,i)=>{const d=EN[k],x=14+(i%4)*91,y=52+Math.floor(i/4)*34;rect(x,y,88,32,'rgba(28,12,8,.5)');
+    ctx.save();ctx.beginPath();ctx.rect(x,y,88,32);ctx.clip();gFig(k,x+16,y+31,30);ctx.restore();
+    const nm=d.name.split(' ');gLines(nm.length>1?[nm[0],nm.slice(1).join(' ')]:[nm[0],''],x+34,y+5,'#ffe9c2',5,7);
+    const [tr,tc]=traitOf(d);txt(tr,x+34,y+22,tc,'left',5,null);});
+  txt('BIG ONES TAKE TWICE THE HITS. HIT BLOCKERS FROM BEHIND.',W/2,190,'#d9a87c','center',5,null);
 }
 function gBosses(pg){
   [['blob',1],['squatch',3],['kingpin',6],['collector',10]].forEach(([k,L],i)=>{const x=14+i*91,cx=x+44;panel(x,52,88,138,pg.c,'rgba(28,12,8,.6)');
@@ -2259,8 +2261,8 @@ function gRoute(pg){
     if(img){const sw=img.height*70/34;ctx.drawImage(img,(img.width-sw)/2,0,sw,img.height,x,y,70,34);}
     rrect(x+2,y+2,12,9,2,INK);txt(String(i+1),x+8,y+3,pg.c,'center',6,null);if(lv.boss)txt('BOSS',x+67,y+3,'#e8453c','right',5,null);
     const nm=lv.name.split(' ');gLines(nm.length>2?[nm.slice(0,2).join(' '),nm.slice(2).join(' ')]:nm.length>1?nm:[nm[0],''],x+2,y+37,'#ffe9c2',5,7);});
-  g6('CLEAR A STAGE TO UNLOCK THE NEXT. PICK ANY YOU\'VE REACHED WITH UP/DOWN IN THE LOBBY.',W/2,180,'#ffe9c2','center');
-  g6('DIFFICULTY: LEFT/RIGHT ON START GAME.  EASY: FREE CONTINUES   NORMAL: 3   HARD: 2, +1 LIFE',W/2,190,'#d9a87c','center');
+  txt('CLEAR A STAGE TO UNLOCK THE NEXT. PICK ANY YOU\'VE REACHED WITH UP/DOWN IN THE LOBBY.',W/2,178,'#ffe9c2','center',4,null);
+  txt('DIFFICULTY: LEFT/RIGHT ON START GAME.  EASY: FREE CONTINUES  NORMAL: 3  HARD: 2, +1 LIFE',W/2,187,'#d9a87c','center',4,null);
 }
 function gCoop(pg){
   txt('ONE SCREEN, UP TO 4',14,56,pg.c,'left',8,null);
@@ -2268,8 +2270,8 @@ function gCoop(pg){
   gLines(['JOIN ANY TIME: START, OR A ON A PAD.','MORE PLAYERS = BIGGER CROWDS, TOUGHER BOSSES.','PAUSE > DROP OUT TO LEAVE; START TO COME BACK.'],14,90,'#ffe9c2');
   txt('ONLINE ROOMS',14,122,pg.c,'left',8,null);
   rrect(14,136,118,18,3,INK);rrect(16,138,114,14,2,PAPER);txt('ROOM  K7QX',73,141,INK,'center',8,null);
-  gLines(['HOST A ROOM OR JOIN WITH A 4-LETTER CODE.','EVERYONE PLAYS ON THEIR OWN DEVICE.','THE ROOM SERVER RUNS THE GAME: NO LAG EDGE.','REJOIN IF YOUR CONNECTION DROPS.','YOUR GEAR LIVES IN YOUR BROWSER AND COMES ALONG.'],140,133,'#ffe9c2');
-  g6('BIG SCREEN: ONE DEVICE SHOWS THE GAME, PHONES ARE THE CONTROLLERS.',W/2,182,'#d9a87c','center');
+  gPara('HOST A ROOM OR JOIN WITH A 4-LETTER CODE. EVERYONE PLAYS ON THEIR OWN DEVICE. THE ROOM SERVER RUNS THE GAME, SO NOBODY HAS A LAG EDGE. REJOIN IF YOUR CONNECTION DROPS. YOUR GEAR LIVES IN YOUR BROWSER AND COMES ALONG.',140,133,'#ffe9c2',5,230,'left',7);
+  txt('BIG SCREEN: ONE DEVICE SHOWS THE GAME, PHONES ARE THE CONTROLLERS.',W/2,182,'#d9a87c','center',5,null);
 }
 function gPad(x,y,c){ // a little controller with the buttons the game uses
   rrect(x,y,120,52,10,'#3a3a44');rrect(x+2,y+2,116,48,9,'#55555f');
@@ -2299,29 +2301,24 @@ function gRadio(pg){
   for(let i=0;i<5;i++)rect(182+i*7,58+(i%2)*4,4,40-(i%2)*8,'#5e2f22');
   gLines(['EVERY STAGE HAS ITS OWN YACHT ROCK SONG.','JUNE, THE LATE-NIGHT DJ, TAKES A CALLER','BEFORE EACH ONE. STATION RECORDS FILL IN','BETWEEN PLAYS, SO NO TWO RUNS SOUND ALIKE.'],14,110,'#ffe9c2');
   txt('SETTINGS > DJ JUNE',14,146,pg.c,'left',8,null);
-  [['ON','HER CALLS'],['SHORT','STATION IDS ONLY'],['OFF','JINGLES ONLY']].forEach(([a,b],i)=>{const x=14+i*120;rrect(x,158,36,11,2,PAPER);txt(a,x+18,160,INK,'center',6,null);g6(b,x+42,160,'#ffe9c2');});
-  g6('MINI-BOSSES CUT TO THE EERIE LOOP. THE FINAL BOSS GETS THE ANTHEM. M MUTES.',W/2,182,'#d9a87c','center');
+  [['ON','HER CALLS'],['SHORT','STATION IDS'],['OFF','JINGLES ONLY']].forEach(([a,b],i)=>{const x=14+i*120;rrect(x,158,36,11,2,PAPER);txt(a,x+18,160,INK,'center',6,null);g6(b,x+42,160,'#ffe9c2');});
+  txt('MINI-BOSSES CUT TO THE EERIE LOOP. THE FINAL BOSS GETS THE ANTHEM. M MUTES.',W/2,182,'#d9a87c','center',4,null);
 }
 function gPocket(pg){
   SKINS.forEach((k,i)=>{const x=14+(i%3)*121,y=54+Math.floor(i/3)*30;
     rrect(x,y,44,28,4,k.edge);rrect(x+1,y+1,42,26,3,k.shell);rect(x+14,y+5,18,12,'#1c0b07');rect(x+15,y+6,16,10,'#3a6a3a');
     rect(x+4,y+9,2,8,k.dpad);rect(x+1,y+12,8,2,k.dpad);ell(x+36,y+10,2,2,k.btn);ell(x+40,y+14,2,2,k.btn);
     g6(k.name,x+48,y+8,k.id===SKIN?pg.c:'#ffe9c2');if(k.id===SKIN)g6('ON NOW',x+48,y+16,'#d9a87c');});
-  gLines(['UPRIGHT: A REWIND POCKET TV. D-PAD LEFT, YOUR LCD IN THE MIDDLE, BUTTONS RIGHT.','SIDEWAYS: A WIDE SET WITH NOTHING OVER THE PICTURE.',
-    'SETTINGS > STICK SWAPS THE D-PAD FOR A JOYSTICK.  SETTINGS > SKIN PICKS THE CASE.'],14,146,'#ffe9c2',6,9);
-  g6('THE SKIN ALSO COLOURS THE SCREEN FRAME ON A COMPUTER.',W/2,182,'#d9a87c','center');
+  gPara('UPRIGHT: A REWIND POCKET TV. D-PAD LEFT, YOUR LCD IN THE MIDDLE, BUTTONS RIGHT. SIDEWAYS: A WIDE SET WITH NOTHING OVER THE PICTURE. SETTINGS > STICK SWAPS THE D-PAD FOR A JOYSTICK. SETTINGS > SKIN PICKS THE CASE.',14,146,'#ffe9c2',5);
+  txt('THE SKIN ALSO COLOURS THE SCREEN FRAME ON A COMPUTER.',W/2,186,'#d9a87c','center',5,null);
 }
 function gAbout(pg){
   txt('THE LAST VIDEO STORE',W/2,56,pg.c,'center',8,null);
-  g6('\u00a9 2026 OUR BAD ENTERTAINMENT. ALL RIGHTS RESERVED.',W/2,68,'#ffe9c2','center');
-  gLines(['THE LAST VIDEO STORE, SMOOTH SAIL FM 96.9, DJ JUNE, DEX, RAE, BENNY, JULIA AND THE','MONSTERS, STAGES, ITEMS AND LOGOS IN THIS GAME ARE TRADEMARKS OF OUR BAD ENTERTAINMENT.',
-    'NO PART OF THE GAME, ITS ART OR ITS MUSIC MAY BE COPIED OR REUSED WITHOUT PERMISSION.'],14,80,'#d9a87c',5,7);
-  txt('MADE WITH AI',14,104,pg.c,'left',8,null);
-  gLines(['THE ART AND MUSIC WERE AI PROMPTED, THEN CORRECTED AND ADJUSTED BY HAND.','THE CODE WAS WRITTEN WITH AI ASSISTANCE.'],14,116,'#ffe9c2',5,7);
-  txt('A WORK OF FICTION',14,134,pg.c,'left',8,null);
-  gLines(['EVERY PERSON, PLACE, STORE, BRAND, PRODUCT AND ITEM HERE IS MADE UP. ANY LIKENESS TO','REAL PEOPLE, LIVING OR DEAD, OR TO REAL PRODUCTS OR PLACES IS COINCIDENTAL AND NOT INTENDED.'],14,146,'#ffe9c2',5,7);
-  txt('THANKS',14,164,pg.c,'left',8,null);
-  gLines(['PRESS START 2P FONT BY CODEMAN38, SIL OPEN FONT LICENSE.','ONLINE ROOMS RUN ON CLOUDFLARE WORKERS.'],14,176,'#ffe9c2',5,7);
+  txt('\u00a9 2026 OUR BAD ENTERTAINMENT. ALL RIGHTS RESERVED.',W/2,67,'#ffe9c2','center',5,null);
+  let y=77;y+=7*gPara('THE LAST VIDEO STORE, SMOOTH SAIL FM 96.9, DJ JUNE, DEX, RAE, BENNY, JULIA AND THE MONSTERS, STAGES, ITEMS AND LOGOS IN THIS GAME ARE TRADEMARKS OF OUR BAD ENTERTAINMENT. NO PART OF THE GAME, ITS ART OR ITS MUSIC MAY BE COPIED OR REUSED WITHOUT PERMISSION.',14,y,'#d9a87c',5,W-28,'left',7);
+  y+=3;txt('MADE WITH AI',14,y,pg.c,'left',8,null);y+=11;y+=7*gPara('THE ART AND MUSIC WERE AI PROMPTED, THEN CORRECTED AND ADJUSTED BY HAND. THE CODE WAS WRITTEN WITH AI ASSISTANCE.',14,y,'#ffe9c2',5,W-28,'left',7);
+  y+=3;txt('A WORK OF FICTION',14,y,pg.c,'left',8,null);y+=11;y+=7*gPara('EVERY PERSON, PLACE, STORE, BRAND, PRODUCT AND ITEM HERE IS MADE UP. ANY LIKENESS TO REAL PEOPLE, LIVING OR DEAD, OR TO REAL PRODUCTS OR PLACES IS COINCIDENTAL AND NOT INTENDED.',14,y,'#ffe9c2',5,W-28,'left',7);
+  y+=3;txt('THANKS',14,y,pg.c,'left',8,null);y+=11;gPara('PRESS START 2P FONT BY CODEMAN38, SIL OPEN FONT LICENSE. ONLINE ROOMS RUN ON CLOUDFLARE WORKERS.',14,y,'#ffe9c2',5,W-28,'left',7);
 }
 function gVersion(pg){
   txt('THIS GAME',14,60,pg.c,'left',8,null);txt(C.CORE_VERSION,14,72,'#ffe9c2','left',8,null);
