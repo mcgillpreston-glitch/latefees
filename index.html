@@ -373,7 +373,7 @@ function padLost(d){
   toast('PAD'+(+d.slice(2)+1)+' DISCONNECTED','#ff7a5a');beep(180,.2,'square',.05,.6);
   if(scene==='select'){const s=slotOf(d);if(s){L.slots.splice(L.slots.indexOf(s),1);L.last=L.slots.length-1;}}
   const p=G&&G.ps.find(q=>q.dev===d&&!q.out);
-  if(p&&(scene==='play'||scene==='pause')){p.lostPad=true;scene='pause';}
+  if(p&&(scene==='play'||scene==='pause')){p.lostPad=true;scene='pause';PDROP=null;}
   renderPadList();
 }
 // Hand a player whose controller dropped to whichever unclaimed device presses a button first.
@@ -579,6 +579,9 @@ const STORES=['VIDEO BARN','PRETZEL PIT','ARCADIA','MUSIC LAND','PAGER HUT','SHO
 const NEON=['#ff5fa8','#3ad6c0','#ffc93c','#ff9a3c','#c8f05a','#ff5fa8','#3ad6c0','#ffc93c'];
 
 let scene='title',G=null,T=0,introT=0,hi=0,tCur=0,pCur=0;
+let PAUSER=null,PDROP=null;
+// Pause menu rows. DROP OUT (just above QUIT) appears in a local game with two or more players; online, LEAVE ROOM does the same for you.
+function pauseRows(){const r=['resume','gear','controls','settings','guide'];if(!NET.on&&G&&G.ps.length>1)r.push('drop');r.push('quit');return r;}
 const SET={tab:0,cur:0,from:'title'};
 const ROWS=[...ACTS.map(a=>({k:'kb',a})),...PAD_ACTS.map(a=>({k:'pad',a})),{k:'reset'},{k:'back'}];
 function openControls(from,tab){if(NET.on&&NET.dev&&!isPad(NET.dev))tab=Math.max(0,+NET.dev.slice(2)-1);SET.from=from;SET.tab=tab;SET.cur=0;cap=null;scene='controls';beep(660,.08);}
@@ -1343,15 +1346,21 @@ function update(){
   else if(scene==='play'&&NET.view){netTick();updateFX();}   // a big screen only watches
   else if(scene==='play'){const pz=G.ps.find(p=>!p.out&&p.dev&&(hit(p.dev,'start')||hit(p.dev,'pause')));
     const ip=G.ps.find(p=>!p.out&&!p.lostPad&&p.dev&&hit(p.dev,'inv'));
-    if(pz||hit('menu','back')){scene='pause';pCur=0;if(NET.on)netTick();}else if(ip){openInv(ip,'play');if(NET.on)netTick();}else if(NET.on){netTick();updateFX();}else{localStep();updateFX();}}
+    if(pz||hit('menu','back')){scene='pause';pCur=0;PDROP=null;PAUSER=pz?pz.slot:null;if(NET.on)netTick();}else if(ip){openInv(ip,'play');if(NET.on)netTick();}else if(NET.on){netTick();updateFX();}else{localStep();updateFX();}}
   else if(scene==='pause'){
     if(NET.on){netTick();updateFX();}
     let claimed=false;if(!NET.on)for(const d of devs())if(!joined(d)&&okHit(d)&&claimLost(d))claimed=true;
     if(!claimed){
-      if(menuHit('up')){pCur=(pCur+5)%6;beep(440,.05);}if(menuHit('down')){pCur=(pCur+1)%6;beep(440,.05);}
+      const rows=pauseRows(),n=rows.length;if(pCur>=n)pCur=n-1;
+      if(menuHit('up')){pCur=(pCur+n-1)%n;PDROP=null;beep(440,.05);}if(menuHit('down')){pCur=(pCur+1)%n;PDROP=null;beep(440,.05);}
       if(hit('menu','back')||G.ps.some(p=>p.dev&&(hit(p.dev,'pause')||(isPad(p.dev)&&hit(p.dev,'back')))))scene='play';
-      else if(menuHit('ok')||G.ps.some(p=>!p.lostPad&&p.dev&&hit(p.dev,'start'))){const d=devs().find(okHit),who=d&&G.ps.find(q=>q.dev===d);
-        if(pCur===0)scene='play';else if(pCur===1)openInv(NET.on?G.ps.find(q=>q.slot===NET.slot):who&&!who.out?who:active()[0]||G.ps[0],'pause');else if(pCur===2)openControls('pause',who?who.slot:0);else if(pCur===3)openSound('pause');else if(pCur===4)openGuide('pause');
+      else if(menuHit('ok')||G.ps.some(p=>!p.lostPad&&p.dev&&hit(p.dev,'start'))){const d=devs().find(okHit),who=d&&G.ps.find(q=>q.dev===d),row=rows[pCur];
+        if(row==='resume')scene='play';else if(row==='gear')openInv(NET.on?G.ps.find(q=>q.slot===NET.slot):who&&!who.out?who:active()[0]||G.ps[0],'pause');else if(row==='controls')openControls('pause',who?who.slot:0);else if(row==='settings')openSound('pause');else if(row==='guide')openGuide('pause');
+        else if(row==='drop'){   // the player who picks it leaves (or whoever paused, if the press didn't come from a player); asks once to be sure
+          const q=who||G.ps.find(x=>x.slot===PAUSER);
+          if(!q){beep(200,.08);}
+          else if(PDROP!==q.slot){PDROP=q.slot;beep(330,.06);}
+          else{saveGear();C.removePlayer(G,q.slot);toast('P'+(q.slot+1)+' DROPPED OUT: PRESS START TO JOIN AGAIN',PCOL[q.slot]);PDROP=null;pCur=0;scene='play';}}
         else if(NET.on){netSend({t:'leave'});netLeave();}else{saveHi();scene='title';tCur=0;}}}}
   else if(scene==='over'||scene==='win'){G.endT++;shakeV*=.86;updateFX();if(NET.on)netTick();const d=G.endT>60&&anyOk();
     if(d){if(NET.on){netSend({t:'again'});}else{lobbyReset();lobbyJoin(d);scene='select';}}}
@@ -2099,9 +2108,11 @@ function renderScene(){
     // VCR pause on-screen display
     if((T>>5)%2||lost){rect(10,H-20,4,12,'#ffffff');rect(17,H-20,4,12,'#ffffff');osd(NET.on?'MENU':'PAUSE',26,H-18,'left',8);}
     if(lost){panel(W/2-130,40,260,40,PCOL[lost.slot],'rgba(26,12,8,.95)');txt('P'+(lost.slot+1)+' CONTROLLER LOST',W/2,45,PCOL[lost.slot],'center',8,INK);txt('TURN IT BACK ON, OR PRESS A',W/2,58,'#ffe9c2','center',8,null);txt('ON ANY FREE CONTROLLER',W/2,69,'#ffe9c2','center',8,null);}
-    vhs(W/2-84,84,168,94,'#ffc93c','rgba(42,20,14,.95)');
+    const rows=pauseRows(),LBL={resume:'RESUME',gear:'GEAR',controls:'CONTROLS',settings:'SETTINGS',guide:'GUIDE',
+      drop:PDROP!=null?'P'+(PDROP+1)+' SURE? AGAIN':'DROP OUT',quit:NET.on?'LEAVE ROOM':'QUIT TO TITLE'};
+    vhs(W/2-84,84,168,10+rows.length*14,'#ffc93c','rgba(42,20,14,.95)');
     if(NET.on)txt('THE GAME KEEPS GOING ONLINE',W/2,183,'#d9a87c','center',8,INK);
-    ['RESUME','GEAR','CONTROLS','SETTINGS','GUIDE',NET.on?'LEAVE ROOM':'QUIT TO TITLE'].forEach((it,i)=>menuRow(it,W/2+2,91+i*14,pCur===i,144));
+    rows.forEach((r,i)=>menuRow(LBL[r],W/2+2,91+i*14,pCur===i,144));
     txt('ESC OR B RESUMES   M MUTES',W/2,197,'#ffe9c2','center',8,INK);}
   // stage clear: free grabs on the street, results on a ticket at the side
   if(g.status==='clear'&&scene==='play'){const a=Math.min(1,(g.clearT||0)/20),left=g.pick.filter(k=>!k.got),gear=left.filter(k=>k.kind==='gear').length,secs=Math.max(1,Math.ceil(((g.grabLen||300)-(g.clearT||0))/60));
