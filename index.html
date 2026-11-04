@@ -1467,7 +1467,7 @@ function heroSprite(id,pose){
     // the body rides highest on the passing steps (walk3/walk4), lowest on the contacts, so the bob is phased to the frames
     o.oy=-Math.abs(w4?Math.sin(wk*.28-Math.PI/4):ph)*H*(pose.calm?.02:.05);
     if(w4){const i=Math.floor((wk*.14/Math.PI)%1*4+4)%4;f=WALK4[i];}else f=ph>0?'walk1':'walk2';}
-  else o.sy=1+Math.sin(T*.08)*.012;
+  else if(!pose.still)o.sy=1+Math.sin(T*.08)*.012;
   if(pose.air){o.sx=.96;o.sy=1.04;f='jump';const vz=pose.vz||0;if(vz<-1.2&&has('jump3'))f='jump3';else if(Math.abs(vz)<=1.2&&has('jump2'))f='jump2';
     if(pose.kick){o.rot=.3;f='kick';}}
   let arc=null;
@@ -2233,8 +2233,8 @@ function gIntro(pg){
   const img=bgImg('suburb',1),x0=14,y0=52,w=W-28,h=66;rect(x0,y0,w,h,'#1c0b07');
   ctx.save();ctx.beginPath();ctx.rect(x0,y0,w,h);ctx.clip();
   // the whole street, scrolling slowly: houses down to the curb, repeated (the painting loops seamlessly)
-  if(img){const sh=img.width*h/w,sy=Math.max(0,img.height*.62-sh*.88),off=(T*.25)%w;for(const dx of [0,w])ctx.drawImage(img,0,sy,img.width,sh,x0-off+dx,y0,w,h);}
-  HEROES.forEach((hh,i)=>{ctx.save();ctx.translate(x0+30+i*30,y0+h-4+(i%2)*2);drawHero(hh.id,{calm:1,walk:T+i*9,atkP:-1,n:1,gear:gearLook(hh.id),h:40});ctx.restore();});
+  if(img){const sh=img.width*h/w,sy=Math.max(0,img.height*.62-sh*.88),off=0;for(const dx of [0,w])ctx.drawImage(img,0,sy,img.width,sh,x0-off+dx,y0,w,h);}
+  HEROES.forEach((hh,i)=>{ctx.save();ctx.translate(x0+30+i*30,y0+h-4+(i%2)*2);drawHero(hh.id,{walk:0,atkP:-1,n:1,gear:gearLook(hh.id),h:40,still:1});ctx.restore();});
   [['sh',250],['mummy',290],['gremlin',326]].forEach(([k,x],i)=>{ctx.save();ctx.translate(x0+x,y0+h-4+(i%2)*2);ctx.scale(-1,1);gFig(k,0,0,k==='gremlin'?32:40);ctx.restore();});
   ctx.restore();rect(x0,y0+h,w,1,pg.c);
   const col=(x,hd,body)=>{txt(hd,x,y0+h+6,pg.c,'left',7,null);gPara(body,x,y0+h+17,'#ffe9c2',5,112,'left',7);};
