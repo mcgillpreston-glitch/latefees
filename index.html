@@ -2244,7 +2244,7 @@ function gIntro(pg){
 }
 function gHeroes(pg){
   HEROES.forEach((h,i)=>{const x=14+i*91,cx=x+44;panel(x,52,88,138,PCOL[i],'rgba(28,12,8,.6)');
-    ctx.save();ctx.beginPath();ctx.rect(x,52,88,70);ctx.clip();ctx.translate(cx,118);drawHero(h.id,{calm:1,walk:T+i*7,atkP:-1,n:1,gear:gearLook(h.id),h:56});ctx.restore();
+    ctx.save();ctx.beginPath();ctx.rect(x,52,88,70);ctx.clip();ctx.translate(cx,118);drawHero(h.id,{walk:0,still:1,atkP:-1,n:1,gear:gearLook(h.id),h:56});ctx.restore();
     txt(h.first,cx,126,PCOL[i],'center',8,null);g6(h.job,cx,137,'#d9a87c','center');
     ['PWR','SPD','RCH'].forEach((lab,j)=>{const yy=148+j*8;g6(lab,x+5,yy,'#d9a87c');for(let k=0;k<5;k++)rect(x+28+k*11,yy+1,9,4,k<h.stats[j]?PCOL[i]:'#5e2f22');});
     g6('SPECIAL',cx,174,'#d9a87c','center');g6(h.sp,cx,182,pg.c,'center');});
