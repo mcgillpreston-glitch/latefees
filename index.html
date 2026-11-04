@@ -501,22 +501,23 @@ function musEl(k){if(!MUS.el[k]){const a=new Audio(TRACKS[k].src),rec=/^s\d+$/.t
 /* The station's running order on a stage: the stage's own song, then two station records, then the stage song again,
    and so on. Station records come out of a shuffled bag, so none repeats until all nine have played; the station
    theme opens the first bag of a session. A bumper or jingle plays over the top of each new record. */
-const STATION_RECS=['s11','s12','s13','s14','s15','s16','s17','s18','s19'];   // s20, the closing anthem, is saved for the win screen
+const STATION_RECS=['s11','s12','s13','s14','s15','s16','s17','s18','s19'];   // s20, the closing anthem, is saved for the last stage
+// The last stage plays no station records: after June signs off, The Dead Don't Rewind and Return All Tapes take turns.
+const STAGE_PAIR={10:['s20','s10']};
 MUS.bag=[];MUS.cur=null;MUS.stL=0;MUS.seq=0;MUS.firstBag=true;
 function stationRec(){if(!MUS.bag.length){const b=STATION_RECS.slice().sort(()=>Math.random()-.5);if(MUS.firstBag){MUS.firstBag=false;b.splice(b.indexOf('s11'),1);b.unshift('s11');}MUS.bag=b;}return MUS.bag.shift();}
-function stationKey(L){if(MUS.stL!==L){MUS.stL=L;MUS.seq=0;MUS.cur='s'+L;}return MUS.cur;}
-function stationNext(){const L=MUS.stL||1;MUS.seq++;MUS.cur=MUS.seq%3===0?'s'+L:stationRec();MUS.looped=true;
+function stationKey(L){if(MUS.stL!==L){MUS.stL=L;MUS.seq=0;MUS.cur=STAGE_PAIR[L]?STAGE_PAIR[L][0]:'s'+L;}return MUS.cur;}
+function stationNext(){const L=MUS.stL||1,pr=STAGE_PAIR[L];MUS.seq++;MUS.cur=pr?pr[MUS.seq%2]:MUS.seq%3===0?'s'+L:stationRec();MUS.looped=true;
   const a=musEl(MUS.cur);if(a.paused)a.currentTime=0;}
 const GAME_SCENES=new Set(['play','pause','inv','over','win']);
 function musicWant(){
   const inGame=GAME_SCENES.has(scene)||((scene==='controls'&&SET.from==='pause')||(scene==='sound'&&SOUND.from==='pause')||(scene==='guide'&&GUIDE.from==='pause'));
-  if(G&&scene==='win')return 's20';   // the station's closing anthem for a finished run
-  if(G&&scene==='over')return 'end';
+  if(G&&(scene==='over'||scene==='win'))return 'end';
   if(!inGame||!G)return 'intro';
   const L=G.level||1,song=TRACKS['s'+L]?'s'+L:null;
   // mini-bosses cut to the eerie loop; the final boss gets the stage's anthem
   if(G.boss&&!G.boss.gone&&!(song&&EN[G.boss.type]&&EN[G.boss.type].final))return 'dance';
-  if(song)return MUS.jingle&&MUS.jk==='start'?null:(G.boss&&!G.boss.gone)?song:stationKey(L);
+  if(song)return MUS.jingle&&MUS.jk==='start'?null:(G.boss&&!G.boss.gone&&!STAGE_PAIR[L])?song:stationKey(L);
   return zoneAt(G.level||1,G.cam+W/2)>=LFCore.levelZones(G.level||1).length-1?'dance':'disco';
 }
 function musicTick(){
