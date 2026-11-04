@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>The Last Video Store</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -2216,7 +2217,13 @@ function gFig(type,x,y,h){ctx.save();ctx.translate(x,y);
 const g6=(s,x,y,c,al='left')=>txt(s,x,y,c,al,6,null);
 function gLines(lines,x,y,c='#ffe9c2',size=6,lh=8){lines.forEach((l,i)=>txt(l,x,y+i*lh,c,'left',size,null));}
 // a paragraph wrapped to the panel: the pixel font is square, so a 6px line holds (width/6) characters
-function gPara(s,x,y,c='#ffe9c2',size=6,maxW=W-28,al='left',lh){const ls=wrapLines(s,Math.floor(maxW/size));ls.forEach((l,i)=>txt(l,x,y+i*(lh||size+2),c,al,size,null));return ls.length;}
+function wrapPx(s,size,maxW){ctx.font=size+'px "Press Start 2P", monospace';const out=[];let line='';
+  for(const w of String(s).split(' ')){const t=line?line+' '+w:w;if(line&&ctx.measureText(t).width>maxW){out.push(line);line=w;}else line=t;}if(line)out.push(line);return out;}
+// a paragraph wrapped to the panel by the font's real measured width, so it fits whatever font the device draws
+function gPara(s,x,y,c='#ffe9c2',size=6,maxW=W-32,al='left',lh){const ls=wrapPx(s,size,maxW);ls.forEach((l,i)=>txt(l,x,y+i*(lh||size+2),c,al,size,null));return ls.length;}
+// one line squeezed to fit: drops to a smaller size if the measured width runs past maxW
+function gFit(s,x,y,c,al,size,maxW){ctx.font=size+'px "Press Start 2P", monospace';const w=ctx.measureText(s).width;
+  if(w>maxW){ctx.save();const k=maxW/w,ax=al==='center'?x:al==='right'?x:x;ctx.translate(ax,y);ctx.scale(k,k);txt(s,0,0,c,al,size,null);ctx.restore();}else txt(s,x,y,c,al,size,null);}
 function gHeroes(pg){
   HEROES.forEach((h,i)=>{const x=14+i*91,cx=x+44;panel(x,52,88,138,PCOL[i],'rgba(28,12,8,.6)');
     ctx.save();ctx.beginPath();ctx.rect(x,52,88,70);ctx.clip();ctx.translate(cx,118);drawHero(h.id,{walk:T+i*7,atkP:-1,n:1,gear:gearLook(h.id),h:56});ctx.restore();
@@ -2313,12 +2320,18 @@ function gPocket(pg){
   txt('THE SKIN ALSO COLOURS THE SCREEN FRAME ON A COMPUTER.',W/2,186,'#d9a87c','center',5,null);
 }
 function gAbout(pg){
-  txt('THE LAST VIDEO STORE',W/2,56,pg.c,'center',8,null);
-  txt('\u00a9 2026 OUR BAD ENTERTAINMENT. ALL RIGHTS RESERVED.',W/2,67,'#ffe9c2','center',5,null);
-  let y=77;y+=7*gPara('THE LAST VIDEO STORE, SMOOTH SAIL FM 96.9, DJ JUNE, DEX, RAE, BENNY, JULIA AND THE MONSTERS, STAGES, ITEMS AND LOGOS IN THIS GAME ARE TRADEMARKS OF OUR BAD ENTERTAINMENT. NO PART OF THE GAME, ITS ART OR ITS MUSIC MAY BE COPIED OR REUSED WITHOUT PERMISSION.',14,y,'#d9a87c',5,W-28,'left',7);
-  y+=3;txt('MADE WITH AI',14,y,pg.c,'left',8,null);y+=11;y+=7*gPara('THE ART AND MUSIC WERE AI PROMPTED, THEN CORRECTED AND ADJUSTED BY HAND. THE CODE WAS WRITTEN WITH AI ASSISTANCE.',14,y,'#ffe9c2',5,W-28,'left',7);
-  y+=3;txt('A WORK OF FICTION',14,y,pg.c,'left',8,null);y+=11;y+=7*gPara('EVERY PERSON, PLACE, STORE, BRAND, PRODUCT AND ITEM HERE IS MADE UP. ANY LIKENESS TO REAL PEOPLE, LIVING OR DEAD, OR TO REAL PRODUCTS OR PLACES IS COINCIDENTAL AND NOT INTENDED.',14,y,'#ffe9c2',5,W-28,'left',7);
-  y+=3;txt('THANKS',14,y,pg.c,'left',8,null);y+=11;gPara('PRESS START 2P FONT BY CODEMAN38, SIL OPEN FONT LICENSE. ONLINE ROOMS RUN ON CLOUDFLARE WORKERS.',14,y,'#ffe9c2',5,W-28,'left',7);
+  // laid out top to bottom by measured text; if the device's font runs wide, the body steps down a size so it all fits
+  const paras=[[null,'THE LAST VIDEO STORE, SMOOTH SAIL FM 96.9, DJ JUNE, DEX, RAE, BENNY, JULIA AND THE MONSTERS, STAGES, ITEMS AND LOGOS IN THIS GAME ARE TRADEMARKS OF OUR BAD ENTERTAINMENT. NO PART OF THE GAME, ITS ART OR ITS MUSIC MAY BE COPIED OR REUSED WITHOUT PERMISSION.','#d9a87c'],
+    ['MADE WITH AI','THE ART AND MUSIC WERE AI PROMPTED, THEN CORRECTED AND ADJUSTED BY HAND. THE CODE WAS WRITTEN WITH AI ASSISTANCE.','#ffe9c2'],
+    ['A WORK OF FICTION','EVERY PERSON, PLACE, STORE, BRAND, PRODUCT AND ITEM HERE IS MADE UP. ANY LIKENESS TO REAL PEOPLE, LIVING OR DEAD, OR TO REAL PRODUCTS OR PLACES IS COINCIDENTAL AND NOT INTENDED.','#ffe9c2'],
+    ['THANKS','PRESS START 2P FONT BY CODEMAN38, SIL OPEN FONT LICENSE. ONLINE ROOMS RUN ON CLOUDFLARE WORKERS.','#ffe9c2']];
+  const top=76,bottom=H-22,mw=W-32;
+  let fs=5;const height=f=>paras.reduce((h,[hd,b])=>h+(hd?11:0)+wrapPx(b,f,mw).length*(f+2)+3,0);
+  while(fs>3&&top+height(fs)>bottom)fs-=.5;
+  txt('THE LAST VIDEO STORE',W/2,54,pg.c,'center',8,null);
+  gFit('\u00a9 2026 OUR BAD ENTERTAINMENT. ALL RIGHTS RESERVED.',W/2,66,'#ffe9c2','center',5,mw);
+  let y=top;
+  for(const [hd,b,c] of paras){if(hd){gFit(hd,14,y,pg.c,'left',7,mw);y+=11;}y+=gPara(b,14,y,c,fs,mw,'left',fs+2)*(fs+2)+3;}
 }
 function gVersion(pg){
   txt('THIS GAME',14,60,pg.c,'left',8,null);txt(C.CORE_VERSION,14,72,'#ffe9c2','left',8,null);
