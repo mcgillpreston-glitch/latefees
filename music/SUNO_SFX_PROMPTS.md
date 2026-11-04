@@ -1,6 +1,6 @@
 # Suno Sounds: the game's sound effects (v6)
 
-Every action in the game currently makes a synthesised blip. This list replaces them with real sounds, made in Suno's **Sounds** tab. 80 sounds in five batches, most important first: you can stop after any batch and the game will use what's there, with the old blip still covering anything missing.
+Every action in the game currently makes a synthesised blip. This list replaces them with real sounds, made in Suno's **Sounds** tab. 86 sounds in five batches, most important first: you can stop after any batch and the game will use what's there, with the old blip still covering anything missing.
 
 ## How to make each one
 
