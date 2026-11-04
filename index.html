@@ -1272,7 +1272,7 @@ function drawBigLobby(){
   txt('ONLINE > JOIN WITH CODE > '+NET.code,W/2,95,'#3ad6c0','center',6,null);
   HEROES.forEach((h,i)=>{const x=8+i*94,y=110,hov=lb.players.filter(p=>p.h===i),lock=hov.find(p=>p.lk);
     vhs(x,y,88,70,HERO_COVER[h.id]||'#ffc93c',lock?'#4a241a':hov.length?'#3a2030':'#2e1712');
-    ctx.save();ctx.translate(x+46,y+56);ctx.scale(1.4,1.4);drawHero(h.id,{h:36,walk:hov.length?T:0,atkP:-1,n:1,gear:(lock&&lock.look)||{}});ctx.restore();
+    ctx.save();ctx.translate(x+46,y+56);ctx.scale(1.4,1.4);drawHero(h.id,{h:36,calm:1,walk:hov.length?T:0,atkP:-1,n:1,gear:(lock&&lock.look)||{}});ctx.restore();
     hov.forEach((s,j)=>{const col=PCOL[s.s],tg='P'+(s.s+1);if(s.lk){rect(x+6,y+5+j*11,tg.length*8+4,11,col);txt(tg,x+8,y+7+j*11,INK,'left',8,null);}else txt(tg,x+8,y+7+j*11,col,'left',8,INK);});
     txt(h.first,x+46,y+60,'#ffe9c2','center',6,INK);if(lock)stamp('RENTED',x+46,y+30,'#e8453c',-.3,8);});
   const n=lb.stage||1,hint=lb.count>0?'STARTING IN '+Math.ceil(lb.count/60)+'...':lb.players.length?'WAITING FOR EVERYONE TO PRESS READY':'WAITING FOR PHONES TO JOIN';
@@ -1310,7 +1310,7 @@ function drawNLobby(){
     vhs(x,y,88,108,cc,lock?'#4a241a':hov.length?'#3a2030':'#2e1712');
     const gl=ctx.createLinearGradient(0,y,0,y+86);gl.addColorStop(0,cc+'40');gl.addColorStop(1,'rgba(0,0,0,0)');rect(x+4,y+1,83,85,gl);
     hov.forEach(s=>{const k=s.s;ctx.strokeStyle=PCOL[k];ctx.lineWidth=2;if(!s.lk&&(T>>3)%2)ctx.setLineDash([4,3]);ctx.strokeRect(x+1+k*2,y+1+k*2,86-k*4,106-k*4);ctx.setLineDash([]);});
-    ctx.save();ctx.translate(x+46,y+84);ctx.scale(2,2);drawHero(h.id,{h:38,walk:hov.length?T:0,atkP:lock&&(T%120)<20?(T%120)/20:-1,n:1,gear:hov.some(p=>p.s===NET.slot)?gearLook(h.id):(lock&&lock.lk?lock.look:{})||{}});ctx.restore();
+    ctx.save();ctx.translate(x+46,y+84);ctx.scale(2,2);drawHero(h.id,{h:38,calm:1,walk:hov.length?T:0,atkP:lock&&(T%120)<20?(T%120)/20:-1,n:1,gear:hov.some(p=>p.s===NET.slot)?gearLook(h.id):(lock&&lock.lk?lock.look:{})||{}});ctx.restore();
     rect(x+4,y+86,84,12,INK);rect(x+5,y+87,82,10,hov.length?PAPER:'#c9b48e');txt(h.first,x+46,y+88,INK,'center',8,null);
     hov.forEach((s,j)=>{const ty=y+6+j*12,col=PCOL[s.s],tg='P'+(s.s+1)+(s.s===NET.slot?' YOU':'');if(s.lk){rect(x+7,ty-1,tg.length*8+4,11,col);txt(tg,x+9,ty+1,INK,'left',8,null);}else txt(tg,x+9,ty+1,col,'left',8,INK);});
     txt(h.job,x+46,y+100,'#d9a87c','center',6,null);
@@ -1460,10 +1460,13 @@ function heroSprite(id,pose){
     if(pose.getup>0&&has('getup1')){f=pose.getup>1&&has('getup2')?'getup2':'getup1';o.rot=-.08;}
     else{o.lying=true;if(pose.spin)o.rot=pose.spin;f='down';}
     if(pose.sq)squash(o,pose.sq);return drawSpr(sk,o,f);}
-  if(pose.walk){const ph=Math.sin(pose.walk*.28),w4=has('walk3')&&has('walk4');o.rot=ph*.04;
+  if(pose.walk){
+    // menus (pose.calm) walk in place at half the stride rate, with a gentler bob and lean, so the big select-screen
+    // figures stroll instead of jittering
+    const wk=pose.calm?pose.walk*.5:pose.walk,ph=Math.sin(wk*.28),w4=has('walk3')&&has('walk4');o.rot=ph*(pose.calm?.012:.04);
     // the body rides highest on the passing steps (walk3/walk4), lowest on the contacts, so the bob is phased to the frames
-    o.oy=-Math.abs(w4?Math.sin(pose.walk*.28-Math.PI/4):ph)*H*.05;
-    if(w4){const i=Math.floor((pose.walk*.14/Math.PI)%1*4+4)%4;f=WALK4[i];}else f=ph>0?'walk1':'walk2';}
+    o.oy=-Math.abs(w4?Math.sin(wk*.28-Math.PI/4):ph)*H*(pose.calm?.02:.05);
+    if(w4){const i=Math.floor((wk*.14/Math.PI)%1*4+4)%4;f=WALK4[i];}else f=ph>0?'walk1':'walk2';}
   else o.sy=1+Math.sin(T*.08)*.012;
   if(pose.air){o.sx=.96;o.sy=1.04;f='jump';const vz=pose.vz||0;if(vz<-1.2&&has('jump3'))f='jump3';else if(Math.abs(vz)<=1.2&&has('jump2'))f='jump2';
     if(pose.kick){o.rot=.3;f='kick';}}
@@ -2026,7 +2029,7 @@ function drawSelect(){
     vhs(x,y,88,122,cc,lock?'#4a241a':hov.length?'#3a2030':'#2e1712');
     const gl=ctx.createLinearGradient(0,y,0,y+86);gl.addColorStop(0,cc+'40');gl.addColorStop(1,'rgba(0,0,0,0)');rect(x+4,y+1,83,85,gl);
     hov.forEach(s=>{const k=s.pi;ctx.strokeStyle=PCOL[k];ctx.lineWidth=2;if(!s.locked&&(T>>3)%2)ctx.setLineDash([4,3]);ctx.strokeRect(x+1+k*2,y+1+k*2,86-k*4,120-k*4);ctx.setLineDash([]);});
-    ctx.save();ctx.translate(x+46,y+84);ctx.scale(2,2);drawHero(h.id,{h:38,walk:hov.length?T:0,atkP:lock&&(T%120)<20?(T%120)/20:-1,n:1,gear:gearLook(h.id)});ctx.restore();
+    ctx.save();ctx.translate(x+46,y+84);ctx.scale(2,2);drawHero(h.id,{h:38,calm:1,walk:hov.length?T:0,atkP:lock&&(T%120)<20?(T%120)/20:-1,n:1,gear:gearLook(h.id)});ctx.restore();
     rect(x+4,y+86,84,12,INK);rect(x+5,y+87,82,10,hov.length?PAPER:'#c9b48e');txt(h.first,x+46,y+88,INK,'center',8,null);
     hov.forEach((s,j)=>{const ty=y+6+j*12,col=PCOL[s.pi],tg='P'+(s.pi+1);if(s.locked){rect(x+7,ty-1,20,11,col);txt(tg,x+9,ty+1,INK,'left',8,null);}else txt(tg,x+9,ty+1,col,'left',8,INK);
       txt(padLabel(s.dev),x+30,ty+1,'#ffe9c2','left',8,INK);});
@@ -2226,7 +2229,7 @@ function gFit(s,x,y,c,al,size,maxW){ctx.font=size+'px "Press Start 2P", monospac
   if(w>maxW){ctx.save();const k=maxW/w,ax=al==='center'?x:al==='right'?x:x;ctx.translate(ax,y);ctx.scale(k,k);txt(s,0,0,c,al,size,null);ctx.restore();}else txt(s,x,y,c,al,size,null);}
 function gHeroes(pg){
   HEROES.forEach((h,i)=>{const x=14+i*91,cx=x+44;panel(x,52,88,138,PCOL[i],'rgba(28,12,8,.6)');
-    ctx.save();ctx.beginPath();ctx.rect(x,52,88,70);ctx.clip();ctx.translate(cx,118);drawHero(h.id,{walk:T+i*7,atkP:-1,n:1,gear:gearLook(h.id),h:56});ctx.restore();
+    ctx.save();ctx.beginPath();ctx.rect(x,52,88,70);ctx.clip();ctx.translate(cx,118);drawHero(h.id,{calm:1,walk:T+i*7,atkP:-1,n:1,gear:gearLook(h.id),h:56});ctx.restore();
     txt(h.first,cx,126,PCOL[i],'center',8,null);g6(h.job,cx,137,'#d9a87c','center');
     ['PWR','SPD','RCH'].forEach((lab,j)=>{const yy=148+j*8;g6(lab,x+5,yy,'#d9a87c');for(let k=0;k<5;k++)rect(x+28+k*11,yy+1,9,4,k<h.stats[j]?PCOL[i]:'#5e2f22');});
     g6('SPECIAL',cx,174,'#d9a87c','center');g6(h.sp,cx,182,pg.c,'center');});
