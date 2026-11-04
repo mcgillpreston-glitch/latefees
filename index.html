@@ -2203,6 +2203,7 @@ const MON_B=['rinkrat','martian','greaser','pinhead','clawcrab','mannequin','ush
 const POW_LINES={jolt:'FASTER FOR 10 S',boombox:'DOUBLE DAMAGE',pog:'SWINGS FLING POGS',troll:'8 S INVINCIBLE',beeper:'FREE SPECIALS',pizza:'+30 HEALTH'};
 function guidePages(){
   return [
+  {t:'THE LAST VIDEO STORE',c:'#c8f05a',draw:gIntro},
   {t:'THE NIGHT SHIFT',c:'#ffc93c',draw:gHeroes},{t:'POWER-UPS',c:'#ff9a3c',draw:gPow},{t:'GEAR & LOOT',c:'#c8f05a',draw:gGear},
   {t:'THE NEIGHBORHOOD WATCH',c:'#ff5fa8',draw:()=>gMonsters(MON_A)},{t:'MORE MONSTERS',c:'#ff5fa8',draw:()=>gMonsters(MON_B)},
   {t:'BOSSES',c:'#e8453c',draw:gBosses},{t:'THE ROUTE',c:'#3ad6c0',draw:gRoute},{t:'CO-OP & ONLINE',c:'#3ad6c0',draw:gCoop},
@@ -2227,6 +2228,20 @@ function gPara(s,x,y,c='#ffe9c2',size=6,maxW=W-32,al='left',lh){const ls=wrapPx(
 // one line squeezed to fit: drops to a smaller size if the measured width runs past maxW
 function gFit(s,x,y,c,al,size,maxW){ctx.font=size+'px "Press Start 2P", monospace';const w=ctx.measureText(s).width;
   if(w>maxW){ctx.save();const k=maxW/w,ax=al==='center'?x:al==='right'?x:x;ctx.translate(ax,y);ctx.scale(k,k);txt(s,0,0,c,al,size,null);ctx.restore();}else txt(s,x,y,c,al,size,null);}
+function gIntro(pg){
+  // a little scene: Maple Court at night, the four of them walking into a few of the dead
+  const img=bgImg('suburb',1),x0=14,y0=52,w=W-28,h=66;rect(x0,y0,w,h,'#1c0b07');
+  ctx.save();ctx.beginPath();ctx.rect(x0,y0,w,h);ctx.clip();
+  // the whole street, scrolling slowly: houses down to the curb, repeated (the painting loops seamlessly)
+  if(img){const sh=img.width*h/w,sy=Math.max(0,img.height*.62-sh*.88),off=(T*.25)%w;for(const dx of [0,w])ctx.drawImage(img,0,sy,img.width,sh,x0-off+dx,y0,w,h);}
+  HEROES.forEach((hh,i)=>{ctx.save();ctx.translate(x0+30+i*30,y0+h-4+(i%2)*2);drawHero(hh.id,{calm:1,walk:T+i*9,atkP:-1,n:1,gear:gearLook(hh.id),h:40});ctx.restore();});
+  [['sh',250],['mummy',290],['gremlin',326]].forEach(([k,x],i)=>{ctx.save();ctx.translate(x0+x,y0+h-4+(i%2)*2);ctx.scale(-1,1);gFig(k,0,0,k==='gremlin'?32:40);ctx.restore();});
+  ctx.restore();rect(x0,y0+h,w,1,pg.c);
+  const col=(x,hd,body)=>{txt(hd,x,y0+h+6,pg.c,'left',7,null);gPara(body,x,y0+h+17,'#ffe9c2',5,112,'left',7);};
+  col(14,'WHAT YOU DO','JULY 1996. A METEOR HITS MAPLE COURT AND THE DEAD GET UP. YOU\'RE THE NIGHT SHIFT. WALK RIGHT, PUNCH EVERYTHING, SAVE THE TOWNSFOLK, GRAB THE LOOT.');
+  col(136,'HOW YOU WIN','FIGHT THROUGH 10 STAGES OF HOLLOW PINES TO THE CRATER AND TAKE DOWN THE LATE FEE COLLECTOR. RUN OUT OF LIVES AND CONTINUES AND IT\'S GAME OVER.');
+  col(258,'THE POINT','GRAB UP TO 3 FRIENDS FOR QUICK CHAOS AND LAUGHS. ANYONE CAN JUMP IN OR DROP OUT ANY TIME, ON ONE SCREEN OR ONLINE.');
+}
 function gHeroes(pg){
   HEROES.forEach((h,i)=>{const x=14+i*91,cx=x+44;panel(x,52,88,138,PCOL[i],'rgba(28,12,8,.6)');
     ctx.save();ctx.beginPath();ctx.rect(x,52,88,70);ctx.clip();ctx.translate(cx,118);drawHero(h.id,{calm:1,walk:T+i*7,atkP:-1,n:1,gear:gearLook(h.id),h:56});ctx.restore();
