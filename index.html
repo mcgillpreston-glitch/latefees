@@ -135,6 +135,23 @@ canvas:focus-visible{box-shadow:0 0 0 3px var(--orange)}
   .lcd canvas{width:44px;height:92.4px;max-width:none}
   .btns{grid-area:btns;--bt:46px;align-self:start;margin:0}
 }
+/* A phone that is the controller for a big screen: the gear LCD moves onto the main screen, and the freed room goes
+   to a much bigger stick and buttons. */
+@media (hover:none) and (pointer:coarse){
+  .bigpad .lcd{display:none}
+  .bigpad .row{justify-content:space-around}
+  .bigpad .dpad{--dp:min(44vw,210px)}
+  .bigpad .btns{--bt:min(21vw,100px)}
+  .bigpad .pill{width:min(18vw,78px);height:22px}
+  .bigpad .pills{gap:40px;margin:18px 0 6px}
+  .bigpad .ticker{display:none}
+}
+@media (hover:none) and (pointer:coarse) and (orientation:landscape){
+  .bigpad .shell{grid-template-columns:minmax(150px,1fr) auto minmax(150px,1fr);grid-template-areas:"dpad bezel btns" "dpad bezel btns" "gear bezel btns" "start bezel btns"}
+  .bigpad .bezel{width:min(calc((100dvh - 36px) * 16 / 9),calc(100vw - 360px))}
+  .bigpad .dpad{--dp:150px;align-self:center}
+  .bigpad .btns{--bt:66px;align-self:center}
+}
 .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px}
 .ctl{background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:10px 14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;min-width:0}
 .ctl h3{width:100%;margin:0 0 2px;font-family:var(--pixel);font-size:9px;letter-spacing:.06em;font-weight:400;line-height:1.6}
@@ -714,7 +731,7 @@ let shellInit=false;const chEl=document.getElementById('ch');let chTxt='';
 // the tuner readout: the stage is the channel
 function drawCh(){if(T%20)return;const t='CH '+(G&&(GAME_SCENES.has(scene)||scene==='intro')?String(G.level||1).padStart(2,'0'):'--');if(t===chTxt)return;chTxt=t;
   const c=chEl.getContext('2d');c.setTransform(3,0,0,3,0,0);c.clearRect(0,0,40,12);c.font='7px "Press Start 2P", monospace';c.textBaseline='middle';c.textAlign='center';c.fillStyle='#ffb347';c.fillText(t,20,7);}
-function shellTick(){padLabels();if(!shellInit){shellInit=true;tickerRoom();}const land=matchMedia('(orientation:landscape)').matches;if(!land){drawCh();drawTicker();}drawLcd();}
+function shellTick(){document.body.classList.toggle('bigpad',!!(NET.on&&NET.big&&!NET.view&&(GAME_SCENES.has(scene)||scene==='intro')));padLabels();if(!shellInit){shellInit=true;tickerRoom();}const land=matchMedia('(orientation:landscape)').matches;if(!land){drawCh();drawTicker();}drawLcd();}
 function saveHi(){if(G&&G.score>hi){hi=G.score;try{localStorage.setItem('lfotd-hi',hi);}catch(e){}}}
 
 /* ---------- gear: 9 slots x 30 items, four rarities, four sets, one saved inventory per hero ---------- */
@@ -1871,19 +1888,28 @@ function drawPanel(i){
    to glance at; the fight itself is on the TV. The pad below works exactly as before. */
 function drawPadFace(g){
   const me=g.ps.find(p=>p.slot===NET.slot),col=PCOL[Math.max(0,NET.slot)];
-  rect(0,0,W,H,'#1c0b07');for(let y=0;y<H;y+=4)rect(0,y,W,1,'rgba(0,0,0,.18)');
-  if(!me){txt('JOINING...',W/2,H/2-4,'#d9a87c','center',8,INK);return;}
-  const h=me.ch;rect(0,0,W,26,col);txt('P'+(me.slot+1)+'  '+h.name,8,9,INK,'left',8,null);txt('ROOM '+NET.code,W-8,9,INK,'right',8,null);
-  ctx.save();ctx.translate(72,172);ctx.scale(2.4,2.4);drawHero(h.id,{walk:me.moving?T:0,atkP:me.atk&&!me.atk.air?me.atk.t/me.atk.len:-1,n:me.atk?me.atk.n:1,gear:gearLook(h.id),h:50,hurt:me.state==='hurt',down:me.state==='down',air:me.z>0});ctx.restore();
-  const bx=150,bw=W-bx-10;
-  txt('HEALTH',bx,40,'#d9a87c','left',8,null);rect(bx,52,bw,14,'#120806');const f=clamp(me.hp/me.maxhp,0,1);rect(bx+1,53,Math.round((bw-2)*f),12,f>.3?'#c8f05a':'#ff5a4a');txt(Math.round(me.hp)+'/'+me.maxhp,bx+bw/2,55,INK,'center',8,null);
-  txt('LIVES',bx,76,'#d9a87c','left',8,null);for(let i=0;i<me.lives;i++){rect(bx+i*22,86,18,12,INK);rect(bx+i*22+1,87,16,10,col);rect(bx+i*22+4,90,4,4,INK);rect(bx+i*22+10,90,4,4,INK);}
-  txt('SCORE',bx,112,'#d9a87c','left',8,null);txt(String(me.score).padStart(7,'0'),bx,124,'#ffe9c2','left',16,INK);
-  if(me.combo>1)txt(me.combo+' HITS',bx,150,'#ffc93c','left',16,INK);
-  if(me.pow){const P=POW[me.pow.k];txt(P.name+'  '+Math.ceil(me.pow.t/60)+'S',bx,172,P.col,'left',8,INK);}
-  if(me.out)txt(me.conts>0?'PRESS START TO CONTINUE':'OUT OF CONTINUES',W/2,H-30,'#ff7a5a','center',8,INK);
-  else if(me.state==='down')txt('GET UP!',W/2,H-30,'#ff7a5a','center',8,INK);
-  txt('WATCH THE BIG SCREEN',W/2,H-14,'#3ad6c0','center',8,null);
+  rect(0,0,W,H,'#161c17');for(let y=0;y<H;y+=3)rect(0,y,W,1,'rgba(0,0,0,.16)');
+  if(!me){txt('JOINING...',W/2,H/2-4,'#9fb39a','center',8,null);return;}
+  const h=me.ch,look=gearLook(h.id),ink='#0b0e0b',dim='#9fb39a',lit='#c8f05a';
+  rect(0,0,W,20,ink);txt('P'+(me.slot+1)+'  '+h.name,8,6,col,'left',8,null);txt('ROOM '+NET.code,W-8,6,dim,'right',8,null);
+  // the hero, big, as the LCD draws them
+  ctx.save();ctx.translate(96,178);ctx.scale(2.9,2.9);if(me.state==='down'||me.out)ctx.globalAlpha=.45;
+  drawHero(h.id,{walk:me.moving?T:0,atkP:me.atk&&!me.atk.air?me.atk.t/me.atk.len:-1,n:me.atk?me.atk.n:1,gear:look,h:46,hurt:me.state==='hurt',down:me.state==='down',air:me.z>0});ctx.restore();
+  // health bar under them, then the equipped gear in the LCD's 3x3 grid, drawn big
+  const bx=176,bw=W-bx-10,f=clamp(me.hp/me.maxhp,0,1);
+  rect(bx,30,bw,12,ink);rect(bx+1,31,Math.round((bw-2)*f),10,f>.3?lit:'#ff5a4a');txt(Math.round(me.hp)+'/'+me.maxhp,bx+bw/2,32,f>.3?ink:'#ffe9c2','center',8,null);
+  const gr=GEAR[h.id],cs=30,gx=bx+Math.floor((bw-3*cs-4)/2);
+  CATS.forEach((cat,i)=>{const x=gx+(i%3)*(cs+2),y=50+Math.floor(i/3)*(cs+2),it=gr&&gr.eq[cat];
+    rect(x,y,cs,cs,it?'#0e120e':'#121712');if(it){const R=RAR[BASES[it.k].rar];ctx.strokeStyle=R.col;ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,cs-1,cs-1);}
+    ctx.save();ctx.translate(x+cs/2-8,y+cs/2-8);if(it)drawIcon(cat,BASES[it.k].col,0,0,it.k,24);else{ctx.globalAlpha=.28;iconShape(cat,dim,0,0,true);ctx.globalAlpha=1;}ctx.restore();});
+  // run numbers along the bottom
+  const y0=150;txt('LIVES',bx,y0,dim,'left',6,null);for(let i=0;i<me.lives;i++){rect(bx+i*14,y0+8,12,8,ink);rect(bx+i*14+1,y0+9,10,6,col);}
+  txt('SCORE',bx+70,y0,dim,'left',6,null);txt(String(me.score).padStart(7,'0'),bx+70,y0+8,'#ffe9c2','left',8,null);
+  if(me.combo>1)txt(me.combo+' HITS',bx,y0+24,'#ffc93c','left',8,null);
+  if(me.pow){const P=POW[me.pow.k];txt(P.name+' '+Math.ceil(me.pow.t/60)+'S',bx+70,y0+24,P.col,'left',6,null);}
+  if(me.out)txt(me.conts>0?'PRESS START TO CONTINUE':'OUT OF CONTINUES',W/2,H-12,'#ff5a4a','center',8,null);
+  else if(me.state==='down')txt('GET UP!',W/2,H-12,'#ff5a4a','center',8,null);
+  else txt('WATCH THE BIG SCREEN',W/2,H-12,dim,'center',6,null);
 }
 function drawHUD(){
   const g=G;for(let i=0;i<4;i++)drawPanel(i);

@@ -290,6 +290,7 @@ export class Room {
       gp.in = o; p.pressed = 0;
       if (p.away && Date.now() - p.awayAt > AWAY_MS) this.removePlayer(slot, "DROPPED OUT");
     }
+    if (this.status !== "play" || this.G !== g) return;   // removing the last player may have ended the game
     C.step(g);
     this.tick++;
     if (g.ev.length) { this.evBuf.push(...g.ev); g.ev.length = 0; }
