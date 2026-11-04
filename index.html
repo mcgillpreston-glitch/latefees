@@ -2233,7 +2233,7 @@ function gIntro(pg){
   const img=bgImg('suburb',1),x0=14,y0=52,w=W-28,h=66;rect(x0,y0,w,h,'#1c0b07');
   ctx.save();ctx.beginPath();ctx.rect(x0,y0,w,h);ctx.clip();
   // the whole street, scrolling slowly: houses down to the curb, repeated (the painting loops seamlessly)
-  if(img){const sh=img.width*h/w,sy=Math.max(0,img.height*.62-sh*.88),off=0;for(const dx of [0,w])ctx.drawImage(img,0,sy,img.width,sh,x0-off+dx,y0,w,h);}
+  if(img){const sh=img.width*h/w,sy=Math.max(0,img.height*.62-sh*.88),off=(T*.25)%w;for(const dx of [0,w])ctx.drawImage(img,0,sy,img.width,sh,x0-off+dx,y0,w,h);}
   HEROES.forEach((hh,i)=>{ctx.save();ctx.translate(x0+30+i*30,y0+h-4+(i%2)*2);drawHero(hh.id,{walk:0,atkP:-1,n:1,gear:gearLook(hh.id),h:40,still:1});ctx.restore();});
   [['sh',250],['mummy',290],['gremlin',326]].forEach(([k,x],i)=>{ctx.save();ctx.translate(x0+x,y0+h-4+(i%2)*2);ctx.scale(-1,1);gFig(k,0,0,k==='gremlin'?32:40);ctx.restore();});
   ctx.restore();rect(x0,y0+h,w,1,pg.c);
