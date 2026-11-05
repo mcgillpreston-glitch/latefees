@@ -744,6 +744,7 @@ function tickerSegs(){const o=[];
   return o;}
 function tickerRoom(){if(!tickEl||!shellEl)return;const port=touchMode&&!matchMedia('(orientation:landscape)').matches,base=shellEl.getBoundingClientRect().height-(tickEl.classList.contains('on')?38:0),room=innerHeight-base;
   tickEl.classList.toggle('on',port&&room>96);shellEl.classList.toggle('tall',port&&room>160);}
+let tickRemeasure=false;try{document.fonts&&document.fonts.addEventListener('loadingdone',()=>{tickRemeasure=true;});document.fonts&&document.fonts.ready.then(()=>{tickRemeasure=true;});}catch(e){}
 function drawTicker(){
   if(!tickEl.classList.contains('on'))return;const dpr=window.devicePixelRatio||1,w=tickEl.clientWidth,h=30;if(!w)return;
   if(tickEl.width!==Math.round(w*dpr)){tickEl.width=Math.round(w*dpr);tickEl.height=Math.round(h*dpr);}
@@ -752,8 +753,10 @@ function drawTicker(){
   // the clock nobody ever set
   c.fillStyle='#1a1413';c.fillRect(6,5,62,20);if((T>>5)%2){c.fillStyle='#ffb347';c.fillText('12:00',10,h/2+1);}
   c.fillStyle='#3a2a22';c.fillRect(74,6,2,18);
-  if(T%45===0||!tickTxt){const t=tickerSegs().join('   //   ')+'   //   ';if(t!==tickTxt){tickTxt=t;tickW=c.measureText(t).width;}}
-  if(!tickW)return;tickX=(tickX+.8)%tickW;
+  // re-measure on every refresh, not only when the text changes: the first measure can happen before the pixel font
+  // has loaded, and a width taken from the narrower fallback font made each repeat start on top of the last one
+  if(T%45===0||!tickTxt||tickRemeasure){tickRemeasure=false;const t=tickerSegs().join('   //   ')+'   //   ';tickTxt=t;tickW=c.measureText(t).width;}
+  if(!tickW)return;tickX=(tickX+.5)%tickW;
   c.save();c.beginPath();c.rect(82,0,w-90,h);c.clip();c.fillStyle='#ffd27a';
   for(let x=82-tickX;x<w;x+=tickW)c.fillText(tickTxt,x,h/2+1);c.restore();
   const grd=c.createLinearGradient(82,0,100,0);grd.addColorStop(0,'#0d0b0b');grd.addColorStop(1,'rgba(13,11,11,0)');c.fillStyle=grd;c.fillRect(82,0,18,h);
