@@ -42,7 +42,7 @@ TASK: redraw Dex in 4 new OUTFITS, every one of the 24 poses for each outfit, ON
 RULES FOR EVERY IMAGE:
 - Portrait 1024x1536. Exactly ONE figure, the same size as in the reference frames (about 80% of the image height for a standing pose; a crouched or lying pose is smaller, not stretched), centred, clear empty margin on every side. No part of the figure may touch or run off an edge.
 - Plain flat solid white (#FFFFFF) background. No floor, no shadow, no scenery, no text, no labels, no effects except the weapon's own motion.
-- Faces RIGHT, full body, the CD player in hand in every frame.
+- Faces RIGHT, full body, the CD player in hand in every frame. In the standing pose and all four walk frames it hangs from his BACK hand (the one away from the viewer); it never changes hands between walk frames.
 - Work through one outfit completely, in the frame order below, before starting the next. Before each image write one line, e.g. "NIGHT SHIFT 8/24 - attack3". Make as many images per reply as you can. If you must stop, say which image is next and continue exactly there when I say "continue". If an image drifts from the pose, the character or the outfit, redraw it.
 
 THE 4 OUTFITS (in this order; set key in brackets):
