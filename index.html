@@ -229,7 +229,7 @@ kbd{font-family:var(--pixel);font-size:9px;color:#1c0b07;background:var(--cream)
   </div>
 </div>
 
-<script src="art/manifest.js?v=2026.11.04-2"></script>
+<script src="art/manifest.js?v=2026.11.04-3"></script>
 <script src="game-core.js?v=2026.11.03-5"></script>
 <script>
 (()=>{
@@ -1380,7 +1380,7 @@ function update(){
 const ART=globalThis.LF_ART||{};
 const SPR={};
 // Bump ART_V whenever art files are replaced under the same names, so browsers fetch the new pictures.
-const ART_V='2026.11.04-2',AV=u=>u+'?v='+ART_V;
+const ART_V='2026.11.04-3',AV=u=>u+'?v='+ART_V;
 /* ---------- picture loading ----------
    Everything used to be requested at once, so on a phone the heroes could take seconds to appear while 400 files
    fought for the line, and a file that failed stayed on its drawn stand-in until a reload. Now pictures go through one
