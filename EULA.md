@@ -55,7 +55,7 @@ Your license ends automatically if you break this EULA. When it ends you must st
 We may update this EULA. The date at the top shows the latest version. If you keep playing after an update, you accept the updated EULA.
 
 ## 14. Governing law
-This EULA is governed by the laws of the jurisdiction where Our Bad Entertainment is established, without regard to its conflict-of-laws rules. If any part of this EULA is found unenforceable, the rest stays in effect.
+This EULA is governed by the laws of the State of California, United States, without regard to its conflict-of-laws rules. Any dispute arising from this EULA or the Game will be resolved in the state or federal courts located in California, and you and we consent to their jurisdiction. If any part of this EULA is found unenforceable, the rest stays in effect.
 
 ## 15. Contact
 Questions about this EULA can be sent to Our Bad Entertainment through the site where you got the Game.
