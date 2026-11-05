@@ -1336,7 +1336,7 @@ function update(){
     if(menuHit('up')){tCur=(tCur+5)%6;beep(440,.05);}if(menuHit('down')){tCur=(tCur+1)%6;beep(440,.05);}
     if(tCur<=1){const mv=(menuHit('right')?1:0)-(menuHit('left')?1:0);if(mv){setDiff(DIFFS[(DIFFS.indexOf(DIFFSEL)+mv+DIFFS.length)%DIFFS.length]);beep(600,.06);}}
     const d=anyOk()||(hit('menu','ok')?'kb1':null);
-    if(d){if(tCur===0){lobbyReset();lobbyJoin(d);rumble(d,.4,150);scene='select';}else if(tCur===1){NET.dev=d;NET.cur=0;NET.err='';scene='online';}else if(tCur===2)openControls('title',0);else if(tCur===3)openSound('title');else if(tCur===4)openGuide('title',0);else openGuide('title',guidePages().length-2);}}
+    if(d){if(tCur===0){lobbyReset();lobbyJoin(d);rumble(d,.4,150);scene='select';}else if(tCur===1){NET.dev=d;NET.cur=0;NET.err='';scene='online';}else if(tCur===2)openControls('title',0);else if(tCur===3)openSound('title');else if(tCur===4)openGuide('title',0);else openGuide('title',guidePages().findIndex(q=>q.t==='ABOUT'));}}
   else if(scene==='sound'){updSound();if(NET.on&&G){netTick();updateFX();}}
   else if(scene==='devpw'){if(DEV.err>0)DEV.err--;}
   else if(scene==='dev')updDev();
@@ -2195,7 +2195,7 @@ function drawEndScreen(g,won){
 
 /* ---------- GUIDE: everything that used to sit below the game, as flip-through pages ---------- */
 const GUIDE={cur:0,from:'title',scroll:0};
-function openGuide(from,page){GUIDE.from=from;if(page!=null)GUIDE.cur=page;scene='guide';beep(660,.08);for(const lv of LEVELS)bgImg(lv.zones[0][0],2);}
+function openGuide(from,page){GUIDE.from=from;GUIDE.scroll=0;if(page!=null)GUIDE.cur=page;scene='guide';beep(660,.08);for(const lv of LEVELS)bgImg(lv.zones[0][0],2);}
 function closeGuide(){scene=GUIDE.from==='pause'&&G?'pause':'title';beep(330,.08);}
 /* Each page is a picture first: the game's own sprites, icons and backdrops, with a line or two of text under them. */
 const MON_A=['sh','mummy','wolf','pod','chainsaw','gremlin','tape','cook','cop','jock','hallmon','lunch','bog','skeeter','derby'];
@@ -2208,7 +2208,7 @@ function guidePages(){
   {t:'THE NEIGHBORHOOD WATCH',c:'#ff5fa8',draw:()=>gMonsters(MON_A)},{t:'MORE MONSTERS',c:'#ff5fa8',draw:()=>gMonsters(MON_B)},
   {t:'BOSSES',c:'#e8453c',draw:gBosses},{t:'THE ROUTE',c:'#3ad6c0',draw:gRoute},{t:'CO-OP & ONLINE',c:'#3ad6c0',draw:gCoop},
   {t:'CONTROLS',c:'#7aa0ff',draw:gControls},{t:'SMOOTH SAIL FM 96.9',c:'#c8f05a',draw:gRadio},{t:'POCKET CONSOLE',c:'#ffc93c',draw:gPocket},
-  {t:'ABOUT',c:'#ffe9c2',draw:gAbout},{t:'VERSION',c:'#d9a87c',draw:gVersion}];
+  {t:'ABOUT',c:'#ffe9c2',draw:gAbout},{t:'END USER LICENSE AGREEMENT',c:'#d9a87c',draw:gEula,scroll:1},{t:'VERSION',c:'#d9a87c',draw:gVersion}];
 }
 // one figure of anything in the game, feet at (x,y), h tall: a sprite if it's loaded, else the drawn stand-in
 function gFig(type,x,y,h){ctx.save();ctx.translate(x,y);
@@ -2337,6 +2337,21 @@ function gPocket(pg){
   gPara('UPRIGHT: A REWIND POCKET TV. D-PAD LEFT, YOUR LCD IN THE MIDDLE, BUTTONS RIGHT. SIDEWAYS: A WIDE SET WITH NOTHING OVER THE PICTURE. SETTINGS > STICK SWAPS THE D-PAD FOR A JOYSTICK. SETTINGS > SKIN PICKS THE CASE.',14,146,'#ffe9c2',5);
   txt('THE SKIN ALSO COLOURS THE SCREEN FRAME ON A COMPUTER.',W/2,186,'#d9a87c','center',5,null);
 }
+// The EULA, from EULA.md in the repo (keep the two in step). Long, so this page scrolls with up/down.
+const EULA=[["p", "LAST UPDATED: NOVEMBER 4, 2026"], ["h", "1. AGREEMENT"], ["p", "BY PLAYING THE LAST VIDEO STORE (THE \"GAME\") YOU AGREE TO THIS END USER LICENSE AGREEMENT (THE \"EULA\") WITH OUR BAD ENTERTAINMENT (\"WE\", \"US\"). IF YOU DO NOT AGREE, DO NOT PLAY THE GAME."], ["h", "2. YOUR LICENSE"], ["p", "WE GRANT YOU A PERSONAL, LIMITED, NON-EXCLUSIVE, NON-TRANSFERABLE, REVOCABLE LICENSE TO PLAY THE GAME FOR YOUR OWN NON-COMMERCIAL ENTERTAINMENT. YOU MAY STREAM, RECORD AND SHARE VIDEOS OF YOURSELF PLAYING, AS LONG AS YOU DO NOT SELL OR DISTRIBUTE THE GAME ITSELF OR ITS ART, MUSIC OR CODE SEPARATELY FROM THAT FOOTAGE."], ["h", "3. OWNERSHIP"], ["p", "THE GAME, INCLUDING ITS CODE, CHARACTERS, STORY, ART, MUSIC, SOUNDS, TEXT, TITLE AND LOGOS, IS OWNED BY OUR BAD ENTERTAINMENT AND PROTECTED BY COPYRIGHT AND TRADEMARK LAW. THE LAST VIDEO STORE, SMOOTH SAIL FM 96.9, DJ JUNE, DEX, RAE, BENNY, JULIA, THE GAME'S MONSTERS, STAGES AND ITEMS, AND THE OUR BAD ENTERTAINMENT NAME AND LOGO ARE TRADEMARKS OF OUR BAD ENTERTAINMENT. YOU RECEIVE A LICENSE, NOT OWNERSHIP. ALL RIGHTS NOT EXPRESSLY GRANTED ARE RESERVED."], ["h", "4. WHAT YOU MAY NOT DO"], ["p", "YOU MAY NOT:"], ["b", "COPY, SELL, RENT, LEND, SUBLICENSE OR REDISTRIBUTE THE GAME OR ANY PART OF IT;"], ["b", "EXTRACT, RIP OR REUSE THE GAME'S ART, MUSIC, SOUNDS OR CODE;"], ["b", "MODIFY, DECOMPILE OR REVERSE ENGINEER THE GAME, OR MAKE DERIVATIVE WORKS FROM IT, EXCEPT WHERE THE LAW ALLOWS THIS DESPITE THIS EULA;"], ["b", "REMOVE OR CHANGE ANY COPYRIGHT, TRADEMARK OR OTHER NOTICE;"], ["b", "USE THE GAME'S NAMES, CHARACTERS OR LOGOS IN ANY OTHER PRODUCT, SERVICE OR PROMOTION;"], ["b", "USE THE GAME OR ANY OF ITS CONTENT TO TRAIN OR IMPROVE AN ARTIFICIAL INTELLIGENCE OR MACHINE LEARNING MODEL."], ["h", "5. ONLINE PLAY AND CONDUCT"], ["p", "ONLINE ROOMS ARE FOR PLAYING TOGETHER. WHEN YOU PLAY ONLINE YOU AGREE NOT TO:"], ["b", "CHEAT, USE BOTS OR AUTOMATED INPUT, OR EXPLOIT BUGS TO GAIN AN ADVANTAGE OR TO DISRUPT OTHER PLAYERS;"], ["b", "ATTACK, OVERLOAD, PROBE OR TAMPER WITH THE ROOM SERVERS, OR TRY TO REACH PARTS OF THEM NOT MEANT FOR PLAYERS;"], ["b", "HARASS, THREATEN, BULLY OR INTIMIDATE OTHER PLAYERS;"], ["b", "SHARE HATEFUL, SEXUAL, VIOLENT, ILLEGAL OR OTHERWISE OFFENSIVE CONTENT THROUGH ANY PART OF THE GAME;"], ["b", "IMPERSONATE ANOTHER PERSON, OR SHARE A ROOM CODE TO BRING PEOPLE INTO A GAME WHERE THEY ARE NOT WANTED."], ["p", "WE MAY REMOVE A PLAYER FROM A ROOM, CLOSE A ROOM, OR BLOCK ACCESS TO ONLINE PLAY AT ANY TIME AND WITHOUT NOTICE."], ["h", "6. YOUR DATA"], ["p", "THE GAME HAS NO ACCOUNTS. YOUR GEAR, SETTINGS AND PROGRESS ARE SAVED IN YOUR OWN BROWSER ON YOUR OWN DEVICE, AND CLEARING YOUR BROWSER DATA ERASES THEM. WHEN YOU PLAY ONLINE, OUR ROOM SERVER RECEIVES YOUR CONNECTION DETAILS (SUCH AS YOUR IP ADDRESS) AND YOUR GAME INPUTS ONLY TO RUN THE ROOM YOU ARE IN. WE DO NOT SELL THIS INFORMATION. ONLINE ROOMS RUN ON CLOUDFLARE, WHICH PROCESSES NETWORK TRAFFIC AS PART OF PROVIDING THAT SERVICE."], ["h", "7. YOUNG PLAYERS"], ["p", "IF YOU ARE UNDER 13, OR UNDER THE MINIMUM AGE FOR ONLINE SERVICES WHERE YOU LIVE, PLAY ONLINE ONLY WITH A PARENT'S OR GUARDIAN'S PERMISSION."], ["h", "8. AI-ASSISTED CONTENT"], ["p", "THE GAME'S ART AND MUSIC WERE CREATED WITH AI TOOLS, THEN PROMPTED, CORRECTED AND ADJUSTED BY HAND. ITS CODE WAS WRITTEN WITH AI ASSISTANCE. THE GAME IS FICTION: EVERY PERSON, PLACE, STORE, BRAND, PRODUCT AND ITEM IN IT IS MADE UP, AND ANY LIKENESS TO REAL PEOPLE, PRODUCTS OR PLACES IS COINCIDENTAL AND NOT INTENDED."], ["h", "9. UPDATES AND AVAILABILITY"], ["p", "WE MAY UPDATE, CHANGE, SUSPEND OR DISCONTINUE THE GAME OR ANY ONLINE FEATURE AT ANY TIME, WITH OR WITHOUT NOTICE."], ["h", "10. NO WARRANTY"], ["p", "THE GAME IS PROVIDED \"AS IS\" AND \"AS AVAILABLE\", WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. WE DO NOT PROMISE THAT THE GAME OR ONLINE PLAY WILL BE UNINTERRUPTED, SECURE OR ERROR-FREE."], ["h", "11. LIMITATION OF LIABILITY"], ["p", "TO THE FULLEST EXTENT THE LAW ALLOWS, OUR BAD ENTERTAINMENT IS NOT LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF DATA, PROGRESS OR ENJOYMENT, ARISING FROM YOUR USE OF THE GAME. OUR TOTAL LIABILITY TO YOU IS LIMITED TO THE AMOUNT YOU PAID FOR THE GAME, IF ANY. SOME PLACES DO NOT ALLOW THESE LIMITS, SO SOME OF THEM MAY NOT APPLY TO YOU."], ["h", "12. TERMINATION"], ["p", "YOUR LICENSE ENDS AUTOMATICALLY IF YOU BREAK THIS EULA. WHEN IT ENDS YOU MUST STOP PLAYING THE GAME AND DELETE ANY COPIES YOU HAVE."], ["h", "13. CHANGES TO THIS EULA"], ["p", "WE MAY UPDATE THIS EULA. THE DATE AT THE TOP SHOWS THE LATEST VERSION. IF YOU KEEP PLAYING AFTER AN UPDATE, YOU ACCEPT THE UPDATED EULA."], ["h", "14. GOVERNING LAW"], ["p", "THIS EULA IS GOVERNED BY THE LAWS OF THE JURISDICTION WHERE OUR BAD ENTERTAINMENT IS ESTABLISHED, WITHOUT REGARD TO ITS CONFLICT-OF-LAWS RULES. IF ANY PART OF THIS EULA IS FOUND UNENFORCEABLE, THE REST STAYS IN EFFECT."], ["h", "15. CONTACT"], ["p", "QUESTIONS ABOUT THIS EULA CAN BE SENT TO OUR BAD ENTERTAINMENT THROUGH THE SITE WHERE YOU GOT THE GAME."], ["p", "\u00a9 2026 OUR BAD ENTERTAINMENT. ALL RIGHTS RESERVED."]];
+function eulaLines(mw){const out=[];for(const [k,t] of EULA){
+    if(k==='h'){out.push(null);out.push([t,'h']);}
+    else if(k==='b')wrapPx(t,5,mw-8).forEach((l,i)=>out.push([(i?'  ':'- ')+l,'b']));
+    else wrapPx(t,5,mw).forEach(l=>out.push([l,'p']));}
+  return out;}
+function gEula(pg){
+  const mw=W-40,ls=eulaLines(mw),lh=7,top=52,rows=Math.floor((H-24-top)/lh),maxS=Math.max(0,ls.length-rows);
+  GUIDE.scroll=clamp(GUIDE.scroll||0,0,maxS);GUIDE.maxS=maxS;
+  ls.slice(GUIDE.scroll,GUIDE.scroll+rows).forEach((l,i)=>{if(!l)return;const y=top+i*lh;
+    if(l[1]==='h')txt(l[0],14,y,pg.c,'left',6,null);else txt(l[0],14,y+1,l[1]==='b'?'#ffe9c2':'#e8d5b0','left',5,null);});
+  // a scroll bar down the right edge
+  if(maxS>0){const bh=H-24-top,th=Math.max(12,bh*rows/ls.length),ty=top+(bh-th)*GUIDE.scroll/maxS;rect(W-18,top,3,bh,'#45221a');rect(W-18,ty,3,th,pg.c);}
+}
 let LOGO_IMG=null,LOGO_ASKED=false;
 function gAbout(pg){
   // laid out top to bottom by measured text; if the device's font runs wide, the body steps down a size so it all fits
@@ -2367,9 +2382,12 @@ function gVersion(pg){
 // word-wrap for the 8px pixel font (8px per character)
 function wrapLines(s,maxCh){const out=[];let line='';for(const w of String(s).split(' ')){if((line+(line?' ':'')+w).length>maxCh){if(line)out.push(line);line=w;}else line+=(line?' ':'')+w;}if(line)out.push(line);return out;}
 function updGuide(){
-  const n=guidePages().length;
-  if(menuHit('right')||menuHit('down')){GUIDE.cur=(GUIDE.cur+1)%n;beep(520,.05);}
-  if(menuHit('left')||menuHit('up')){GUIDE.cur=(GUIDE.cur+n-1)%n;beep(520,.05);}
+  const P=guidePages(),n=P.length,sc=P[GUIDE.cur%n].scroll;
+  // on a long page (the EULA) up/down scroll it; elsewhere they turn pages like left/right
+  if(sc&&menuHit('down')){GUIDE.scroll=Math.min((GUIDE.scroll||0)+3,GUIDE.maxS||0);}
+  else if(sc&&menuHit('up')){GUIDE.scroll=Math.max(0,(GUIDE.scroll||0)-3);}
+  else if(menuHit('right')||menuHit('down')){GUIDE.cur=(GUIDE.cur+1)%n;GUIDE.scroll=0;beep(520,.05);}
+  else if(menuHit('left')||menuHit('up')){GUIDE.cur=(GUIDE.cur+n-1)%n;GUIDE.scroll=0;beep(520,.05);}
   if(menuHit('back')||menuHit('ok')||hit('menu','back'))closeGuide();
 }
 function drawGuide(){
@@ -2380,7 +2398,7 @@ function drawGuide(){
   vhs(6,35,W-12,H-52,pg.c,'rgba(42,20,14,.95)');
   txt(pg.t,W/2+2,41,pg.c,'center',8,INK);
   ctx.save();ctx.beginPath();ctx.rect(10,50,W-20,H-70);ctx.clip();pg.draw(pg);ctx.restore();
-  txt('< > PAGE   B/ESC BACK',W/2,H-12,'#ffe9c2','center',8,INK);
+  txt(pg.scroll?'< > PAGE   ^v SCROLL   B/ESC BACK':'< > PAGE   B/ESC BACK',W/2,H-12,'#ffe9c2','center',8,INK);
 }
 
 /* ---------- loop ---------- */
