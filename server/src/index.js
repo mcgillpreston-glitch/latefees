@@ -242,7 +242,10 @@ export class Room {
         try { if (p.ws) p.ws.close(1000, "left"); } catch {}
         this.removePlayer(slot, this.status === "play" ? "LEFT THE GAME" : null); break;
       }
-      case "ping": this.send(p.ws, { t: "pong", n: d.n }); break;
+      case "ping": {   // the client reports its own measured round trip, so everyone can see everyone's connection
+        const r = Number(d.r); if (Number.isFinite(r) && r >= 0 && r < 10000) p.rtt = Math.round(r);
+        this.send(p.ws, { t: "pong", n: d.n }); break;
+      }
     }
   }
 
@@ -293,6 +296,10 @@ export class Room {
     if (this.status !== "play" || this.G !== g) return;   // removing the last player may have ended the game
     C.step(g);
     this.tick++;
+    if (this.tick % 120 === 0) {   // every 2 s: each player's ping, for the dot on their HUD picture
+      const pg = {}; for (const [slot, p] of this.players) if (p.rtt != null) pg[slot] = p.away ? -1 : p.rtt;
+      this.broadcast({ t: "pings", p: pg });
+    }
     if (g.ev.length) { this.evBuf.push(...g.ev); g.ev.length = 0; }
     if (this.tick % SNAP_EVERY === 0 || g.status === "over" || g.status === "win") {
       this.sendSnap(g);

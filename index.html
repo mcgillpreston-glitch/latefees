@@ -636,7 +636,10 @@ function updSound(){
     else if(row==='mute'){muted=!muted;saveSound();beep(660,.08);}else if(row==='skin'){applySkin(SKINS[(skinIdx()+1)%SKINS.length].id);beep(660,.06);}else if(row==='stick'){setStick(STICK==='stick'?'dpad':'stick');beep(660,.06);}else if(row==='region'){setRegion(1);beep(660,.06);}else if(row==='back')closeSound();}
 }
 function drawSound(){
-  uiBg('SETTINGS');panel(4,32,W-8,124,'#ffc93c','rgba(42,20,14,.94)');panel(4,160,W-8,48,'#3ad6c0','rgba(42,20,14,.94)');
+  {const ms=NET.on?NET.rtt:null;uiBg('SETTINGS',NET.on?(ms?'PING '+Math.round(ms)+' MS':'PING ...'):'OFFLINE',NET.on&&ms?pingCol(ms):'#d9a87c');
+   if(NET.on){const r=REGIONS.find(q=>q[0]===REGION),ms2=NET.rtt?Math.round(NET.rtt):0;
+     txt('ROOM '+NET.code+'  '+(r?r[1]:'AUTO')+(ms2?'  '+(ms2<80?'GOOD':ms2<150?'OK':'SLOW'):''),W-8,25,'#d9a87c','right',5,null);}}
+  panel(4,32,W-8,124,'#ffc93c','rgba(42,20,14,.94)');panel(4,160,W-8,48,'#3ad6c0','rgba(42,20,14,.94)');
   const bar=(y,v,on)=>{for(let i=0;i<10;i++){const x=170+i*15,fill=i<v;rect(x,y-1,12,10,fill?(muted?'#7a3f26':on?'#ffc93c':'#d9771e'):'#45221a');if(fill&&!muted)rect(x,y-1,12,2,'#ffe9a0');}
     txt(String(v),W-12,y,on?'#ffe9c2':'#d9a87c','right',8,null);};
   const rows=[['MUSIC',y=>bar(y,SND.music,SOUND.cur===0)],['SOUND FX',y=>bar(y,SND.sfx,SOUND.cur===1)],
@@ -1159,6 +1162,7 @@ function netMsg(d){
   case 'kick':toast(d.msg||'REMOVED FROM ROOM','#ff7a5a');netLeave(true);break;
   case 'gone':if(d.slot!==NET.slot)toast(d.msg||'A PLAYER LEFT','#d9a87c');break;
   case 'pong':if(d.n===NET.pingN){const r=performance.now()-NET.pingAt;NET.rtt=NET.rtt?NET.rtt*.7+r*.3:r;}break;
+  case 'pings':NET.pings=d.p||{};NET.pingsAt=performance.now();break;
   }
 }
 function netTick(){
@@ -1171,7 +1175,7 @@ function netTick(){
   NET.seq++;NET.inq.push({s:NET.seq,b:bits});if(NET.inq.length>240)NET.inq.shift();
   NET.out.push(bits);if(NET.out.length>=1){const vw=netView();netSend({t:'in',s:NET.seq-NET.out.length+1,b:NET.out,v:vw.v,l:vw.l,h:bits,p:NET.out.reduce((x,y)=>x|y,0)});NET.out=[];}   // h/p: what an older room server reads
   predStep(bits,true);
-  if(++NET.pingT>=120){NET.pingT=0;NET.pingN++;NET.pingAt=performance.now();netSend({t:'ping',n:NET.pingN});}
+  if(++NET.pingT>=120){NET.pingT=0;NET.pingN++;NET.pingAt=performance.now();netSend({t:'ping',n:NET.pingN,r:NET.rtt?Math.round(NET.rtt):null});}
 }
 /* Your own hero runs on your phone. Every tick it steps the same updPlayer the room runs, against a world with no
    monsters in it: moves, jumps, swings and specials start the instant you press. Whether a swing hits, and what
@@ -1924,6 +1928,9 @@ function cassette(x,y,col){
   // screw holes and the little reel window notch at the bottom
   ell(x+4,y+28,1,1,'#3a302c');ell(x+88,y+28,1,1,'#3a302c');rect(x+38,y+29,16,2,'#0c0908');
 }
+// a player's ping in ms: your own straight from your connection, the others from the room's reports (-1 = dropped)
+function pingOf(slot){if(slot===NET.slot&&NET.rtt)return Math.round(NET.rtt);const v=NET.pings&&NET.pings[slot];return v==null?null:v;}
+const pingCol=ms=>ms<0||ms>=150?'#ff4a3c':ms>=80?'#ffc93c':'#5fe05a';
 function drawPanel(i){
   const g=G,x=2+i*96,y=2,col=PCOL[i],p=g.ps.find(q=>q.slot===i);
   cassette(x,y,col);
@@ -1939,6 +1946,7 @@ function drawPanel(i){
   // portrait in a framed window
   rect(x+2,y+3,18,18,INK);ctx.save();ctx.beginPath();ctx.rect(x+3,y+4,16,16);ctx.clip();rect(x+3,y+4,16,16,'#5e2f22');
   if(!drawPortrait(p.ch.id,x+3,y+4,16)){ctx.translate(x+11,y+33);drawHero(p.ch.id,{walk:0,atkP:-1,n:1,gear:p.look});}ctx.restore();
+  if(NET.on){const ms=pingOf(i);if(ms!=null){const c=pingCol(ms);ell(x+17.5,y+18.5,2.6,2.6,INK);ell(x+17.5,y+18.5,1.8,1.8,c);if(ms>=0)rect(x+16.6,y+17.4,.9,.9,'rgba(255,255,255,.6)');}}
   label(p.ch.first,'x'+p.lives);
   // health = tape in the cassette window
   const hr=Math.max(0,p.hp/p.maxhp),hc=hr>.5?'#c8f05a':hr>.25?'#ffc93c':'#ff4a3c',bw=66;
