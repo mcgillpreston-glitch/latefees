@@ -2276,20 +2276,24 @@ function gGear(pg){
   g6('NINE SLOTS, 270 ITEMS. STATS ROLL WHEN THEY DROP.',W/2,52,'#ffe9c2','center');
   CATS.forEach((c,i)=>{const x=20+i*39;rect(x,60,34,28,'rgba(28,12,8,.6)');drawIcon(c,ITEMCOL[i%ITEMCOL.length],x+7,62,c+(26+i)%30,20);txt(CAT_NAME[c],x+17,90,'#d9a87c','center',5,null);});
   g6('RARITY',14,99,pg.c);txt('YOUR BAG: SELECT ON A PAD, I OR \' ON KEYS, GEAR ON A PHONE',W-14,100,'#d9a87c','right',4,null);
-  [['c','1 STAT'],['r','2 STATS, X2'],['u','3 BIG STATS'],['s','SET PIECE']].forEach(([r,d],i)=>{const x=14+i*92,R=RAR[r];
-    ctx.save();ctx.shadowColor=R.col;ctx.shadowBlur=SC*2;rect(x,109,9,9,R.col);ctx.restore();txt(R.name,x+13,108,R.col,'left',5,null);txt(d,x+13,115,'#ffe9c2','left',5,null);});
-  g6('SETS',14,125,pg.c);txt('WEAR 3+ PIECES OF ONE SET AND YOUR WHOLE LOOK CHANGES',W-14,126,'#d9a87c','right',4,null);
+  // the same item type (shoes) at each rarity, with its share of normal drops (from LFCore.rollRarity's weights, no luck)
+  const RW={c:70,r:22,u:5,s:3.5},RT=RW.c+RW.r+RW.u+RW.s,pct=r=>{const v=RW[r]*100/RT;return (v<10?v.toFixed(1).replace(/\.0$/,''):Math.round(v))+'%';};
+  [['c','1 STAT','shoes3'],['r','2 STATS, X2','shoes18'],['u','3 BIG STATS','shoes25'],['s','SET PIECE','shoes28']].forEach(([r,d,k],i)=>{const x=14+i*90,R=RAR[r],b=BASES[k];
+    rect(x,106,18,15,'rgba(28,12,8,.6)');ctx.save();ctx.shadowColor=R.col;ctx.shadowBlur=SC*(r==='c'?1.4:2.4);drawIcon('shoes',b?b.col:R.col,x+1,106,k,16);ctx.restore();
+    txt(R.name,x+21,107,R.col,'left',5,null);txt(pct(r),x+86,107,'#ffe9c2','right',5,null);txt(d,x+21,115,'#d9a87c','left',4,null);});
+  gFit('LUCK RAISES THE ODDS. SAVED TOWNSFOLK DROP RARE+. BOSSES DROP AN ULTRA RARE OR SET PIECE.',W/2,123,'#8a5a44','center',4,W-30);
+  g6('SETS',14,130,pg.c);txt('WEAR 3+ PIECES OF ONE SET AND YOUR WHOLE LOOK CHANGES',W-14,131,'#d9a87c','right',4,null);
   // each set: Rae as she is, an arrow, Rae in the outfit
-  SETS.forEach((st,i)=>{const x=14+i*92,cx=x+43,top=133,fy=top+40;
-    rect(x,top,86,42,'rgba(28,12,8,.6)');rect(x,top,86,1,st.col);
-    ctx.save();ctx.beginPath();ctx.rect(x,top,86,42);ctx.clip();
-    ctx.save();ctx.translate(cx-20,fy);drawHero('rae',{walk:0,still:1,atkP:-1,n:1,gear:null,h:31});ctx.restore();
-    ctx.save();ctx.translate(cx+22,fy);drawHero('rae',{walk:0,still:1,atkP:-1,n:1,gear:{out:st.id},h:31});ctx.restore();
+  SETS.forEach((st,i)=>{const x=14+i*92,cx=x+43,top=138,fy=top+35;
+    rect(x,top,86,36,'rgba(28,12,8,.6)');rect(x,top,86,1,st.col);
+    ctx.save();ctx.beginPath();ctx.rect(x,top,86,36);ctx.clip();
+    ctx.save();ctx.translate(cx-20,fy);drawHero('rae',{walk:0,still:1,atkP:-1,n:1,gear:null,h:27});ctx.restore();
+    ctx.save();ctx.translate(cx+22,fy);drawHero('rae',{walk:0,still:1,atkP:-1,n:1,gear:{out:st.id},h:27});ctx.restore();
     ctx.restore();
-    tri(cx-2,top+18,cx-2,top+26,cx+3,top+22,st.col);
+    tri(cx-2,top+16,cx-2,top+24,cx+3,top+20,st.col);
     txt('BEFORE',cx-20,top+2,'#8a5a44','center',4,null);txt('AFTER',cx+22,top+2,st.col,'center',4,null);
-    rect(x,top+43,86,11,st.col);txt(st.name,cx,top+45,INK,'center',6,null);
-    txt('BONUS AT '+st.bonus.map(b=>b[0]).join('/')+' PIECES',cx,top+57,'#ffe9c2','center',4,null);});
+    rect(x,top+37,86,10,st.col);txt(st.name,cx,top+39,INK,'center',6,null);
+    txt('BONUS AT '+st.bonus.map(b=>b[0]).join('/')+' PIECES',cx,top+50,'#ffe9c2','center',4,null);});
 }
 const traitOf=d=>d.armor?['ARMORED','#ff9a3c']:d.block?['BLOCKS','#ffc93c']:d.knock?['KNOCKS','#ff5fa8']:d.shot?['SHOOTS','#c8f05a']:d.ai==='charge'?['CHARGES','#ff9a3c']:d.ai==='lunge'?['POUNCES','#3ad6c0']:d.float?['FLOATS','#c8e8ff']:['CROWDS','#d9a87c'];
 function gMonsters(list){
