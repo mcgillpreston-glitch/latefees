@@ -1,6 +1,6 @@
 # The Last Video Store: End User License Agreement
 
-Last updated: November 4, 2026
+Last updated: November 6, 2026
 
 ## 1. Agreement
 By playing The Last Video Store (the "Game") you agree to this End User License Agreement (the "EULA") with Our Bad Entertainment ("we", "us"). If you do not agree, do not play the Game.
@@ -30,8 +30,8 @@ Online rooms are for playing together. When you play online you agree not to:
 
 We may remove a player from a room, close a room, or block access to online play at any time and without notice.
 
-## 6. Your data
-The Game has no accounts. Your gear, settings and progress are saved in your own browser on your own device, and clearing your browser data erases them. When you play online, our room server receives your connection details (such as your IP address) and your game inputs only to run the room you are in. We do not sell this information. Online rooms run on Cloudflare, which processes network traffic as part of providing that service.
+## 6. Your privacy
+How we handle information is explained in our Privacy Policy, which is part of this EULA and appears in the Game's Guide and at ourbadentertainment.com. In short: the Game has no accounts, ads or tracking; your progress and settings stay on your device; and when you play online our room server uses your connection details and button presses only to run your room, then discards them when the room closes. We do not sell or share your personal information.
 
 ## 7. Young players
 If you are under 13, or under the minimum age for online services where you live, play online only with a parent's or guardian's permission.
