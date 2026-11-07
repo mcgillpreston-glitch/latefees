@@ -1,5 +1,7 @@
 # Master prompts: set outfits, brought up to 23 frames
 
+> **Superseded:** everything still to be made from this file is in `art/MASTER_REMAINING_ART.md` (November 2026). Use that one.
+
 When a hero wears **3 or more pieces of one set**, the game swaps their whole look to that set's outfit in every animation. With fewer pieces, the gear recolours their normal clothes instead (that already works and needs no art).
 
 **What changed since the first outfit batch**

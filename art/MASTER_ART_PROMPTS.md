@@ -1,5 +1,7 @@
 # Master prompts: the last monsters, the bosses, the stage backgrounds, the item icons
 
+> **Superseded:** everything still to be made from this file is in `art/MASTER_REMAINING_ART.md` (November 2026). Use that one.
+
 Everything the game still draws with pixel stand-ins. Six ChatGPT chats, each started with one paste; each ends with a zip. Send me the zips and I'll import them. Skip any chat you like; the stand-ins stay until its art arrives.
 
 | Chat | Makes | Upload first (style reference) | Images | Zip |

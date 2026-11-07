@@ -1,5 +1,7 @@
 # Master prompts: more animation frames (heroes and the busiest monsters)
 
+> **Superseded:** everything still to be made from this file is in `art/MASTER_REMAINING_ART.md` (November 2026). Use that one.
+
 The game now reads extra frames whenever they exist: a 4-step walk, a follow-through on every swing, a 3-frame finisher, jump apex and fall, a second hurt frame, two get-up frames and a 4-frame special. Characters without them keep using what they have, so do these in any order.
 
 | Chat | Makes | Upload first | Images | Zip |
