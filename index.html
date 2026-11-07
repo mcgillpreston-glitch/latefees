@@ -1094,7 +1094,7 @@ function updateFX(){
 }
 
 /* ---------- online: rooms on a Cloudflare Durable Object ---------- */
-const NET={on:false,ws:null,code:'',slot:-1,token:null,dev:'kb1',lobby:null,snapMs:40,lastSnap:0,err:'',busy:false,held:0,sendT:0,cur:0,codeIn:['A','A','A','A'],col:0,ready:false,gone:false,tries:0,
+const NET={on:false,ws:null,code:'',slot:-1,token:null,dev:'kb1',lobby:null,snapMs:20,lastSnap:0,err:'',busy:false,held:0,sendT:0,cur:0,codeIn:['A','A','A','A'],col:0,ready:false,gone:false,tries:0,
   rtt:0,pingT:0,pingAt:0,pingN:0,gaps:[],seq:0,inq:[],out:[],ackBits:0,pred:null,off:{x:0,y:0},snap:null,view:false,big:0};
 const serverEl=document.getElementById('server');
 const DEFAULT_SERVER='https://latefees.prestonmcgill.workers.dev';
@@ -1146,7 +1146,7 @@ function netMsg(d){
     // Snapshots come every 50ms; on a phone network they bunch up. Interpolate over the 90th-percentile gap so
     // motion stays smooth through jitter instead of freezing and jumping (never more than 150ms behind).
     if(NET.lastSnap){const gap=G.now-NET.lastSnap;NET.gaps.push(Math.min(gap,400));if(NET.gaps.length>40)NET.gaps.shift();
-      if(NET.gaps.length>=10){const srt=[...NET.gaps].sort((a,b)=>a-b),p90=srt[Math.floor(srt.length*.9)];const want=clamp(p90,34,150);NET.snapMs+=(want-NET.snapMs)*.2;}}
+      if(NET.gaps.length>=10){const srt=[...NET.gaps].sort((a,b)=>a-b),p90=srt[Math.floor(srt.length*.9)];const want=clamp(p90,17,150);NET.snapMs+=(want-NET.snapMs)*.2;}}
     netUnahead(G);C.applySnapshot(G,snap);NET.lastSnap=G.now;netVel(G);predReconcile(snap);predShow(G,true);
     const me=G.ps.find(p=>p.slot===NET.slot);if(me)me.dev=NET.dev;
     if(d.ev&&d.ev.length)drainEvents(NET.pred?d.ev.filter(e=>e.p!==NET.slot):d.ev);   // your own swing/jump sounds already played
@@ -1167,9 +1167,9 @@ function netTick(){
   if(!NET.ws||NET.ws.readyState!==1||NET.slot<0)return;
   const d=NET.dev,blocked=scene==='pause'||scene==='inv'||scene==='controls';
   let bits=0;if(!blocked)for(const a in BITS)if(held(d,a)||hit(d,a))bits|=BITS[a];
-  // one entry per tick, numbered; sent two at a time. The room plays them in order and says which one it last used.
+  // one entry per tick, numbered, sent every tick (60 a second). The room plays them in order and says which one it last used.
   NET.seq++;NET.inq.push({s:NET.seq,b:bits});if(NET.inq.length>240)NET.inq.shift();
-  NET.out.push(bits);if(NET.out.length>=2){const vw=netView();netSend({t:'in',s:NET.seq-NET.out.length+1,b:NET.out,v:vw.v,l:vw.l,h:bits,p:NET.out.reduce((x,y)=>x|y,0)});NET.out=[];}   // h/p: what an older room server reads
+  NET.out.push(bits);if(NET.out.length>=1){const vw=netView();netSend({t:'in',s:NET.seq-NET.out.length+1,b:NET.out,v:vw.v,l:vw.l,h:bits,p:NET.out.reduce((x,y)=>x|y,0)});NET.out=[];}   // h/p: what an older room server reads
   predStep(bits,true);
   if(++NET.pingT>=120){NET.pingT=0;NET.pingN++;NET.pingAt=performance.now();netSend({t:'ping',n:NET.pingN});}
 }

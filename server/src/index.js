@@ -6,7 +6,7 @@ const C = globalThis.LFCore;
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const TICK_MS = 1000 / 60;
-const SNAP_EVERY = 2;          // 30 snapshots a second (deltas after the first, so it costs less than 20 full ones did)
+const SNAP_EVERY = 1;          // 60 snapshots a second, one per tick (deltas after the first; outgoing messages aren't billed)
 const AWAY_MS = 15_000;        // a dropped player keeps their slot this long, then the game goes on without them
 const LOBBY_COUNT = 180;       // ticks of countdown once everyone is ready
 const START_DELAY_MS = 3000;   // intro text on the clients
