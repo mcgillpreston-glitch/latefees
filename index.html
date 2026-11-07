@@ -2273,14 +2273,23 @@ function gPow(pg){
     if(k==='boombox')g6('EVERY HIT FLOORS THEM',x+50,y+31,'#d9a87c');if(k==='troll')g6('TOUCH HURTS THEM',x+50,y+31,'#d9a87c');});
 }
 function gGear(pg){
-  g6('NINE SLOTS, 270 ITEMS. STATS ROLL WHEN THEY DROP.',W/2,53,'#ffe9c2','center');
-  CATS.forEach((c,i)=>{const x=20+i*39;rect(x,62,34,34,'rgba(28,12,8,.6)');drawIcon(c,ITEMCOL[i%ITEMCOL.length],x+5,67,c+(26+i)%30,24);txt(CAT_NAME[c],x+17,98,'#d9a87c','center',5,null);});
-  g6('RARITY',14,112,pg.c);
+  g6('NINE SLOTS, 270 ITEMS. STATS ROLL WHEN THEY DROP.',W/2,52,'#ffe9c2','center');
+  CATS.forEach((c,i)=>{const x=20+i*39;rect(x,60,34,28,'rgba(28,12,8,.6)');drawIcon(c,ITEMCOL[i%ITEMCOL.length],x+7,62,c+(26+i)%30,20);txt(CAT_NAME[c],x+17,90,'#d9a87c','center',5,null);});
+  g6('RARITY',14,99,pg.c);txt('YOUR BAG: SELECT ON A PAD, I OR \' ON KEYS, GEAR ON A PHONE',W-14,100,'#d9a87c','right',4,null);
   [['c','1 STAT'],['r','2 STATS, X2'],['u','3 BIG STATS'],['s','SET PIECE']].forEach(([r,d],i)=>{const x=14+i*92,R=RAR[r];
-    ctx.save();ctx.shadowColor=R.col;ctx.shadowBlur=SC*2;rect(x,122,10,10,R.col);ctx.restore();g6(R.name,x+14,120,R.col);g6(d,x+14,128,'#ffe9c2');});
-  g6('SETS',14,142,pg.c);g6('WEAR 3+ PIECES TO WEAR THE OUTFIT',W-14,142,'#d9a87c','right');
-  SETS.forEach((st,i)=>{const x=14+i*92;rect(x,152,86,14,st.col);txt(st.name,x+43,155,INK,'center',6,null);txt('BONUS AT '+st.bonus.map(b=>b[0]).join('/')+' PC',x+43,169,'#ffe9c2','center',5,null);});
-  gPara('YOUR BAG: SELECT ON A PAD, I OR \' ON KEYS, GEAR ON A PHONE. 24 SLOTS PER HERO.',W/2,180,'#d9a87c',5,W-28,'center');
+    ctx.save();ctx.shadowColor=R.col;ctx.shadowBlur=SC*2;rect(x,109,9,9,R.col);ctx.restore();txt(R.name,x+13,108,R.col,'left',5,null);txt(d,x+13,115,'#ffe9c2','left',5,null);});
+  g6('SETS',14,125,pg.c);txt('WEAR 3+ PIECES OF ONE SET AND YOUR WHOLE LOOK CHANGES',W-14,126,'#d9a87c','right',4,null);
+  // each set: Rae as she is, an arrow, Rae in the outfit
+  SETS.forEach((st,i)=>{const x=14+i*92,cx=x+43,top=133,fy=top+40;
+    rect(x,top,86,42,'rgba(28,12,8,.6)');rect(x,top,86,1,st.col);
+    ctx.save();ctx.beginPath();ctx.rect(x,top,86,42);ctx.clip();
+    ctx.save();ctx.translate(cx-20,fy);drawHero('rae',{walk:0,still:1,atkP:-1,n:1,gear:null,h:31});ctx.restore();
+    ctx.save();ctx.translate(cx+22,fy);drawHero('rae',{walk:0,still:1,atkP:-1,n:1,gear:{out:st.id},h:31});ctx.restore();
+    ctx.restore();
+    tri(cx-2,top+18,cx-2,top+26,cx+3,top+22,st.col);
+    txt('BEFORE',cx-20,top+2,'#8a5a44','center',4,null);txt('AFTER',cx+22,top+2,st.col,'center',4,null);
+    rect(x,top+43,86,11,st.col);txt(st.name,cx,top+45,INK,'center',6,null);
+    txt('BONUS AT '+st.bonus.map(b=>b[0]).join('/')+' PIECES',cx,top+57,'#ffe9c2','center',4,null);});
 }
 const traitOf=d=>d.armor?['ARMORED','#ff9a3c']:d.block?['BLOCKS','#ffc93c']:d.knock?['KNOCKS','#ff5fa8']:d.shot?['SHOOTS','#c8f05a']:d.ai==='charge'?['CHARGES','#ff9a3c']:d.ai==='lunge'?['POUNCES','#3ad6c0']:d.float?['FLOATS','#c8e8ff']:['CROWDS','#d9a87c'];
 function gMonsters(list){
